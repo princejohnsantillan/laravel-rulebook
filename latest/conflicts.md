@@ -1,90 +1,81 @@
 # Conflicts needing a decision
 
-1. Codebase — Persistence coupling: independent domain entities or Eloquent-backed domains.
-2. Codebase — Test isolation: collaborator-focused tests or request-boundary tests with real persistence.
-3. Codebase — Event payload semantics: event-time values or participating model references.
-4. Codebase — Validation location: model-centered rules or operation-specific validation.
-5. Codebase — Universal TDD obligation: every kind of work or risk-based testing discipline.
-6. Codebase — Form Requests: avoid them or use them for substantial validation.
-7. Codebase — Client validation timing: early feedback or submission-only backend errors.
-8. Codebase — Interactive frontend preference: JavaScript page components or Blade with Livewire and Alpine.
-9. Codebase — Compromised-password policy: permit warnings or require rejection.
-10. Codebase — Reusable-action validation: validate inside actions or require validated inputs.
-11. Codebase — Workflow status: stored current status or event-history-derived state.
-12. Infra — Staging before release: staging QA or direct production delivery.
+**Version:** 2026-10-13 15:06. A conflict is two opposing positions that both score 4 or more. These rows are left out of the rules until you decide.
 
-## Codebase
+## New conflicts in this version
 
-### 1. Persistence coupling
+None. The merge pass proposed one pair — "never add custom controller actions; model a new resource" (score 9) vs "use a single-action invokable controller for an operation with no natural resource" (score 6) — but it was not treated as a conflict: the same sources (Laravel docs, Nuno Maduro's Pest Laravel preset, which explicitly allows `__invoke` alongside the resource methods) back both, so they're complementary.
 
-- Side A: Keep entities independent of the framework and persistence behind replaceable adapters — sources: 037-QaIGN_cTcc8 <https://www.youtube.com/watch?v=QaIGN_cTcc8&t=660s>; 152-NeXQEJNWO5w <https://www.youtube.com/watch?v=NeXQEJNWO5w&t=1980s> <https://www.youtube.com/watch?v=NeXQEJNWO5w&t=3330s>.
-- Side B: Use Eloquent-backed domains and introduce abstractions only when their value is demonstrated — sources: 029-6SBjKOwVq0o <https://www.youtube.com/watch?v=6SBjKOwVq0o&t=2010s>; 049-5DVDewOReoY <https://www.youtube.com/watch?v=5DVDewOReoY&t=60s>.
-- Recommendation: Prefer Eloquent for straightforward workflows; isolate a business core when domain complexity or change costs justify it (framework independence adds mapping and maintenance costs).
+## Pending from the previous version (still undecided)
 
-### 2. Test isolation
+### 1. Codebase — Persistence coupling
 
-- Side A: Design and test object interactions using substituted collaborators — sources: 038-X6y-OyMPqfw <https://www.youtube.com/watch?v=X6y-OyMPqfw> <http://www.slideshare.net/everzet/design-how-your-objects-talk-through-mocking>; 000-ajoFwWwSHTI <https://www.youtube.com/watch?v=ajoFwWwSHTI> <https://code.tutsplus.com/testing-laravel-controllers--net-31456t> (controller-isolation attribution is reconstructed and untimed).
-- Side B: Prioritize request-boundary behavior tests with real persistence — sources: 132-jQ1vYzoCubA <https://www.youtube.com/watch?v=jQ1vYzoCubA> <https://codingjames.ca/my-notes-from-laracon-online-2017/> <https://tighten.com/insights/q-and-a-with-the-speakers-from-laracon-online-2017/> (untimed).
-- Recommendation: Prefer feature tests for application confidence and interaction tests for required collaborator contracts (mocked messages alone cannot establish query or wiring correctness; the decision concerns the default testing boundary, not whether both forms can coexist).
+- Side A: Keep entities independent of the framework and persistence behind replaceable adapters. — score 4: [Mary Perry](https://www.youtube.com/watch?v=vsxoaTgtyjw) (Laracon speaker, 2); [Tighten](https://tighten.com/insights/bol-ep19-jack-mcdade-statamic) (Tier 2, 2)
+- Side B: Use Eloquent-backed domains and introduce abstractions only when their value is demonstrated. — score 6: [Duilio Palacios](https://www.youtube.com/watch?v=1sixoOQliZI) (Laracon speaker, 2); [Mary Perry](https://www.youtube.com/watch?v=vsxoaTgtyjw) (Laracon speaker, 2); [Matt Stauffer](https://www.youtube.com/watch?v=f4QShF42c6E&t=13999s) (Laracon speaker, 2)
+- Status: pending. Both sides still score 4 or more.
 
-### 3. Event payload semantics
+### 2. Codebase — Test isolation
 
-- Side A: Carry immutable IDs and event-time values, avoiding mutable entities — sources: 037-QaIGN_cTcc8 <https://www.youtube.com/watch?v=QaIGN_cTcc8&t=1260s>.
-- Side B: Carry explicit participating Eloquent models in events — sources: 070-FOSpYr7jDog <https://www.youtube.com/watch?v=FOSpYr7jDog&t=3450s> <https://www.youtube.com/watch?v=FOSpYr7jDog&t=4140s>.
-- Recommendation: Use snapshot values for historical business facts and model references when current-state rehydration is intended (queued Eloquent serialization re-fetches database state rather than preserving event-time values).
+- Side A: Design and test object interactions using substituted collaborators. — score 19: [Christoph Rumpel](https://x.com/christophrumpel/status/1985307348659732858) (Tier 1, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3); [Jason McCreary](https://www.youtube.com/watch?v=LaKEFjA25r4) (Laracon speaker, 2); [Luke Downing](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=1500s) (Laracon speaker, 2); [Mary Perry](https://www.youtube.com/watch?v=vsxoaTgtyjw) (Laracon speaker, 2); [Ryuta Hamasaki](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=4011s) (Laracon speaker, 2); [Spatie](https://spatie.be/docs/laravel-event-sourcing/v7/using-aggregates/testing-aggregates) (Tier 2, 2); [@mateusjatenee](https://x.com/mateusjatenee/status/1799167431736172614) (Tier 3, 1); [Jeremy McPeak](https://laracasts.com/episodes/4124) (Tier 3, 1); [Mateus Guimarães](https://laracasts.com/episodes/3047) (Tier 3, 1)
+- Side B: Prioritize request-boundary behavior tests with real persistence. — score 14: [Ashley Hindle](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=31692s) (Laracon speaker (employee), 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3); [Nuno Maduro](https://www.youtube.com/watch?v=IH4-bkDSqyk) (Laracon speaker (employee), 3); [Kath Young](https://www.youtube.com/watch?v=pRaV4BG8zvg) (Laracon speaker, 2); [Matt Stauffer](https://www.youtube.com/watch?v=KBigS5vLwZk) (Laracon speaker, 2); [Instructor Team](https://laracasts.com/episodes/3705) (Tier 3, 1)
+- Status: pending. Both sides still score 4 or more.
 
-### 4. Validation location
+### 3. Codebase — Event payload semantics
 
-- Side A: Center all validation and business rules on the data model — sources: 193-R_0Q5rXGHXg <https://www.youtube.com/watch?v=R_0Q5rXGHXg&t=600s>.
-- Side B: Separate operation-specific validation from persistence — sources: 036-XfXcnjgM6Aw <https://image.slidesharecdn.com/laraconeutalk2014-140829083735-phpapp02/85/Comprehensive-Validation-with-Laravel-4-80-320.jpg> <https://image.slidesharecdn.com/laraconeutalk2014-140829083735-phpapp02/85/Comprehensive-Validation-with-Laravel-4-43-320.jpg>; 018-EcBIzAHIYAw <https://www.youtube.com/watch?v=EcBIzAHIYAw&t=1530s>.
-- Recommendation: Keep business invariants in domain operations and contextual input validation and authorization in Form Requests or shared validators (input rules differ by use case, and non-Eloquent writes bypass model hooks).
+- Side A: Carry immutable IDs and event-time values, avoiding mutable entities. — score 2: [Daniel Coulbourne](https://www.youtube.com/watch?v=OpCT3s4wTI0) (Laracon speaker, 2)
+- Side B: Carry explicit participating Eloquent models in events. — score 0 (no 2022+ evidence)
+- Status: pending. New evidence leans to side A (2 vs 0); the other side no longer reaches 4, so this may be settled — your call.
 
-### 5. Universal TDD obligation
+### 4. Codebase — Validation location
 
-- Side A: Advocate TDD for everyone — sources: 152-NeXQEJNWO5w <https://www.youtube.com/watch?v=NeXQEJNWO5w&t=2730s>.
-- Side B: Judge testing automation by behavioral risk and permit exemptions for low-value work — sources: 071-LbPx8gdgLFc <https://www.youtube.com/watch?v=LbPx8gdgLFc&t=870s>.
-- Recommendation: Use small TDD steps where helpful and prioritize consequential behavior rather than imposing the same discipline on every task (the disagreement concerns universal applicability, not support for testing).
+- Side A: Center all validation and business rules on the data model. — score 0 (no 2022+ evidence)
+- Side B: Separate operation-specific validation from persistence. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/precognition#handling-file-uploads) (Official, 3)
+- Status: pending. New evidence leans to side B (3 vs 0); the other side no longer reaches 4, so this may be settled — your call.
 
-### 6. Form Requests
+### 5. Codebase — Universal TDD obligation
 
-- Side A: Avoid Form Requests because of authorization boilerplate — sources: 195-FNyUX2jVMeE <https://www.youtube.com/watch?v=FNyUX2jVMeE&t=1860s>.
-- Side B: Use Form Requests for substantial validation and custom messages — sources: 232-rkdlJeHTeCY <https://speakerdeck.com/caneco/the-art-of-form-validation>; 246-TdPrfAmbVWY <https://www.youtube.com/watch?v=TdPrfAmbVWY&t=1440s>.
-- Recommendation: Prefer Form Requests for substantial validation and preparation (they make that responsibility explicit; authorization can live elsewhere, with `authorize()` omitted or returning true). Retain this as a preference disagreement rather than treating historical boilerplate as a current framework requirement.
+- Side A: Advocate TDD for everyone. — score 4: [Christoph Rumpel](https://laracasts.com/episodes/2864) (Tier 1, 3); [Luke Downing](https://laracasts.com/episodes/3008) (Tier 3, 1)
+- Side B: Judge testing automation by behavioral risk and permit exemptions for low-value work. — score 18: [Christoph Rumpel](https://www.youtube.com/watch?v=f4QShF42c6E&t=24315s) (Laracon speaker (employee), 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3); [Nuno Maduro](https://x.com/enunomaduro/status/1649035225924616192) (Tier 1, 3); [Bobby Bouwmann](https://www.youtube.com/watch?v=jX3nWXyLank) (Laracon speaker, 2); [Jason McCreary](https://www.youtube.com/watch?v=LaKEFjA25r4) (Laracon speaker, 2); [Kath Young](https://www.youtube.com/watch?v=pRaV4BG8zvg) (Laracon speaker, 2); [Sam Sehnert](https://www.youtube.com/watch?v=IPbxscS0xiY) (Laracon speaker, 2); [Jeffrey Way](https://x.com/jeffrey_way/status/1985327265954009101) (Tier 3, 1)
+- Status: pending. Both sides still score 4 or more.
 
-### 7. Client validation timing
+### 6. Codebase — Form Requests
 
-- Side A: Give early browser validation feedback and avoid obviously invalid submissions — sources: 232-rkdlJeHTeCY <https://speakerdeck.com/caneco/the-art-of-form-validation> <https://van-ons.nl/en/blog/development/4-take-outs-van-laracon-2019-het-laravel-event-van-het-jaar/>.
-- Side B: Submit and display backend errors rather than duplicating validation rules — sources: 260-O9jTwPHB-wA <https://www.youtube.com/watch?v=O9jTwPHB-wA&t=1170s> <https://www.youtube.com/watch?v=O9jTwPHB-wA&t=1200s>.
-- Recommendation: Keep server rules authoritative and add early feedback where useful through simple local checks or Precognition (submission-only feedback reduces duplication but delays feedback; backend rule reuse can reduce that tradeoff).
+- Side A: Avoid Form Requests because of authorization boilerplate. — score 0 (no 2022+ evidence)
+- Side B: Use Form Requests for substantial validation and custom messages. — score 13: [Laravel (official)](https://github.com/laravel/boost/blob/5c0a822e35cce497a595f5ee3eb6418ae2111aeb/.ai/laravel/skill/laravel-best-practices/rules/validation.md#L3-L16) (Official, 3); [Nuno Maduro](https://github.com/pestphp/pest/blob/5.x/src/ArchPresets/Laravel.php) (Tier 1, 3); [Kévin Dunglas](https://www.youtube.com/watch?v=DJJt_2V26V8) (Laracon speaker, 2); [Spatie](https://freek.dev/2441-returning-native-types-from-the-laravel-request-class) (Tier 2, 2); [Jason McCreary](https://laracasts.com/episodes/3638) (Tier 3, 1); [Jeffrey Way](https://laracasts.com/episodes/3881) (Tier 3, 1); [Jeremy McPeak](https://laracasts.com/episodes/4128) (Tier 3, 1)
+- Status: pending. New evidence leans to side B (13 vs 0); the other side no longer reaches 4, so this may be settled — your call.
 
-### 8. Interactive frontend preference
+### 7. Codebase — Client validation timing
 
-- Side A: Prefer JavaScript page components — sources: 224-8to7QtuD3is <https://www.youtube.com/watch?v=8to7QtuD3is&t=60s> <https://www.youtube.com/watch?v=8to7QtuD3is&t=270s>; 279-3MABSYPxpbs <https://www.youtube.com/watch?v=3MABSYPxpbs&t=360s> <https://www.youtube.com/watch?v=3MABSYPxpbs&t=1260s>.
-- Side B: Prefer Blade with selective Livewire and Alpine — sources: 317-K5nk15XOMTI <https://www.youtube.com/watch?v=K5nk15XOMTI&t=30s>; 290-bmtDuUXiiqU <https://www.youtube.com/watch?v=bmtDuUXiiqU&t=200s> <https://www.youtube.com/watch?v=bmtDuUXiiqU&t=401s>.
-- Recommendation: Choose the default stack by interaction requirements and team skills (these are competing stack preferences, and both approaches can avoid a separate API).
+- Side A: Give early browser validation feedback and avoid obviously invalid submissions. — score 3: [Tim MacDonald](https://www.youtube.com/watch?v=MMc2TzBY6l4) (Laracon speaker (employee), 3)
+- Side B: Submit and display backend errors rather than duplicating validation rules. — score 3: [Tim MacDonald](https://www.youtube.com/watch?v=MMc2TzBY6l4) (Laracon speaker (employee), 3)
+- Status: pending. New evidence leans to side B (3 vs 3); the other side no longer reaches 4, so this may be settled — your call.
 
-### 9. Compromised-password policy
+### 8. Codebase — Interactive frontend preference
 
-- Side A: Allow either a warning or rejection for a known compromised password — sources: 320-BBuUrHXh2Ug <https://www.youtube.com/watch?v=BBuUrHXh2Ug&t=480s> <https://www.youtube.com/watch?v=BBuUrHXh2Ug&t=570s>.
-- Side B: Reject known compromised passwords — sources: 340-bFMBHRlEOjo <https://stephenreescarter.net/talks/hacking-laravel/#password-security> <https://stephenreescarter.net/should-you-block-compromised-passwords/> (timestamp unavailable).
-- Recommendation: Reject compromised passwords when creating or changing credentials and document deliberate exceptions (warnings permit continued use of credentials already known to attackers).
+- Side A: Prefer JavaScript page components. — score 2: [Mary Perry](https://www.youtube.com/watch?v=vsxoaTgtyjw) (Laracon speaker, 2)
+- Side B: Prefer Blade with selective Livewire and Alpine. — score 5: [Ashley Hindle](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=31692s) (Laracon speaker (employee), 3); [Kévin Dunglas](https://www.youtube.com/watch?v=DJJt_2V26V8) (Laracon speaker, 2)
+- Status: pending. New evidence leans to side B (5 vs 2); the other side no longer reaches 4, so this may be settled — your call.
 
-### 10. Reusable-action validation
+### 9. Codebase — Compromised-password policy
 
-- Side A: Validate registration input inside the reusable action — sources: 359-0Rq-yHAwYjQ <https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=1890s> <https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=2520s>.
-- Side B: Pass already-validated attributes into actions — sources: 435-BNhbgcNJyAk <https://www.youtube.com/watch?v=BNhbgcNJyAk&t=540s> <https://www.youtube.com/watch?v=BNhbgcNJyAk&t=600s>.
-- Recommendation: Keep actions independent of HTTP requests and ensure every HTTP or CLI caller crosses the same validation policy; validate inside the action when callers could otherwise bypass it (reusability requires a clear validation contract at every entry point). This concerns the action's input contract, separately from model-centered validation in conflict 4.
+- Side A: Allow either a warning or rejection for a known compromised password. — score 1: [Stephen Rees-Carter](https://securinglaravel.com/security-tip-should-you-block-compromised) (Tier 3, 1)
+- Side B: Reject known compromised passwords. — score 1: [Stephen Rees-Carter](https://securinglaravel.com/security-tip-should-you-block-compromised) (Tier 3, 1)
+- Status: pending. New evidence leans to side B (1 vs 1); the other side no longer reaches 4, so this may be settled — your call.
 
-### 11. Workflow status
+### 10. Codebase — Reusable-action validation
 
-- Side A: Persist explicit current status and resolve state objects from it — sources: 402-1A1xFtlDyzU <https://speakerdeck.com/jacobbennett/state-machines-in-laravel> <https://gist.github.com/markjaquith/dcb0c32cf670ae22d1c96a608bff1672> (timestamp unavailable).
-- Side B: Reject status-column-driven designs in favor of event history — sources: 419--mb2L97Yq88 <https://www.youtube.com/watch?v=-mb2L97Yq88&t=450s> <https://www.youtube.com/watch?v=-mb2L97Yq88&t=810s> <https://www.youtube.com/watch?v=-mb2L97Yq88&t=240s>.
-- Recommendation: Use status for current workflow control and durable events when historical reconstruction is required; status may remain an event-derived projection (current state and reconstructable history serve different needs).
+- Side A: Validate registration input inside the reusable action. — score 0 (no 2022+ evidence)
+- Side B: Pass already-validated attributes into actions. — score 3: [Nuno Maduro](https://x.com/enunomaduro/status/2071213127840960842) (Tier 1, 3)
+- Status: pending. New evidence leans to side B (3 vs 0); the other side no longer reaches 4, so this may be settled — your call.
 
-## Infra
+### 11. Codebase — Workflow status
 
-### 12. Staging before release
+- Side A: Persist explicit current status and resolve state objects from it. — score 0 (no 2022+ evidence)
+- Side B: Reject status-column-driven designs in favor of event history. — score 0 (no 2022+ evidence)
+- Status: pending. New evidence leans to side B (0 vs 0); the other side no longer reaches 4, so this may be settled — your call.
 
-- Side A: Validate on staging before automated production deployment — sources: 375-0Rq-yHAwYjQ <https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=33660s> <https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=33840s>.
-- Side B: Omit staging when tests and controlled feature flags support direct production delivery — sources: 548-hpUrWWlBKCY <https://www.youtube.com/watch?v=hpUrWWlBKCY&t=225s> <https://www.youtube.com/watch?v=hpUrWWlBKCY&t=432s>.
-- Recommendation: Keep staging for risky dependencies and migrations unless automated coverage, reversible rollout, and operational confidence justify omitting it (the workflows disagree on the release gate and assume different levels of release risk).
+### 12. Infra — Staging before release
+
+- Side A: Validate on staging before automated production deployment. — score 1: [Matt Stauffer](https://laracasts.com/episodes/3304) (Tier 3, 1)
+- Side B: Omit staging when tests and controlled feature flags support direct production delivery. — score 0 (no 2022+ evidence)
+- Status: pending. New evidence leans to side A (1 vs 0); the other side no longer reaches 4, so this may be settled — your call.
