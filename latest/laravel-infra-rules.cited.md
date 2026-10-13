@@ -1,6 +1,6 @@
 # Laravel Infra Rules
 
-**Version:** 2026-10-13 15:06 (Asia/Manila)
+**Version:** 2026-10-13 18:19 (Asia/Manila)
 
 **Scope:** Running Laravel 13 apps: deployment, CI/CD, scaling and Octane, queues, caching, database operations, observability, and security operations.
 

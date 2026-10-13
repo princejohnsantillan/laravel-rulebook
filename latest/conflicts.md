@@ -1,6 +1,6 @@
 # Conflicts needing a decision
 
-**Version:** 2026-10-13 15:06. A conflict is two opposing positions that both score 4 or more. These rows are left out of the rules until you decide.
+**Version:** 2026-10-13 18:19. A conflict is two opposing positions that both score 4 or more. These rows are left out of the rules until you decide.
 
 ## New conflicts in this version
 

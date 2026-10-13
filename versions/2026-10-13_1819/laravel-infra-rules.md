@@ -1,0 +1,702 @@
+# Laravel Infra Rules
+
+**Version:** 2026-10-13 18:19 (Asia/Manila)
+
+**Scope:** Running Laravel 13 apps: deployment, CI/CD, scaling and Octane, queues, caching, database operations, observability, and security operations.
+
+**Levels:** **Must** = score 7+ · **Should** = score 4–6 · **Consider** = score 2–3. Score = sum of points from independent sources (official 3, tier 1 3, Laracon speaker 2 or 3 for employees, tier 2 2–3, tier 3 1).
+
+**Sub-bullets:** *Why* = the reason behind the rule, quotable when flagging a violation · *Flag when* = an observable signal in a diff that suggests a violation (omitted when not observable in code).
+
+*Written for code-reviewing agents: use these rules to evaluate diffs, not as an implementation checklist.*
+
+## Infrastructure
+
+### Deployment
+
+- **Must** Deploy unfinished or replacement functionality behind feature gates; increase user exposure in monitored cohorts and retain a quick disable path.
+  - Why: controlled exposure limits the impact of regressions while allowing incremental delivery.
+  - Flag when: A release enables unfinished or replacement functionality for all users without a feature gate or staged rollout.
+- **Must** Define reproducible runtimes (PHP version, extensions, services) and keep data independent of rebuildable containers.
+  - Why: prevents runtime mismatches and repeated manual environment setup.
+  - Flag when: Container rebuild deletes the only copy of database data.
+- **Must** Automate tested releases with health checks, atomic or blue-green/canary rollout, rollback paths, and post-release error and latency checks.
+  - Why: enables rapid recovery to a previous release when deployment fails.
+  - Flag when: Deployment pipeline removes test gates or rollback steps.
+- **Must** Build dependencies and assets from a versioned commit into an immutable release, separate from deploy, and reload processes to activate it; never edit production code in place.
+  - Why: rebuilding alone leaves old code running until deployed processes are replaced or reloaded.
+  - Flag when: Deployment rebuilds an image without updating or restarting running application instances.
+- **Must** Prepare config, route, event, and view caches for production as part of the release pipeline once the target configuration is available; avoid config caching during routine local development.
+  - Why: prepared caches reduce repeated framework work and must reflect the target environment.
+  - Flag when: The production release pipeline omits framework cache preparation or prepares config caches before target environment values are available.
+- **Must** Use a managed platform (Laravel Cloud, Forge, Vapor) when it cuts operating effort at acceptable cost.
+  - Why: reduces the setup and maintenance effort needed for deployment automation.
+- **Must** Supervise persistent application processes with automatic restarts and configure their proxies and connection limits for the expected workload.
+  - Why: long-running services need recovery after failure and sufficient connection capacity.
+  - Flag when: Persistent application processes lack a supervisor, restart policy, or required proxy and connection-limit configuration.
+- **Must** Evaluate Octane (FrankenPHP, Swoole, RoadRunner) against your workload before adopting it.
+  - Why: reduces repeated framework boot overhead where persistent workers benefit the workload.
+- **Must** Isolate production, staging, and preview environments with separate configuration, secrets, resources, and deployment settings.
+  - Why: environment isolation prevents test activity or configuration changes from affecting production.
+  - Flag when: Non-production and production deployments share credentials or mutable backing resources without deliberate isolation.
+- **Must** Keep config and secrets out of code, and reload consumers after changing them.
+  - Why: allows service endpoints and credentials to change without source edits.
+  - Flag when: Application code hard-codes deployment credentials or backing-service endpoints.
+- **Should** Build assets with Vite (hashed filenames, consistent `ASSET_URL`) and give only versioned URLs long cache lifetimes.
+  - Why: keeps changed assets fresh while allowing unchanged assets to remain cached.
+  - Flag when: Long cache lifetimes applied to asset URLs without content versioning.
+- **Should** Keep Laravel and PHP on supported, compatible versions and plan regular framework and runtime upgrades.
+  - Why: maintained compatible versions retain security fixes and reduce upgrade backlog.
+  - Flag when: A deployment pins an unsupported Laravel or PHP version or introduces an incompatible runtime upgrade.
+- **Should** Use multi-stage production images with only runtime artifacts; exclude compilers, dev deps, and Sail.
+  - Why: reduces production image size by leaving build tools and test dependencies behind.
+  - Flag when: Final production image includes compilers, development dependencies, or Sail tooling.
+- **Should** Allow only key-based SSH for authorized users and firewall everything but required ports (IPv4 and IPv6).
+  - Why: restricts server access to authorized users and required inbound traffic.
+  - Flag when: SSH config enables password login or firewall config allows unnecessary inbound ports.
+- **Should** Choose a trusted minimal PHP base image after verifying versions, extensions, and libc compatibility.
+  - Why: reduces image size while retaining required extensions and compatible runtime libraries.
+- **Should** Gate startup on application-level readiness checks, not open ports or start order.
+  - Why: prevents dependent operations from running before required services are ready.
+  - Flag when: Startup runs migrations after only a port check or unconditional service start.
+- **Should** Ship structured logs from every host and process (stdout/stderr) to a searchable destination.
+  - Why: makes access and operational events auditable across hosts.
+  - Flag when: Production logging switches to uncollected local files or discards process output.
+- **Should** Use Sail or an equivalent container dev setup with wrappers for PHP, Composer, Artisan, and asset commands.
+  - Why: runs development commands with the application’s actual PHP runtime and dependencies.
+- **Should** Automate ordered release steps (env setup, `storage:link`, migrations) using the release's own code and config.
+  - Why: release tasks need the deployed code and configuration to operate against the intended application environment.
+  - Flag when: Deployment runs migrations before environment setup or from a different release directory.
+- **Should** Configure APP_URL and the production primary domain to the intended canonical application URL.
+  - Why: correct canonical URLs keep generated links and redirects on the intended production domain.
+  - Flag when: Production APP_URL or primary-domain configuration points to a temporary or incorrect host.
+- **Should** Declare application listeners and service routing explicitly, and connect containers through stable service names rather than instance IP addresses.
+  - Why: consistent service discovery and port routing survive instance replacement.
+  - Flag when: Container clients use instance IP addresses or service selectors and target ports do not match the application workload.
+- **Should** Refresh published vendor assets when upgrading dependencies that require publishing, and automate this in the update workflow.
+  - Why: stale published assets can become incompatible with upgraded package code.
+  - Flag when: A dependency upgrade leaves required published vendor assets stale or omits its asset refresh step.
+- **Consider** Configure a cron entry to run php artisan schedule:run every minute when using cron to trigger Laravel's scheduler.
+  - Why: a single scheduler entry lets application code control task timing.
+  - Flag when: Cron deployment omits schedule:run or creates separate cron entries for individual Laravel scheduled tasks.
+- **Consider** Grant the application runtime permission to write to storage and bootstrap/cache.
+  - Why: the framework needs writable runtime and cache directories to operate.
+  - Flag when: Deployment ownership or permissions prevent the application process from writing to storage or bootstrap/cache.
+- **Consider** Group scheduled tasks when they genuinely share frequency or execution constraints.
+  - Why: shared schedule definitions keep related task constraints consistent.
+  - Flag when: Several related scheduled tasks duplicate the same frequency and constraints with inconsistent settings.
+- **Consider** Maintain infrastructure code in a version-controlled repository separate from application repositories.
+  - Why: independent infrastructure versioning supports reusable and controlled operational changes.
+  - Flag when: Infrastructure definitions are embedded in application repositories rather than maintained in a separate infrastructure repository.
+- **Consider** Place application compute and backing resources in the same region where practical.
+  - Why: regional proximity reduces network latency and cross-region traffic.
+  - Flag when: Application compute and frequently accessed backing resources are deployed in different regions without a stated requirement.
+- **Consider** Prefer timezone-independent scheduling; account for skipped or repeated executions when local-time schedules are necessary.
+  - Why: daylight-saving transitions can skip tasks or execute them twice.
+  - Flag when: A timezone-based schedule assumes each local time occurs exactly once without handling daylight-saving transitions.
+- **Consider** Restrict environment-specific scheduled tasks to their intended application environments.
+  - Why: environment constraints prevent inappropriate jobs from running in other deployments.
+  - Flag when: A production-only or staging-only scheduled task has no environment restriction.
+- **Consider** Upload files that exceed application request limits directly to object storage using authorized client uploads.
+  - Why: direct uploads avoid routing oversized request bodies through constrained application servers.
+  - Flag when: Uploads exceeding backend request limits are routed through the application rather than an authorized direct-storage upload path.
+- **Consider** Declare infrastructure desired state in an authoritative source and reconcile resources against it with repeatable, retry-safe operations.
+  - Why: declarative reconciliation repairs drift and makes infrastructure reproducible.
+  - Flag when: Infrastructure controllers use conflicting desired-state sources, omit drift reconciliation, or duplicate side effects on retries.
+- **Consider** Keep legacy data projections current during incremental migration and retire the legacy system only after a sufficient observation period.
+  - Why: continued synchronization preserves fallback options until the replacement is proven.
+  - Flag when: A migration stops legacy synchronization or removes the legacy system before replacement behavior has been observed in production.
+
+### CI/CD
+
+- **Must** Enforce style and static analysis on new code automatically and baseline legacy violations to reduce over time.
+  - Why: introduces automated checks without requiring a complete legacy cleanup first.
+  - Flag when: CI disables style or static analysis checks, or baselines new violations.
+- **Must** Run tests, style, static analysis, and builds in CI and require them to pass (plus an approved PR) before merge and release.
+  - Why: prevents faulty changes from reaching production.
+  - Flag when: CI deploys after failed checks or skips executing test targets.
+- **Must** Integrate and deploy small increments frequently.
+  - Why: reduces merge conflicts, deployment risk, and feedback delay.
+- **Must** Centralize deploy and ops actions in a visible shared tool or bot.
+  - Why: makes deployments repeatable instead of depending on individual developers’ machines.
+- **Must** Favor meaningful feature and integration tests over chasing a coverage number.
+  - Why: meaningful behavior tests provide useful feedback without pursuing an arbitrary coverage target.
+- **Should** Pin third-party CI actions and fetched workflow dependencies to verified immutable revisions and grant workflows only necessary permissions.
+  - Why: verified immutable references and narrow permissions reduce supply-chain exposure.
+  - Flag when: Actions use mutable tags, fetched references lack authenticity checks, or workflow permissions exceed job needs.
+- **Should** Keep CI feedback fast by caching dependencies and removing unnecessary work while retaining required checks.
+  - Why: short feedback cycles support frequent integration and delivery.
+  - Flag when: CI repeatedly installs uncached dependencies or adds redundant setup and checks.
+- **Should** Review your own pull request, confirm CI passes, and provide testing instructions and implementation reasoning before requesting review.
+  - Why: reviewers can evaluate behavior and design with sufficient context.
+  - Flag when: Pull requests request review with failing checks or omit needed testing instructions and reasoning.
+- **Should** Generate coverage reports in CI and enforce any agreed minimum coverage threshold.
+  - Why: coverage reports and agreed thresholds reveal test gaps and coverage regressions.
+  - Flag when: CI omits coverage reporting or bypasses the agreed minimum.
+- **Consider** Audit application dependencies for vulnerabilities in CI and on a recurring schedule, failing checks for vulnerabilities covered by the project policy.
+  - Why: recurring checks catch vulnerabilities disclosed after a release.
+  - Flag when: Dependency audits are absent, bypassed, or run only when dependencies change.
+- **Consider** Balance large CI test suites across shards using measured test durations and keep timing data current.
+  - Why: duration-based distribution reduces slow shards and feedback time.
+  - Flag when: Large suites are sharded by file count despite uneven runtimes or use stale timing data.
+- **Consider** Install CI dependencies from committed lockfiles, provision required application configuration, and test supported runtime and framework versions.
+  - Why: reproducible setup and compatibility testing expose environment-dependent failures.
+  - Flag when: CI updates dependencies instead of installing locked versions, omits required test setup, or tests unsupported version combinations.
+- **Consider** Regenerate API documentation and response fixtures automatically and publish client-facing API artifacts through CI.
+  - Why: generated artifacts stay consistent with the implementation.
+  - Flag when: API changes leave generated documentation or response fixtures stale.
+- **Consider** Use staging for release QA and automate staging and production deployments when their designated branches are merged.
+  - Why: pre-production validation and repeatable deployment support frequent releases.
+  - Flag when: Release workflows bypass staging QA or require manual deployment after approved merges.
+- **Consider** Allow delivery from main directly to production when passing automated tests and controlled feature rollout provide sufficient confidence to omit staging.
+  - Why: adequate automated safeguards can support a shorter release feedback loop.
+  - Flag when: Direct production delivery lacks passing tests or controlled feature rollout.
+- **Consider** Automate checks for required pull-request labels and workflow metadata.
+  - Why: early feedback exposes missing information needed to progress a review.
+  - Flag when: Required review labels or metadata rely entirely on manual checks.
+- **Consider** Automate container image builds and publication with scoped registry permissions, retention cleanup, and vulnerability scans.
+  - Why: repeatable image delivery limits registry access and detects vulnerable artifacts.
+  - Flag when: Image publication lacks scoped permissions, cleanup, or vulnerability scanning.
+- **Consider** Choose a merge strategy that preserves useful history for bisecting regressions.
+  - Why: useful commit history helps locate regressions.
+  - Flag when: Merge settings discard independently useful commits without an agreed history policy.
+- **Consider** Keep the main branch stable once the application is live.
+  - Why: a stable main branch provides a dependable basis for releases.
+  - Flag when: The workflow intentionally merges broken or unreleasable changes into main.
+- **Consider** Keep untrusted fork code out of privileged CI workflows such as pull_request_target.
+  - Why: untrusted code can steal secrets or misuse privileged tokens.
+  - Flag when: A privileged workflow checks out and executes code from an untrusted fork.
+- **Consider** Provision browser-accessible review environments automatically with migrations and representative factory or seed data.
+  - Why: realistic review environments make behavior easier to verify before merge.
+  - Flag when: Review environments require manual setup or lack representative test data.
+- **Consider** Store deployment credentials in CI secret storage and prevent sensitive values from appearing in workflow files, repositories, or public logs.
+  - Why: protecting credentials and logs prevents accidental disclosure.
+  - Flag when: Workflow changes embed credentials or print sensitive values to public logs.
+- **Consider** Validate AI-assisted deployment and remediation automation in a testing environment before enabling production actions, starting with understood operations.
+  - Why: testing establishes safe behavior before automation can affect production.
+  - Flag when: New AI-assisted operations receive production access before validation in a testing environment.
+
+### Scaling, Octane & performance
+
+- **Must** Use on-demand or serverless capacity for suitable workloads, accounting for quotas, cold starts, and cost.
+  - Why: capacity can grow with demand without permanently paying for peak resources.
+- **Must** Measure application and infrastructure bottlenecks and address observed or forecast capacity needs before adding architectural complexity.
+  - Why: measured demand guides effective query, caching, resource, and architecture changes.
+  - Flag when: Infrastructure or architecture changes lack workload measurements or a demonstrated capacity need.
+- **Must** Avoid unbounded memory retention in long-lived workers, monitor memory growth, and configure finite worker recycling as a backstop.
+  - Why: retained objects accumulate across requests and can eventually exhaust worker memory.
+  - Flag when: Long-lived workers append indefinitely to retained collections or disable finite request recycling without memory-growth controls.
+- **Must** Fix slow queries and request work and verify OPcache before benchmarking Octane's benefit.
+  - Why: octane reduces repeated framework initialization but leaves expensive application work intact.
+- **Must** Never keep request or user state in statics, globals, or singletons under Octane; resolve per-request dependencies at runtime.
+  - Why: persistent workers can reuse stale user data across requests.
+  - Flag when: An Octane singleton or static property retains request objects or user-specific values.
+- **Must** Run suitable independent operations concurrently with adequate worker capacity, distinguishing I/O overlap from CPU parallelism.
+  - Why: independent work can reduce waiting when the runtime and worker resources support its execution.
+  - Flag when: Concurrent tasks depend on each other or assume coroutines alone run CPU-bound work across cores.
+- **Must** Enable OPcache in production and reset it (and reload Octane/queues) on each deploy.
+  - Why: reusing compiled bytecode avoids recompilation, while runtime refreshes prevent serving stale code.
+  - Flag when: Production PHP configuration disables OPcache or deployment retains cached code with timestamp validation disabled.
+- **Must** Keep sessions, caches, queues, uploaded files, and maintenance-mode state in shared stores when deploying multiple application replicas.
+  - Why: shared state keeps replicas consistent and allows any instance to handle a request.
+  - Flag when: Replicated applications depend on local sessions, uploaded files, or instance-local maintenance state.
+- **Must** Add load balancing across nodes only when one node can't meet latency and throughput targets.
+  - Why: distributing requests maintains throughput and response times when a single server reaches capacity.
+- **Must** Deploy redundant application and worker instances across failure domains and allow replacement instances to become ready before removing existing capacity.
+  - Why: redundancy preserves availability during instance failures and rolling infrastructure changes.
+  - Flag when: An availability-sensitive deployment has a single replica or removes active capacity before replacements are ready.
+- **Must** Precompute expensive derived values and aggregates and refresh them on change, rather than recomputing on every read.
+  - Why: precomputed read models avoid repeatedly executing expensive relational queries and storefront calculations.
+  - Flag when: A read endpoint rebuilds expensive aggregates or derived catalog values on every request.
+- **Should** Authorize private and presence channels against resource access and persist messages before broadcasting.
+  - Why: channel membership checks restrict sensitive events, while persistence retains messages beyond live delivery.
+  - Flag when: Channel authorization returns true unconditionally, or a durable message is broadcast before being saved.
+- **Should** For realtime, run Reverb with queue workers for broadcasts and Echo on the frontend.
+  - Why: the socket server delivers broadcast events to frontend listeners through persistent connections.
+  - Flag when: Deployment removes queue workers while application events still implement `ShouldBroadcast`.
+- **Should** Keep Reverb event-loop callbacks small and non-blocking.
+  - Why: blocking callbacks stall the shared event loop and can deadlock work awaiting later iterations.
+  - Flag when: Reverb callbacks perform synchronous database queries, HTTP calls, or waits for future ticks.
+- **Should** Pick polling, WebSockets, or streaming based on freshness needs and cost; bound any polling.
+  - Why: frequent polling creates repeated HTTP work and delays visibility of server updates.
+  - Flag when: Polling continues after the relevant operation completes or the component is removed.
+- **Should** Run Reverb under a supervisor behind a proxy with connection limits, and monitor it with Pulse.
+  - Why: process management keeps Reverb running, and connection limits determine how many clients can connect.
+  - Flag when: Reverb Supervisor configuration disables automatic startup or restart.
+- **Should** Run production Octane behind a web server or reverse proxy under a process monitor, and reload workers on deployment.
+  - Why: supervision maintains service availability and worker reloads apply deployed code.
+  - Flag when: Production Octane lacks process supervision or deployments do not reload its persistent workers.
+- **Should** Size Reverb by concurrent connections and use Redis pub/sub to scale it horizontally.
+  - Why: shared Redis propagates broadcasts to subscribers connected to every Reverb instance.
+  - Flag when: Multiple Reverb instances are configured without shared Redis pub/sub scaling.
+- **Should** Validate expected production traffic with sustained load tests that assess latency, throughput, and failures together.
+  - Why: throughput alone can conceal poor response times and overload failures.
+  - Flag when: Capacity claims rely only on peak requests per second without sustained latency and failure measurements.
+- **Should** Eager-load each page's relationships and detect lazy loading outside production.
+  - Why: lazy relationship access adds a database query per model in a collection.
+  - Flag when: A loop accesses unloaded relationships without collection-wide eager loading.
+- **Should** Pass changing inputs and required user context explicitly to independently deployable serverless functions; keep shared state in durable external storage.
+  - Why: explicit invocation inputs and external state allow functions to run independently across invocations.
+  - Flag when: A function relies on deployment-time values for changing inputs or process-local state shared between invocations.
+- **Should** Pool or proxy database connections when high concurrency or serverless invocations could exhaust the database connection limit.
+  - Why: connection pooling bounds database connection pressure from rapidly expanding application capacity.
+  - Flag when: Concurrent functions or application workers open database connections without accounting for the database connection limit.
+- **Should** Reuse HTTP clients or pooled upstream connections for frequent outbound calls, keeping request-specific credentials and context out of retained client state.
+  - Why: connection reuse reduces repeated connection and TLS setup in long-lived processes or proxies.
+  - Flag when: Frequent calls create a fresh client or connection while a safe reusable client or pool is available.
+- **Should** Use SQL counts and aggregates instead of hydrating models; use simple pagination when a total isn't needed.
+  - Why: database aggregates avoid model hydration, date conversion, and memory use for data needed only as counts.
+  - Flag when: Related models are loaded and counted in PHP when only their count is used.
+- **Should** Verify shared-store clustering support for every consuming Laravel component and configure the client for the chosen topology.
+  - Why: components and clients may impose different requirements on clustered infrastructure.
+  - Flag when: A Redis cluster is introduced without checking consuming components or declaring its cluster topology.
+- **Should** When measured database capacity requires partitioning, choose a useful boundary, persist shard routing, and handle cross-partition queries explicitly.
+  - Why: partitioned data requires durable routing and cannot assume ordinary cross-shard joins work unchanged.
+  - Flag when: Sharded queries lack durable entity-to-shard mapping or assume transparent cross-shard relationships.
+- **Should** Choose an Octane runtime and concurrency model only after verifying required features and compatibility of I/O clients and runtime hooks.
+  - Why: runtime-specific capabilities and I/O support determine whether persistent or concurrent execution works correctly.
+  - Flag when: A runtime switch assumes identical Octane features or coroutine support from all I/O dependencies.
+- **Consider** Configure trusted proxies when TLS terminates at a load balancer so Laravel receives the correct scheme and client address.
+  - Why: proxy-aware request handling preserves correct HTTPS behavior and client identity.
+  - Flag when: TLS terminates upstream while trusted proxy configuration does not reflect the deployed proxy chain.
+- **Consider** Keep workers awake for uninterrupted background work and ensure scale-to-zero sleep policies are compatible with scheduled task frequency.
+  - Why: sleeping compute can interrupt background processing or fail to wake reliably for scheduled work.
+  - Flag when: Scale-to-zero is enabled for uninterrupted workers or scheduled task intervals are shorter than the configured sleep timeout.
+- **Consider** Monitor burstable-instance CPU credits and use sustained-capacity instances for consistently busy workloads.
+  - Why: sustained CPU demand can exhaust credits and increase burstable-instance costs.
+  - Flag when: A consistently busy burstable deployment has no CPU-credit monitoring or capacity reassessment.
+- **Consider** Run shared scheduled tasks on one replica unless execution on every replica is intentional.
+  - Why: distributed scheduling otherwise duplicates work as replica counts grow.
+  - Flag when: A shared scheduled task lacks onOneServer or equivalent distributed coordination in a replicated deployment.
+- **Consider** Size and isolate shared Reverb services by aggregate connection and message demand, using separate application configurations for each application.
+  - Why: shared socket services need sufficient capacity and distinct application routing.
+  - Flag when: Several applications share a Reverb service without separate application entries or aggregate capacity planning.
+- **Consider** Stream large files instead of loading them into memory.
+  - Why: full-file buffering multiplies memory demand under concurrent requests, increasing failures and latency.
+  - Flag when: Large file transfers use `file_get_contents()` or `Storage::get()` to buffer the entire file.
+- **Consider** Subscribe clients only to realtime channels whose events they need.
+  - Why: unnecessary subscriptions consume connection and message-processing capacity.
+  - Flag when: Producer-only clients subscribe to streams they never consume.
+- **Consider** Add read replicas for measured read bottlenecks, route writes to the primary, and account for write conflicts before choosing multi-primary replication.
+  - Why: read replicas do not increase primary write capacity and conflicting multi-primary writes can reduce throughput.
+  - Flag when: Read replicas are introduced as a remedy for primary write saturation, or multi-primary replication ignores concurrent writes to the same rows.
+- **Consider** Aggregate high-volume realtime events and publish snapshots at a bounded cadence that clients can render.
+  - Why: bounded updates prevent event volume from overwhelming client rendering and message transport.
+  - Flag when: Every backend event is forwarded to the UI despite event rates exceeding useful rendering frequency.
+- **Consider** Reassess database connections and memory, application and queue process counts, and operating-system limits together when increasing capacity.
+  - Why: adding workers can move the bottleneck to shared services or process and file limits.
+  - Flag when: Worker or node counts increase without reviewing shared database and operating-system capacity.
+- **Consider** Send preload Link headers or HTTP 103 Early Hints for known critical assets before slow response generation when the serving stack supports them.
+  - Why: early resource discovery lets browsers fetch critical assets while the final response is being prepared.
+  - Flag when: Critical assets are discoverable only after expensive HTML response generation despite supported early hints.
+
+### Queues & workers
+
+- **Must** Queue slow side effects (mail, files, broadcasts, index updates) and expose progress or results durably.
+  - Why: lets requests return without waiting for slow work that can finish in the background.
+  - Flag when: Request handlers synchronously send mail or process files that the response does not require.
+- **Must** Supervise long-running workers (Supervisor/systemd) with auto-restart, logs, and graceful shutdown long enough for in-flight jobs; restart them on deploy.
+  - Why: keeps workers running after exits and loads updated application code on deployment.
+  - Flag when: Worker config disables automatic restart, or deployment scripts omit worker restart.
+- **Must** Make jobs idempotent: deduplicate with stable IDs and DB uniqueness, and record remote run IDs before retrying.
+  - Why: prevents repeated events and retries from duplicating workflow effects or paid remote runs.
+  - Flag when: Retried jobs submit remote work again without checking a persisted run ID.
+- **Must** Batch independent jobs and chain dependent ones so steps run only after upstream success.
+  - Why: prevents dependent steps from consuming incomplete upstream results.
+  - Flag when: Dependent jobs are dispatched independently without checking prerequisite completion.
+- **Must** Monitor queue backlog and job runtime, and tune worker concurrency or autoscaling to the required clearance time and downstream capacity.
+  - Why: detects stalled processing and sizes workers to actual queued demand.
+  - Flag when: Queue scaling relies only on CPU despite growing I/O-bound backlogs, or queue backlog has no monitoring.
+- **Must** Use overlap locks for mutually exclusive jobs or scheduled tasks, and single-server locks for tasks that must run once across scheduler nodes; set lock expiry and release behavior deliberately.
+  - Why: prevents concurrent executions from contending for the same work or resources.
+  - Flag when: Exclusive work lacks WithoutOverlapping/withoutOverlapping or multi-node singleton schedules omit onOneServer().
+- **Must** Capture user and tenant identity when dispatching identity-dependent jobs, and explicitly restore or resolve that context during execution.
+  - Why: keeps background authorization, credentials, and attribution tied to the correct user and tenant.
+  - Flag when: A queued job relies on Auth::user() or ambient tenant state without an explicit dispatch identity.
+- **Must** Persist workflow progress and failures and enqueue IDs, not big payloads, so workers can reload state and recover.
+  - Why: allows failed work to recover without rerunning entire workflows or leaving users indefinitely waiting.
+  - Flag when: Workflow progress exists only in queue payloads, or exhausted retries never persist failure status.
+- **Must** Separate queues and worker pools by priority and resource needs; route heavy jobs to suitable machines.
+  - Why: matches worker resources to workload needs while giving urgent work priority.
+  - Flag when: Heavy and urgent jobs share one queue and worker pool without priority routing.
+- **Must** Set deliberate retry deadlines, attempt budgets, backoff, and exception limits for jobs that may be released repeatedly; return immediately after releasing a job.
+  - Why: prevents releases from exhausting attempts prematurely or continuing work after rescheduling.
+  - Flag when: A frequently released job has a small fixed attempt budget, no bounded retry deadline, or continues after release().
+- **Should** Dispatch jobs, queued mail, and queued notifications that depend on transactional writes after the transaction commits.
+  - Why: prevents workers from reading uncommitted or rolled-back application state.
+  - Flag when: Jobs depending on transactional writes are dispatched without after_commit or afterCommit().
+- **Should** Keep job and worker timeouts below `retry_after` (or SQS visibility timeout) so stalled jobs end before retries overlap.
+  - Why: prevents a still-running job from being retried concurrently.
+  - Flag when: Job or worker timeout equals or exceeds retry_after or SQS visibility timeout.
+- **Should** Limit concurrent DB-writing jobs to downstream capacity and back off retries during outages.
+  - Why: turns traffic spikes into manageable backlogs and preserves jobs through database outages.
+  - Flag when: Database failures trigger immediate job retries without delay or backoff.
+- **Should** Apply shared rate-limiting middleware to queued calls using a key scoped to the downstream quota.
+  - Why: keeps concurrent workers within the external service quota.
+  - Flag when: Jobs call a rate-limited provider without a shared limiter, or each worker uses an independent quota key.
+- **Should** Bound job and scheduled-task execution, and set timeouts on blocking network or process calls as well as the worker.
+  - Why: prevents blocking operations from running indefinitely beyond the intended execution budget.
+  - Flag when: Long-running work has no execution bound, or blocking clients omit their own timeouts.
+- **Should** Debounce repeated updates using a stable logical identity when only the latest dispatch should run; do not combine DebounceFor with ShouldBeUnique.
+  - Why: collapses redundant updates without incompatible uniqueness locks.
+  - Flag when: A DebounceFor job or listener implements ShouldBeUnique, or repeated recomputations lack a stable debounce identity.
+- **Should** Run workers for every asynchronous connection and queue that the application dispatches to, including failover destinations.
+  - Why: prevents accepted jobs from remaining unprocessed on unattended queues.
+  - Flag when: A dispatched connection or queue has no corresponding worker, including a non-Redis Horizon failover destination.
+- **Should** Strip unneeded loaded model relationships from queued payloads and reapply required relationship constraints inside the job.
+  - Why: bounds payload size and preserves the intended subset when relationships are reloaded.
+  - Flag when: A job serializes large loaded relationships or assumes dispatch-time relationship constraints survive deserialization.
+- **Should** Use deferred or after-response execution only for lightweight work that can tolerate loss; use a durable queue when retries or crash recovery are required.
+  - Why: matches execution guarantees to the consequences of losing background work.
+  - Flag when: Work requiring retries or durability uses defer(), a deferred connection, or after-response execution.
+- **Should** When using Horizon, configure Redis queues and supervisors for each deployment environment, including process counts and resource limits, and keep a worker-management service running.
+  - Why: ensures monitored Redis queues have workers with the intended capacity and limits.
+  - Flag when: Horizon uses a non-Redis queue, lacks an environment supervisor, or is replaced by an observability-only service.
+- **Should** Process large exports and imports in batches or lazy streams sized by memory and runtime, not ID counts alone.
+  - Why: bounds memory and runtime while avoiding uneven chunks caused by differing related-data volumes.
+  - Flag when: Export or import loads the entire dataset with get() before processing.
+- **Consider** Avoid capturing $this in serialized queue chain, batch, and catch callbacks; capture the data they need explicitly.
+  - Why: avoids serializing callback owners into delayed queue execution.
+  - Flag when: A serialized queue callback references $this.
+- **Consider** Avoid database statements that cause implicit commits inside batched jobs wrapped in transactions.
+  - Why: preserves the transaction boundaries expected by batch execution.
+  - Flag when: A transactional batched job executes DDL or another statement that implicitly commits.
+- **Consider** Choose explicit SQS FIFO message groups for queued mail and notifications according to the ordering scope, and deduplication identifiers when required.
+  - Why: preserves intended ordering without unnecessarily serializing unrelated recipients.
+  - Flag when: FIFO mail or notifications omit grouping despite requiring recipient-specific ordering or concurrency.
+- **Consider** Define how jobs handle models deleted before execution; discard them automatically only when missing models make the work safely unnecessary.
+  - Why: avoids pointless retries while retaining meaningful missing-model failures.
+  - Flag when: A job requiring a model has no deliberate missing-model policy, or silently drops consequential work.
+- **Consider** Dispatch slow scheduled work to queued jobs or eligible background commands so it does not delay other due tasks.
+  - Why: keeps the scheduler responsive, especially for sub-minute schedules.
+  - Flag when: A slow foreground scheduled task blocks other tasks due in the same scheduler loop.
+- **Consider** Isolate queue names or namespaces across projects and environments sharing a queue backend.
+  - Why: prevents workers from consuming another application or environment's jobs.
+  - Flag when: Independent projects or environments share a backend queue name without isolation.
+- **Consider** Keep SQS overflow payloads in a dedicated cache store that retains them until processing and is protected from unrelated cache flushes.
+  - Why: prevents oversized queued messages from losing the payload referenced by SQS.
+  - Flag when: SQS overflow shares a routinely flushed cache store or expires payloads before workers can consume them.
+- **Consider** Profile representative requests, commands, and workers before changing concurrency or capacity.
+  - Why: identifies costly operations at realistic scale before adding concurrency or infrastructure complexity.
+- **Consider** Schedule regular pruning of stored queue batch metadata with an appropriate retention period.
+  - Why: prevents completed batch records from accumulating indefinitely.
+  - Flag when: Batching is enabled without scheduled queue:prune-batches cleanup.
+- **Consider** Use a shared central cache for uniqueness and debounce coordination across all dispatching servers.
+  - Why: lets distributed dispatchers coordinate the same logical work.
+  - Flag when: Unique or debounced jobs or listeners use a server-local cache in a multi-server deployment.
+- **Consider** Use horizon:forget and horizon:clear for failed-job deletion and queue clearing when Horizon manages the queues.
+  - Why: keeps Horizon tracking consistent with destructive queue operations.
+  - Flag when: Horizon-managed queues are cleared with queue:clear or failed jobs are deleted with queue:forget.
+- **Consider** Use propagated Context for queue logging and tracing metadata rather than threading that metadata through job business parameters.
+  - Why: preserves observability context across dispatch and execution without cluttering job interfaces.
+  - Flag when: Logging or tracing metadata is repeatedly passed through job parameters instead of propagated Context.
+- **Consider** Use queued closures for trivial background work, remembering models are re-fetched at run time.
+  - Why: runs simple background tasks without a job class while reloading captured models at execution time.
+- **Consider** Bundle provider calls when a batch API is available, flushing at a bounded batch size or maximum waiting time.
+  - Why: reduces per-call overhead while bounding latency for low-volume work.
+  - Flag when: Provider batching waits only for a full batch with no maximum wait, or emits individual calls despite a batching requirement.
+- **Consider** Configure a queue failover connection when dispatch must survive a primary queue outage.
+  - Why: provides an alternate dispatch path during queue backend failures.
+  - Flag when: Critical dispatch has no alternate connection when the primary backend is unavailable.
+- **Consider** Put dependency circuit-breaker checks and outcome tracking in reusable job middleware keyed by dependency.
+  - Why: lets related jobs share outage protection while keeping business work in the job.
+  - Flag when: Related jobs duplicate breaker logic or use isolated breaker state for the same dependency.
+
+### Caching
+
+- **Must** Optimize slow operations before caching; caching must not hide backend cost.
+  - Why: fast cache hits conceal slow misses and expiry-driven backend load spikes.
+- **Must** Cache public unauthenticated responses at a CDN/proxy with explicit freshness and purge integration.
+  - Why: proxy cache hits serve reusable responses without executing Laravel.
+  - Flag when: Public response caching lacks explicit freshness headers or invalidation for content that cannot wait for expiry.
+- **Must** Invalidate only affected entries using tags or dependency keys.
+  - Why: dependency invalidation removes changed results while preserving reusable unaffected components.
+  - Flag when: A single model update flushes the entire cache instead of affected entries.
+- **Must** Choose a cache store whose persistence, cross-server visibility, atomic operations, and operating cost meet its consumers’ requirements.
+  - Why: coordination and operational signals depend on a suitable store accessible to every participating process.
+  - Flag when: Distributed locks use isolated stores, restart signals use a nonpersistent store, or serverless caching relies on ephemeral local files.
+- **Must** Use `Cache::flexible()`-style stale-while-revalidate only within an acceptable staleness window.
+  - Why: bounded stale delivery avoids refresh latency and simultaneous origin work for content that tolerates staleness.
+  - Flag when: Stale cache windows exceed the documented freshness requirement for the cached data.
+- **Must** Include every variation (locale, auth, query params) in cache keys.
+  - Why: different representations sharing a cache key can receive the wrong cached response.
+  - Flag when: Cache keys omit locale, user identity, or query parameters that change the cached result.
+- **Must** Prevent cache stampedes with locks and warm hot entries before traffic bursts.
+  - Why: simultaneous misses repeat expensive backend work and overload it during reader bursts.
+  - Flag when: Expensive cache-miss regeneration runs without a lock or request coalescing.
+- **Must** Use atomic locks to serialize operations that must not overlap, including commands and shared-state transitions.
+  - Why: concurrent executions can race on shared state or repeat work that requires exclusive access.
+  - Flag when: Concurrent commands or shared-state transitions perform a separate check and update without mutual exclusion.
+- **Must** Cache reusable expensive results through cache-aside reads with explicit validity periods and reliable cache-miss detection.
+  - Why: reusing stable results avoids repeated database, remote-service, or computation work.
+  - Flag when: Repeated identical inputs trigger expensive work, cached results lack a validity policy, or truthiness checks mistake valid falsy values for misses.
+- **Should** Diagnose caching by inspecting hits, misses, latency, and Redis commands in request context.
+  - Why: request context reveals unexpected misses and the Redis activity responsible for cache behavior.
+- **Should** Memoize repeated reads or computations within a request or job when their results remain valid for that execution.
+  - Why: execution-local reuse avoids repeated cache-store round trips and redundant computation.
+  - Flag when: The same cache key or stable expensive computation is repeatedly resolved within one request or job.
+- **Consider** Configure cache-store failover when cache availability is required, and ensure fallbacks preserve the semantics consumers need.
+  - Why: fallback stores can keep cache operations available when the preferred backend fails.
+  - Flag when: Required cache operations have no failure path or fallback stores cannot provide required sharing or atomicity.
+- **Consider** Plan cache-payload compatibility when deployments change classes or formats stored in cached values.
+  - Why: old cached payloads can survive deployment and break deserialization or assumptions in new code.
+  - Flag when: A deployment removes or changes a cached class or payload format without versioning, invalidation, or a compatibility plan.
+- **Consider** Preserve lock ownership across queued handoffs and give long-running work a finite lease that can be renewed as needed.
+  - Why: ownership transfer and appropriate lease lifetimes preserve exclusive access across processes and long operations.
+  - Flag when: A queued lock handoff omits the owner token or protected work can outlive its lock without renewal.
+- **Consider** Use an LRU eviction policy for general-purpose caches when any cached key may be safely evicted.
+  - Why: evicting less recently used entries bounds memory while retaining frequently accessed results.
+  - Flag when: A general-purpose cache has no suitable eviction policy or shares an all-keys eviction policy with state that must survive.
+- **Consider** Use atomic conditional writes when a cache key must be initialized only if it is absent.
+  - Why: separate existence checks and writes allow concurrent callers to overwrite one another.
+  - Flag when: A cache existence check is followed by a write that assumes no other caller can initialize the key.
+- **Consider** Use cached aggregate counters when approximate counts satisfy the application’s freshness requirements.
+  - Why: maintained aggregates avoid repeatedly computing expensive counts.
+  - Flag when: A frequently requested approximate count repeatedly scans its source data.
+- **Consider** Emit representation validators and handle conditional requests before expensive rendering when a valid cached validator is available.
+  - Why: conditional responses avoid regenerating and transferring unchanged representations.
+  - Flag when: An unchanged cacheable representation is fully rendered despite a matching conditional request validator.
+- **Consider** Measure cache lookup fan-out and bound backend round trips for dependency-aware caching.
+  - Why: excessive tag and dependency lookups can cost more than the uncached read path.
+  - Flag when: Cache lookup performs a growing number of network calls as tags or dependencies increase.
+- **Consider** Separate dynamic fragments from reusable page shells and assign each fragment its own privacy and freshness policy.
+  - Why: independent fragment policies allow reusable output to be cached without sharing personalized content.
+  - Flag when: A reusable page shell is coupled to personalized fragments, or ESI-dependent fragments have no fallback.
+- **Consider** Test cache behavior under representative load, including cold entries and concurrent refreshes.
+  - Why: load and expiry expose repeated regeneration and latency spikes that warm-cache checks miss.
+  - Flag when: An expensive cached path is validated only with warm entries or serial requests.
+
+### Database operations
+
+- **Must** Block destructive database commands in production and restrict database resets to explicitly disposable environments.
+  - Why: schema reset commands destroy tables and their data.
+  - Flag when: Production command guards are absent or a reset command targets a database whose data must be preserved.
+- **Must** Measure query count, latency, and N+1s and optimize queries, indexes, and schema before adding database servers.
+  - Why: repeated fast queries can accumulate substantial database time and expose N+1 behavior.
+- **Must** Automate production backups of databases and required application files, monitor successful runs, and regularly test restoration.
+  - Why: successful backup jobs alone do not demonstrate that application data can be recovered.
+  - Flag when: Production backup schedules, failure monitoring, or restore verification are added or changed.
+- **Must** Move heavy analytics to a column store or TimescaleDB when transactional queries can't keep up.
+  - Why: column-oriented storage handles high-volume analytical aggregations more efficiently than transactional storage.
+- **Must** Set backup retention from recovery requirements and automatically prune expired copies.
+  - Why: bounded retention preserves required recovery history while controlling storage growth.
+  - Flag when: Backup retention or cleanup schedules are added or changed.
+- **Must** Stay on a single database as long as cost and capacity allow; don't assume managed or serverless databases fix scaling.
+  - Why: a single server postpones replica consistency and cross-shard query complexity.
+- **Must** With read replicas, write to the primary and use `sticky` or explicit primary reads for read-after-write.
+  - Why: replication lag can make immediate dependent reads miss newly written data.
+  - Flag when: An immediate dependent read explicitly uses a replica after writing to the primary.
+- **Should** Prefer SQLite and database-backed framework stores for small applications until workload requirements justify dedicated services.
+  - Why: simple defaults reduce operational overhead when their capacity and concurrency are sufficient.
+  - Flag when: A small application adds separate database, cache, session, or queue services without a workload requirement.
+- **Should** Keep deployed migrations immutable; correct them with new forward migrations, and use rollback migrations only when tested for data safety and application compatibility.
+  - Why: rolling back schema changes can destroy newly created data or break deployed code.
+  - Flag when: A deployed migration is edited or a rollback removes data or schema still required by deployed code.
+- **Consider** Add required or unique columns to populated tables in stages: allow missing values, backfill and resolve conflicts, then enforce constraints.
+  - Why: existing rows must satisfy new constraints before those constraints are enabled.
+  - Flag when: A migration adds a required or unique column to a populated table in one step.
+- **Consider** Apply timestamp-based retention to event analytics and align partition expiry with retention when whole-part deletion is appropriate.
+  - Why: engine-managed retention limits event growth and can avoid expensive row-by-row deletion.
+  - Flag when: Analytical event tables have no retention policy or partitions cannot support the intended expiry.
+- **Consider** Batch inserts into analytical stores, or use supported asynchronous ingestion when client batching is impractical.
+  - Why: tiny inserts create excessive storage parts and merge work in append-oriented engines.
+  - Flag when: High-volume analytical events are inserted one row at a time.
+- **Consider** Configure and validate SQLite production settings for concurrency, lock waits, foreign-key enforcement, and workload-appropriate durability.
+  - Why: sQLite defaults and tuning choices affect contention, integrity, and crash durability.
+  - Flag when: Production SQLite connection pragmas or durability settings are added or changed.
+- **Consider** Consider separate SQLite files for application data, cache, and queues when their write workloads contend.
+  - Why: independent files isolate write contention between operational stores and application data.
+  - Flag when: SQLite cache, queue, and application connections share a file despite competing write workloads.
+- **Consider** Coordinate application maintenance or traffic draining before database resizing that interrupts availability.
+  - Why: fixed-size database changes can interrupt connections and in-flight requests.
+  - Flag when: An availability-interrupting database resize lacks application maintenance or traffic draining.
+- **Consider** Design analytical sorting and primary indexes around actual filters, ordering, and time windows; enforce uniqueness separately when the engine does not provide it.
+  - Why: analytical primary indexes accelerate scans but may not enforce relational uniqueness.
+  - Flag when: Analytical table keys ignore query predicates or code assumes they enforce uniqueness.
+- **Consider** Keep databases on private networks and bound serverless connection pressure with a connection proxy or equivalent pooling.
+  - Why: public exposure and unbounded function concurrency threaten database security and capacity.
+  - Flag when: Serverless functions connect directly with unbounded database connections or the database is publicly exposed.
+- **Consider** Preserve mergeable aggregate states in incremental analytical summaries so larger time buckets can be combined correctly.
+  - Why: averaging precomputed averages can produce incorrect results when bucket sizes differ.
+  - Flag when: Incremental summaries store final averages or other non-composable values that are later reaggregated.
+- **Consider** Provide point-in-time recovery when recovery requirements demand it.
+  - Why: periodic snapshots may lose more recent changes than the application can tolerate.
+  - Flag when: Recovery configuration omits transaction logs despite a recovery target shorter than the snapshot interval.
+- **Consider** Review large data-changing migrations and deploy them with active monitoring and a recovery plan.
+  - Why: large updates can lock tables or fail after partially affecting production data.
+  - Flag when: A deployment runs a migration that changes many rows without operational review or monitoring.
+- **Consider** Schedule pruning for models configured to discard expired records.
+  - Why: pruning configuration does not remove expired records until pruning runs.
+  - Flag when: A prunable model is added without a scheduled pruning command.
+- **Consider** Serialize migration execution across deployment nodes using an isolation lock shared by those nodes.
+  - Why: concurrent migration runners can race while modifying the same schema.
+  - Flag when: Multiple deployment nodes run migrations without a shared isolation lock.
+- **Consider** Test major database version upgrades against the application before switching production to the upgraded database.
+  - Why: major upgrades can change SQL behavior, compatibility, and query performance.
+  - Flag when: The production database major version changes without application compatibility validation.
+- **Consider** Test the workload impact of removing a MySQL index by making it invisible before dropping it.
+  - Why: an invisible index provides a reversible way to detect query regressions before removal.
+  - Flag when: A migration drops a MySQL index without evidence that affected queries were evaluated.
+- **Consider** Use append-oriented or versioned inserts for mutable analytical records and request deduplicated current reads when correctness requires them.
+  - Why: background merges may leave multiple versions visible until explicit deduplication is requested.
+  - Flag when: Versioned analytical records are read as current without the engine-required deduplication semantics.
+- **Consider** Benchmark PDO connection and preparation options with the actual driver and workload before enabling them to address measured connection or round-trip overhead.
+  - Why: persistent connections and emulated prepares change behavior and only help particular workloads.
+  - Flag when: Persistent PDO connections or emulated prepares are enabled without driver-specific workload validation.
+- **Consider** Convert historical records to events in small batches, replay and verify results programmatically, and increase batch size only after validation passes.
+  - Why: verified incremental conversion limits the impact of mapping or replay errors.
+  - Flag when: A historical event backfill runs at full scale without replay validation.
+- **Consider** Encrypt backups and verify that encrypted copies can be restored.
+  - Why: backup confidentiality depends on encryption and recoverability depends on usable decryption keys.
+  - Flag when: Backup encryption or key handling is added or changed.
+- **Consider** Evaluate managed or serverless databases when moving compute to serverless to reduce database operational work.
+  - Why: managed database services can reduce maintenance obligations for serverless applications.
+  - Flag when: Serverless infrastructure changes include a database hosting decision.
+- **Consider** Keep redundant backups on independent storage destinations.
+  - Why: a single storage failure must not destroy every recoverable copy.
+  - Flag when: All backup copies use one storage destination or failure domain.
+- **Consider** Track database schema changes in migrations and use a schema dump to baseline an existing schema when appropriate.
+  - Why: a reproducible schema baseline avoids reconstructing unnecessary historical migrations.
+  - Flag when: Schema changes occur outside migrations or an existing schema is being baselined.
+- **Consider** Use a service that coordinates remote SQLite access when multiple hosts need one database; avoid ordinary WAL files on shared network filesystems.
+  - Why: wAL coordination depends on shared-memory behavior that ordinary network filesystems do not provide.
+  - Flag when: Multiple hosts open the same SQLite WAL database file through a network mount.
+- **Consider** Use tenant-aware commands and explicit tenant targeting for operations on separate tenant databases.
+  - Why: the correct tenant context and connection prevent schema or data changes from reaching the wrong database.
+  - Flag when: A tenant database operation uses a global command or lacks the required tenant selector or connection.
+
+### Observability & monitoring
+
+- **Must** Instrument production early (Nightwatch, Pulse, or similar) with actionable alerts on route, job, and query thresholds.
+  - Why: actionable alerts expose meaningful failures and saturation so operators can respond promptly.
+- **Must** Correlate requests, users, queries, exceptions, logs, and job attempts, accounting for retries.
+  - Why: connected events preserve the triggering context needed to diagnose failures in requests and asynchronous work.
+- **Must** Monitor queue backlog, consumers, and scheduled command exit codes, not just process liveness.
+  - Why: running processes alone do not establish that queues are being consumed or scheduled commands succeeded.
+- **Must** Use measured execution traces to isolate bottlenecks, compare slow and fast executions, and distinguish application time from proxy or infrastructure delay before optimizing.
+  - Why: timing evidence identifies the operations responsible for latency and avoids optimizing the wrong layer.
+  - Flag when: A performance change targets an operation without trace or timing evidence connecting it to the observed bottleneck.
+- **Must** Audit security-sensitive and important business actions with structured, filtered context, and monitor the records for abuse or missing processing.
+  - Why: selected audit events make sensitive actions and suspicious patterns traceable without collecting every user action.
+  - Flag when: Authentication, authorization, sensitive-record access, or destructive business actions lack audit events or useful actor and outcome context.
+- **Must** Rotate and prune diagnostic logs with explicit retention, preserve incident evidence, and keep a remote copy when local logs can be lost.
+  - Why: bounded retention controls storage growth while preserved evidence supports incident investigation.
+  - Flag when: Log or telemetry storage grows without rotation or pruning, or cleanup deletes incident evidence before it is preserved.
+- **Must** Tune thresholds, sampling, and filters to the question you're answering; keep rare failures.
+  - Why: irrelevant events obscure useful diagnostics, and sparse metrics lose useful representation with low sampling rates.
+  - Flag when: Production telemetry filters discard reportable exceptions or failed jobs.
+- **Must** Keep telemetry off the request-critical path with cheap batched writes, isolating its storage if it competes.
+  - Why: blocking remote delivery for every log event adds latency to application requests.
+  - Flag when: Request handling synchronously sends each telemetry event to a remote service.
+- **Must** Supervise Pulse and Nightwatch agents and verify data actually reaches the dashboard.
+  - Why: captured telemetry needs a running delivery agent, and observability tools do not run or balance queue workers.
+  - Flag when: Telemetry agent process configuration disables automatic startup or restart.
+- **Should** Use Monolog channels and stacks with a consistent, parseable log schema and safe context.
+  - Why: consistent structured context makes logs parseable and identifies the affected orders or other entities.
+  - Flag when: New log messages concatenate variable fields instead of using the established structured context schema.
+- **Should** Debug locally with mail capture, dumps, and breakpoints, never real mail or public debug output.
+  - Why: local mail capture prevents accidental delivery, and contextual dumps avoid inserting debug values into rendered output.
+  - Flag when: Development mail configuration points to a live delivery provider instead of local capture.
+- **Should** Propagate correlation IDs across services, queues, and child processes.
+  - Why: shared trace context makes distributed application behavior observable across service boundaries.
+  - Flag when: Outgoing service calls or queued jobs replace the incoming correlation ID with an unrelated identifier.
+- **Should** Run relevant health checks regularly in production and expose fresh, appropriately secured results to an independent monitor with failure notifications.
+  - Why: external monitoring detects unavailability even when the application cannot notify operators itself.
+  - Flag when: Production health checks never run automatically, or an external health endpoint returns stale results or exposes sensitive diagnostics without access controls.
+- **Should** Scrub secrets and personal data from telemetry and restrict production profiling to authorized, bounded investigations.
+  - Why: unsanitized diagnostics can reveal passwords, payment details, and personal data while production instrumentation adds overhead.
+  - Flag when: Logging passes entire request payloads or unredacted sensitive fields to telemetry.
+- **Should** Record validation failures by form and field, and review patterns for usability problems or abuse.
+  - Why: failure patterns reveal confusing inputs and suspicious submissions that successful-request metrics miss.
+  - Flag when: Registration or other important forms discard validation-failure telemetry or omit the form and failing field identifiers.
+- **Consider** Pre-aggregate high-volume telemetry for dashboard queries while preserving rolling-window accuracy and concurrent arrivals.
+  - Why: incremental aggregates reduce repeated scans without losing events or miscounting window boundaries.
+  - Flag when: Dashboard refreshes repeatedly scan the full raw event history, or aggregation drops partial-window events or concurrent updates.
+
+### Security & ops
+
+- **Must** Serve browser traffic and generated URLs over HTTPS, renew certificates automatically, and send HSTS on HTTPS responses; enable subdomain coverage or preload only after all affected hosts support HTTPS.
+  - Why: encrypted transport protects traffic and HSTS reduces browser downgrade exposure.
+  - Flag when: HTTP production URLs, missing TLS renewal or HSTS configuration, or HSTS coverage of HTTP-only hosts.
+- **Must** Provision credentials outside the repo with least privilege per environment; prefer IAM roles or short-lived credentials and plan rotation.
+  - Why: committed or publicly exposed credentials disclose access to application services.
+  - Flag when: Application configuration or container build instructions embed real credentials.
+- **Must** Expose only necessary network services; keep databases and internal agents private, restrict administrative ports, and scope temporary allowlists by host and expiry.
+  - Why: network isolation limits unauthorized access and movement after a compromise.
+  - Flag when: Public database or agent listeners, broad ingress rules, or temporary allowlists without expiry.
+- **Must** Keep Laravel, application dependencies, and package managers on supported, patched versions; monitor advisories and run Composer and npm vulnerability audits regularly in CI.
+  - Why: supported versions and advisory checks prevent known vulnerabilities from remaining deployed.
+  - Flag when: Unsupported version constraints, unpatched vulnerable lockfile entries, or missing dependency audits in CI.
+- **Must** Run services with minimal privileges, scan images, and keep OS and runtime patches current.
+  - Why: the runtime holds secrets, and even official container images can contain security vulnerabilities.
+  - Flag when: Production service configuration runs application processes as root.
+- **Must** Serve Laravel only from public/ and block web access to environment files, repository metadata, and other sensitive files.
+  - Why: serving the project root exposes configuration secrets and internal files.
+  - Flag when: Web-server document roots point above public/ or allow access to sensitive dotfiles.
+- **Must** Use SSH key authentication with protected private keys, disable password login, and verify replacement access before closing the active session.
+  - Why: protected keys reduce credential attacks while access checks prevent administrative lockout.
+  - Flag when: SSH password authentication is enabled or private keys are stored without protection.
+- **Must** Choose managed infrastructure when the team cannot maintain production security, and document patching, ingress/TLS, image access, and environment isolation before operating a cluster.
+  - Why: production infrastructure needs sustained security ownership and maintenance.
+  - Flag when: Cluster deployment plans omit security maintenance ownership or environment isolation.
+- **Should** Configure a minimum release age for routine dependency updates, with a deliberate exception process for urgent security fixes.
+  - Why: a short delay gives compromised releases time to be detected.
+  - Flag when: Automated dependency updates install newly published releases immediately.
+- **Should** Rate-limit login, API, and expensive operations before costly processing, partition limits appropriately, and add upstream protection against automated denial of service.
+  - Why: early throttling and upstream filtering reduce application resource exhaustion.
+  - Flag when: Expensive public routes lack throttling or apply limits only after costly work.
+- **Should** Set APP_ENV=production and APP_DEBUG=false in production, disable debug output on publicly accessible environments, and omit sensitive arguments from exception traces.
+  - Why: debug pages and stack traces can disclose credentials and sensitive data.
+  - Flag when: Public deployments enable APP_DEBUG, include debug statements, or expose exception arguments.
+- **Should** Automate access onboarding, offboarding, and credential rotation; share only SSH public keys.
+  - Why: former staff credentials can remain usable after departure unless access and outstanding tokens are revoked.
+- **Should** Keep development and browser-testing tools out of production dependencies and never boot their privileged providers in production.
+  - Why: development tooling can expose internals or allow authentication bypass.
+  - Flag when: Production builds install debugging tools or register Dusk providers.
+- **Should** Disable dependency installation scripts and Composer plugins unless explicitly needed and trusted, and run installs without elevated privileges.
+  - Why: install hooks and plugins execute third-party code with the installer privileges.
+  - Flag when: Install commands enable unnecessary scripts or plugins, or run with sudo.
+- **Should** Plan APP_KEY rotation and retain still-trusted old keys in APP_PREVIOUS_KEYS while encrypted data and sessions require them; retire compromised keys according to the incident plan.
+  - Why: planned key transitions preserve decryptability without indefinitely trusting compromised keys.
+  - Flag when: APP_KEY changes without a previous-key transition or a deliberate encrypted-data migration.
+- **Consider** Audit repository and organization access, require strong account authentication, protect production branches, and enable secret scanning and push protection.
+  - Why: source-control access and branch controls protect code and credentials from unauthorized changes.
+  - Flag when: Repository settings permit force pushes or deletion of production branches, or grant unnecessary access.
+- **Consider** Configure the web server to forward only requests for approved application hostnames and reject unexpected Host headers.
+  - Why: untrusted hostnames can influence generated links and host-dependent application behavior.
+  - Flag when: A default virtual host forwards arbitrary hostnames to the application.
+- **Consider** Generate a unique application encryption key with php artisan key:generate or an equivalent cryptographically secure generator.
+  - Why: predictable encryption keys undermine application data protection.
+  - Flag when: Application setup uses a fixed, shared, or manually predictable APP_KEY.
+- **Consider** Isolate staging and development sites from production, restrict them with authentication, VPNs, or firewalls, monitor access, and remove abandoned exposed features.
+  - Why: non-production environments often expose unfinished code and sensitive test data.
+  - Flag when: Staging or development deployments are publicly accessible without access controls or share production trust boundaries.
+- **Consider** Require explicit authorization for administrative and maintenance interfaces, and restrict network access with a VPN, firewall, or IP allowlist where appropriate.
+  - Why: limiting administrative reachability reduces exposure of privileged entry points.
+  - Flag when: Administrative or maintenance services are reachable from the public internet without network restrictions.
+- **Consider** Scan source code and Git history for secrets, enable push protection, and rotate discovered credentials immediately.
+  - Why: history retains leaked credentials even after current files are cleaned.
+  - Flag when: Repository checks omit secret scanning or remediation removes secrets without revocation.
+- **Consider** Verify signed webhook requests over the raw body using the documented HMAC algorithm, a securely stored signing secret, and constant-time signature comparison.
+  - Why: signature verification rejects forged or modified webhook requests.
+  - Flag when: Webhook handlers trust requests without verifying the provider signature over the raw body.
+- **Consider** When higher-level tools fall short, inspect CPU, memory, OPcache, and PHP-FPM timings, or use strace.
+  - Why: process metrics and timed syscall traces reveal resource consumption and waits hidden from higher-level diagnostics.
+- **Consider** Deploy and maintain a restrictive Content-Security-Policy using script nonces or hashes; test changes in report-only mode before enforcement and avoid broad unsafe-inline or unsafe-eval exceptions.
+  - Why: a restrictive policy limits execution of injected scripts.
+  - Flag when: CSP changes add wildcard sources or broad unsafe-inline or unsafe-eval allowances.
+- **Consider** Maintain and rehearse an incident response plan with reproducible environment rebuilds, credential revocation, account lockdown, abuse controls, and access to qualified responders.
+  - Why: prepared recovery and containment shorten the impact of an active compromise.
+  - Flag when: Recovery procedures depend on copying a compromised server or lack tested containment steps.
+- **Consider** Place clearly nonfunctional decoy canary tokens in likely intrusion targets, including committed examples, and route their alerts to a monitored destination; review token coverage regularly.
+  - Why: decoy interactions can reveal unauthorized access that ordinary monitoring misses.
+  - Flag when: Canary tokens lack monitored alert destinations or are removed from sensitive locations.
+- **Consider** Protect operational accounts with MFA or passkeys, use unique passwords, and prefer centrally managed single sign-on when available.
+  - Why: strong centralized authentication reduces account compromise and simplifies revocation.
+  - Flag when: Operational account setup omits MFA, reuses passwords, or bypasses established single sign-on.
+- **Consider** Sign source-control commits and verify signatures for changes entering protected production branches.
+  - Why: verified signatures help establish the provenance of reviewed changes.
+  - Flag when: Repository policy permits unverified commits into protected production branches.
+- **Consider** Verify third-party code integrity using immutable source revisions and Subresource Integrity for fixed externally hosted scripts rather than trusting mutable tags alone.
+  - Why: mutable tags and hosted assets can change without a reviewed version change.
+  - Flag when: Remote scripts lack integrity hashes or source dependencies rely on mutable revision tags.

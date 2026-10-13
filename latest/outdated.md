@@ -1,6 +1,6 @@
 # Outdated patterns (not included as rules)
 
-**Version:** 2026-10-13 15:06. Practices that are outdated for Laravel 13, kept here with citations for reference.
+**Version:** 2026-10-13 18:19. Practices that are outdated for Laravel 13, kept here with citations for reference.
 
 - (Infra / Queues & workers) Run independent I/O concurrently (e.g. `Concurrency`, Octane tasks); don't expect it to parallelize CPU work. — The blanket claim that Concurrency or Octane tasks cannot parallelize CPU work is incorrect. Laravel 13 Concurrency uses separate PHP processes with its process and fork drivers, and Octane's Swoole concurrent tasks use separate task workers; independent CPU work can run in parallel when CPU capacity is available. See https://laravel.com/framework/docs/concurrency and https://laravel.com/framework/docs/octane#concurrent-tasks. — sources: [Laravel (official)](https://laravel.com/docs/13.x/octane) (Official, 3); [Mateus Guimarães](https://www.youtube.com/watch?v=dOXXL-98Zbs) (Laracon speaker, 2)
 - (Codebase / Validation & security) Use Gate::after to override earlier authorization decisions or enforce non-bypassable administrator constraints — Laravel 13 after-hook return values cannot override a non-null allow or deny, so mandatory constraints belong in the decision path
