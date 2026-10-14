@@ -1,6 +1,6 @@
 # Laravel Codebase Rules
 
-**Version:** 2026-10-13 15:06 (Asia/Manila)
+**Version:** 2026-10-13 18:19 (Asia/Manila)
 
 **Scope:** Application code for Laravel 13 and current first-party tools: architecture, routing, Eloquent, security, performance, testing, frontend stacks, and package building.
 
