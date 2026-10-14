@@ -1,0 +1,2515 @@
+# Laravel Codebase Rules
+
+**Version:** 2026-10-14 12:13 (Asia/Manila)
+
+**Scope:** Application code for Laravel 13 and current first-party tools: architecture, routing, Eloquent, security, performance, testing, frontend stacks, and package building.
+
+**Levels:** **Must** = score 7+ · **Should** = score 4–6 · **Consider** = score 2–3. Score = sum of points from independent sources (official 3, tier 1 3, Laracon speaker 2 or 3 for employees, tier 2 2–3, tier 3 1).
+
+**Sub-bullets:** *Why* = the reason behind the rule, quotable when flagging a violation · *Flag when* = an observable signal in a diff that suggests a violation (omitted when not observable in code).
+
+*Written for code-reviewing agents: use these rules to evaluate diffs, not as an implementation checklist.*
+
+*Each rule lists its score and every independent source (tier, points).*
+
+**Known limitations of this version:**
+- Tier 2 uses the larger of two counts per account: tier 1 following lists (truncated by X) and a reverse "Followers you know" check of 1,677 candidate profiles, signed in as an account that follows all 33 tier 1 accounts. 20 late-added candidates were not checked.
+- People are matched to X handles by name; speakers without a found handle get no tier 2 bonus.
+- Product-docs rules carry the page fetch year (2026) as their date when the page shows none.
+- Paid Laracasts episodes were covered from their public descriptions and lesson notes only, not full transcripts.
+- Rules extracted from blogs (Securing Laravel, aaronfrancis.com, Spatie, Tighten, freek.dev and others) are machine summaries of each article, not direct quotes; follow the link before quoting.
+- Official sources (Laravel docs, Boost, first-party code, Pint/Larastan, product docs) count as one org; Spatie and Freek count as one org; each person counts once per rule at the highest tier among their evidence for that rule.
+
+## General
+
+### Architecture & structure
+
+- **Must** Inject typed dependencies and let the container autowire them; add bindings only where the implementation or construction must be chosen. — score 43: [@christophrumpel](https://christoph-rumpel.com/2024/9/all-laravel-php-attributes-at-your-disposal) (Tier 1, 3); [@danjharrin](https://x.com/danjharrin/status/1501598779056734213) (Tier 2, 3); [@jeffrey_way](https://laracasts.com/episodes/3436) (Tier 2, 3); [@joetannenbaum](https://blog.joe.codes/starting-a-toggl-timer-from-the-command-line-with-laravel-zero) (Tier 1, 3); [@ktrajchevska](https://laracasts.com/episodes/3144) (Tier 2, 3); [@lukedowning19](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=1500s) (Laracon speaker, 3); [@povilaskorop](https://laraveldaily.com/post/my-cursor-rules-for-laravel) (Tier 2, 3); [@ryangjchandler](https://ryangjchandler.co.uk/posts/writing-code-that-feels-native-to-laravel) (Tier 2, 3); [@themsaid](https://laracasts.com/episodes/2777) (Tier 1, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3); [laravel/framework PR author cosmastech](https://github.com/laravel/framework/pull/56383) (Tier 2, 3); [@maryperry](https://www.youtube.com/watch?v=KroiagwnV0s) (Laracon speaker, 2); [@stevemcdougall](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=22075s) (Laracon speaker, 2); [laravel/framework PR author riasvdv](https://github.com/laravel/framework/pull/56334) (Tier 2, 2); [laravel/framework PR author yitzwillroth](https://github.com/laravel/framework/pull/55904) (Tier 2, 2); [@jwmcpeak](https://laracasts.com/episodes/4132) (Tier 3, 1); [Mastering Laravel / Aaron Saray](https://masteringlaravel.io/daily/2026-09-15-the-right-place-to-inject-a-service-into-a-queued-job) (Tier 3, 1)
+  - Why: makes collaborators explicit and substitutable in tests without requiring manual construction everywhere.
+  - Flag when: A service constructs a replaceable collaborator internally instead of accepting a typed dependency.
+- **Must** Start simple, tolerate duplication until a stable shared responsibility emerges, and add abstractions only when they clearly pay off. — score 40: [@christophrumpel](https://www.youtube.com/watch?v=f4QShF42c6E&t=24315s) (Laracon speaker (employee), 3); [@enunomaduro](https://x.com/enunomaduro/status/1786742287885545696) (Tier 1, 3); [@freekmurze](https://spatie.be/docs/laravel-multitenancy/v4/introduction) (Tier 2, 3); [@jeffrey_way](https://laracasts.com/episodes/3883) (Tier 2, 3); [@joshcirre](https://laracasts.com/episodes/3325) (Tier 1, 3); [@ktrajchevska](https://laracasts.com/episodes/3160) (Tier 2, 3); [@lukedowning19](https://www.youtube.com/watch?v=GERCwd65O-8) (Laracon speaker, 3); [@mattstauffer](https://www.youtube.com/watch?v=KBigS5vLwZk) (Laracon speaker, 3); [@tightenco](https://tighten.com/insights/are-your-queue-workers-working) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/structure) (Official, 3); [@benjamincrozat](https://benjamincrozat.com/laravel-architecture-best-practices) (Tier 2, 2); [@jo_minney](https://www.youtube.com/watch?v=seX4HqMIAMk) (Laracon speaker, 2); [@maryperry](https://www.youtube.com/watch?v=vsxoaTgtyjw) (Laracon speaker, 2); [@ryanlovett](https://www.youtube.com/watch?v=AJ8MOFoDeP0) (Laracon speaker, 2); [@giodev8](https://x.com/GioDev8/status/1535423272531132416) (Tier 3, 1); [@jasonmccreary](https://laracasts.com/episodes/3643) (Tier 3, 1)
+  - Why: avoids coupling merely similar business rules through premature abstractions.
+  - Flag when: A shared abstraction gains feature-specific switches to accommodate unrelated business rules.
+- **Must** Extract reusable or growing business operations into focused actions with explicit inputs and useful return values; compose them for larger workflows. — score 24: [@enunomaduro](https://github.com/nunomaduro/essentials) (Tier 1, 3); [@jeffrey_way](https://laracasts.com/episodes/3906) (Tier 2, 3); [@lukedowning19](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=1500s) (Laracon speaker, 3); [@mateusjatenee](https://laracasts.com/episodes/3036) (Tier 2, 3); [@povilaskorop](https://laraveldaily.com/post/laravel-service-classes-injection) (Tier 2, 3); [@simonswiss](https://laracasts.com/episodes/3667) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/react-starter-kit/tree/main/app/Actions) (Official, 3); [@maryperry](https://www.youtube.com/watch?v=vsxoaTgtyjw) (Laracon speaker, 2); [@jwmcpeak](https://laracasts.com/episodes/4128) (Tier 3, 1)
+  - Why: keeps entry points thin and makes operations independently reusable and testable.
+  - Flag when: Controllers, commands, or jobs duplicate a business operation or call another entry point to reuse its behavior.
+- **Must** Draw boundaries around business contexts, exposing small public interfaces named in domain language and hiding internals. — score 22: [@ashleyhindle](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=31692s) (Laracon speaker (employee), 3); [@bobbybouwmann](https://www.youtube.com/watch?v=jX3nWXyLank) (Laracon speaker, 3); [@freekmurze](https://www.youtube.com/watch?v=CrO_7Df1cBc) (Laracon speaker, 3); [@mateusjatenee](https://laracasts.com/episodes/3034) (Tier 2, 3); [@wendell_adriel](https://wendelladriel.com/blog/modular-monoliths-creating-real-boundaries-before-reaching-for-microservices) (Tier 1, 3); [Laravel (official)](https://laravel.com/docs/13.x/container) (Official, 3); [@maryperry](https://www.youtube.com/watch?v=vsxoaTgtyjw) (Laracon speaker, 2); [@ryutahamasaki](https://www.youtube.com/watch?v=X6xPG6DJibg) (Laracon speaker, 2)
+  - Why: keeps business terms unambiguous within contexts and isolates changes behind explicit interfaces.
+  - Flag when: Code in one business context directly accesses another context’s internal implementation.
+- **Must** Keep reusable business logic independent of HTTP and UI concerns; accept plain inputs and leave transport-specific responses in entry points. — score 19: [@aarondfrancis](https://www.youtube.com/watch?v=lXjYStxGFIQ) (Laracon speaker (employee), 3); [@enunomaduro](https://github.com/pestphp/pest/blob/5.x/src/ArchPresets/Laravel.php) (Tier 1, 3); [@lukedowning19](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=1500s) (Laracon speaker, 3); [@valorin](https://securinglaravel.com/in-depth-a-deep-dive-into-laravels-new-starter-kits-pt-2) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/octane) (Official, 3); [@dr4goonis](https://x.com/dr4goonis/status/1647246295914930176) (Tier 2, 2); [@sileence](https://www.youtube.com/watch?v=1sixoOQliZI) (Laracon speaker, 2)
+  - Why: allows the same operation to run and be tested through HTTP, CLI, or other interfaces.
+  - Flag when: A reusable service or action accepts an HTTP Request, renders views, redirects, or manages session login.
+- **Must** Use Laravel and established packages where they fit; write custom code only when business needs justify maintaining it. — score 19: [@_joedixon](https://laracasts.com/episodes/3402) (Tier 1, 3); [@freekmurze](https://spatie.be/blog/the-robots-are-replacing-the-packages) (Tier 2, 3); [@mattstauffer](https://www.youtube.com/watch?v=KBigS5vLwZk) (Laracon speaker, 3); [@tightenco](https://tighten.com/insights/bol-ep13-gilbert-pellegrom-lemon-squeezy) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/installation) (Official, 3); [@maryperry](https://www.youtube.com/watch?v=w7jKcbVcI54) (Laracon speaker, 2); [@ruchitpatel](https://www.youtube.com/watch?v=MdIli5VczSU) (Laracon speaker, 2)
+  - Why: frees development time for business features and reduces custom code maintenance.
+  - Flag when: New custom infrastructure duplicates suitable Laravel facilities or an established package already in use.
+- **Must** Define feature-specific fallbacks for external dependency failures, keep unrelated features usable, and disclose stale or unavailable data. — score 18: [@freekmurze](https://freek.dev/3194-detecting-spam-and-auto-replies-with-jev-and-the-laravel-ai-sdk) (Tier 2, 3); [@harrisrafto](https://www.youtube.com/watch?v=E9t2lVn0z8A) (Laracon speaker, 3); [@taylorotwell](https://x.com/taylorotwell/status/1932810338262765569) (Tier 1, 3); [@zuzana_kunckova](https://www.youtube.com/watch?v=MUlln-pnk3U) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/cache) (Official, 3); [@ryanlovett](https://www.youtube.com/watch?v=AJ8MOFoDeP0) (Laracon speaker, 2); [@sabatinomasala](https://x.com/SabatinoMasala/status/1784182024032411950) (Tier 3, 1)
+  - Why: limits dependency outages to the capabilities that actually require them.
+  - Flag when: An external service failure breaks unrelated features or silently presents cached data as current.
+- **Must** Split classes with too many responsibilities into objects for each distinct domain concept. — score 14: [@jbrooksuk](https://x.com/jbrooksuk/status/1928824002144768458) (Tier 1, 3); [@jeffrey_way](https://laracasts.com/episodes/3435) (Tier 2, 3); [@ktrajchevska](https://laracasts.com/episodes/3140) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/structure) (Official, 3); [@sileence](https://www.youtube.com/watch?v=1sixoOQliZI) (Laracon speaker, 2)
+  - Why: makes behavior easier to describe and test with less extensive mocking.
+  - Flag when: A class gains behavior for distinct domain concepts alongside its existing unrelated responsibilities.
+- **Must** Start from an official starter kit, then delete what the product doesn't need. — score 14: [@joshcirre](https://www.youtube.com/watch?v=RY6wrHaLeCo) (Laracon speaker (employee), 3); [@mattstauffer](https://speakerdeck.com/mattstauffer/what-to-do-after-laravel-new) (Laracon speaker, 3); [@taylorotwell](https://x.com/taylorotwell/status/1862911447375786451) (Tier 1, 3); [Laravel (official)](https://laravel.com/docs/13.x/starter-kits) (Official, 3); [@willkingdev](https://www.youtube.com/watch?v=LN3heGluQ7A&t=840s) (Laracon speaker, 2)
+  - Why: provides established application conventions and scaffolding matched to required features.
+- **Must** Encapsulate external API access in a dedicated client with centralized request settings and typed boundary data where it clarifies the contract. — score 13: [@freekmurze](https://spatie.be/blog/utilizing-claude-skills-in-client-projects) (Tier 2, 3); [@mattstauffer](https://www.youtube.com/watch?v=KBigS5vLwZk) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/container) (Official, 3); [@dunglas](https://www.youtube.com/watch?v=DJJt_2V26V8) (Laracon speaker, 2); [@stevemcdougall](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=22075s) (Laracon speaker, 2)
+  - Why: isolates provider details and makes integrations easier to replace or fake.
+  - Flag when: Business callers repeat provider URLs, timeouts, parameter construction, or untyped response mapping.
+- **Must** Use facades where their concise API clarifies service access and preserves testability, keeping hidden dependencies out of core business logic. — score 13: [@christophrumpel](https://www.youtube.com/watch?v=f4QShF42c6E&t=24315s) (Laracon speaker (employee), 3); [@lukedowning19](https://www.youtube.com/watch?v=GERCwd65O-8) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/facades) (Official, 3); [@jasonmccreary](https://www.youtube.com/watch?v=LaKEFjA25r4) (Laracon speaker, 2); [@maryperry](https://www.youtube.com/watch?v=w7jKcbVcI54) (Laracon speaker, 2)
+  - Why: allows idiomatic framework service access without obscuring important business collaborators.
+  - Flag when: A facade-based call hides a central business dependency or bypasses available service fakes.
+- **Must** Use guard clauses and early returns to keep the main path flat and readable. — score 13: [@freekmurze](https://spatie.be/blog/spatie-guidelines-as-ai-skills) (Tier 2, 3); [@mateusjatenee](https://laracasts.com/episodes/3590) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/collections) (Official, 3); [@jasonmccreary](https://www.youtube.com/watch?v=sBpzYsMgLK8) (Laracon speaker, 2); [@sileence](https://www.youtube.com/watch?v=1sixoOQliZI) (Laracon speaker, 2)
+  - Why: keeps the primary operation visible at the outer indentation level.
+  - Flag when: Failed prerequisite checks wrap the main operation in successive nested conditionals.
+- **Must** Refactor touched code in small, verified steps, proportionate to the change at hand. — score 11: [@ktrajchevska](https://laracasts.com/episodes/3220) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/testing) (Official, 3); [@johndrexler](https://www.youtube.com/watch?v=YJmuKPk3d9M&t=11255s) (Laracon speaker, 2); [@jordanhavard](https://www.youtube.com/watch?v=riJBa0Bxo-8) (Laracon speaker, 2); [@matthiasnoback](https://matthiasnoback.nl/2022/10/refactoring-without-tests-should-be-fine/) (Tier 3, 1)
+  - Why: makes the next feature easier to implement while preserving existing behavior.
+- **Must** Modernize legacy code in small reviewed batches using Pint, static analysis, and Rector. — score 10: [@brendt_gd](https://stitcher.io/blog/dealing-with-deprecations) (Tier 2, 3); [@enunomaduro](https://www.youtube.com/watch?v=328A3aFOy6M&t=660s) (Laracon speaker (employee), 3); [Laravel (official)](https://laravel.com/docs/13.x/pint) (Official, 3); [@matthiasnoback](https://matthiasnoback.nl/2022/10/refactoring-without-tests-should-be-fine/) (Tier 3, 1)
+  - Why: reduces manual cleanup and exposes defects while progressively improving frequently changed legacy code.
+- **Must** Choose polling or broadcasting according to required freshness and operating cost; persist durable updates before broadcasting them. — score 9: [@_joedixon](https://laracasts.com/episodes/3403) (Tier 1, 3); [@burtds](https://www.youtube.com/watch?v=xxAv6s5045Y) (Laracon speaker, 3); [@joetannenbaum](https://www.youtube.com/watch?v=v7spVsbN_Qc) (Laracon speaker (employee), 3)
+  - Why: matches interface update complexity to user needs and keeps durable state authoritative.
+  - Flag when: A feature introduces continuous realtime infrastructure without a freshness need or broadcasts durable changes before persistence.
+- **Must** In streamlined Laravel applications, configure routing, middleware, and exceptions in bootstrap/app.php, providers in bootstrap/providers.php, and schedules in routes/console.php or withSchedule(). — score 9: [@julienbourdeau](https://x.com/julienbourdeau/status/1765424916013166929) (Tier 1, 3); [@lukedowning19](https://laracasts.com/episodes/3106) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/react-starter-kit/blob/717b8f55aefd82d25d4119eaebdc8e3a72b8d7e5/bootstrap/providers.php#L3-L8) (Official, 3)
+  - Why: keeps framework configuration in the entry points used by the current application skeleton.
+  - Flag when: A streamlined application adds Kernel classes or a config/app.php providers array to register framework configuration.
+- **Must** Keep Laravel, PHP, and dependencies on supported versions and apply security fixes promptly. — score 9: [@lukedowning19](https://laracasts.com/episodes/3185) (Tier 2, 3); [@mattstauffer](https://www.youtube.com/watch?v=KBigS5vLwZk&t=1680s) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/releases) (Official, 3)
+  - Why: reduces exposure to vulnerabilities in unsupported or unpatched software.
+  - Flag when: Dependency constraints or runtime images pin unsupported versions or releases with known security fixes.
+- **Must** Start with one deployable app; extract services only when concrete benefits outweigh coordination and ops costs. — score 9: [@aarondfrancis](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=11684s) (Laracon speaker (employee), 3); [@mattstauffer](https://www.youtube.com/watch?v=KBigS5vLwZk) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/deployment) (Official, 3)
+  - Why: avoids extra operational and development overhead before measured constraints justify service extraction.
+- **Must** Use execution-scoped context or container-managed state for shared contextual data instead of mutable statics or unnecessary argument threading. — score 9: [@freekmurze](https://freek.dev/3203-laravel-context-the-hidden-information-that-follows-your-code) (Tier 2, 3); [@timacdonald87](https://x.com/timacdonald87/status/1549943424450580480) (Tier 1, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: keeps contextual state testable and prevents leakage between long-lived execution lifecycles.
+  - Flag when: A static property stores request-specific data or a singleton retains context across requests or jobs.
+- **Must** Separate replayable state and projection updates from one-time side effects, and suppress those effects during replay. — score 8: [@freekmurze](https://spatie.be/docs/laravel-event-sourcing/v7/using-reactors/writing-your-first-reactor) (Tier 2, 3); [Laravel (official)](https://github.com/hirethunk/verbs/blob/13ee038c0a/docs/replaying-events.md) (Official, 3); [@coulbourne](https://www.youtube.com/watch?v=tX6nBpSvh4s) (Laracon speaker, 2)
+  - Why: prevents reconstruction from sending duplicate messages or invoking external services again.
+  - Flag when: Event replay can resend emails, payments, downstream events, or third-party requests.
+- **Must** Use event sourcing selectively when durable domain history, auditability, or reconstruction is required; retain the events needed to derive state. — score 8: [@_joshhanley](https://www.youtube.com/watch?v=evEU7ZAROlU) (Laracon speaker, 3); [@mattstauffer](https://www.youtube.com/watch?v=f4QShF42c6E&t=13999s) (Laracon speaker, 3); [@coulbourne](https://www.youtube.com/watch?v=tX6nBpSvh4s) (Laracon speaker, 2)
+  - Why: preserves business changes and their context where current rows alone are insufficient.
+  - Flag when: A workflow requiring historical reconstruction overwrites state without retaining the meaningful domain changes.
+- **Must** Validate event-sourced workflow transitions against aggregate or domain state before accepting and applying events. — score 8: [@freekmurze](https://spatie.be/docs/laravel-event-sourcing/v7/getting-familiar-with-event-sourcing/introduction) (Tier 2, 3); [Laravel (official)](https://github.com/spatie/laravel-model-states/blob/5fe3c004c3d33c8984db07b208e30e1f40c42c0e/docs/working-with-transitions/02-custom-transition-classes.md) (Official, 3); [@coulbourne](https://www.youtube.com/watch?v=-mb2L97Yq88) (Laracon speaker, 2)
+  - Why: prevents invalid operations from becoming part of the authoritative event history.
+  - Flag when: An event is accepted without checking the current workflow state or domain invariants.
+- **Should** Consolidate numerous simple container mappings in a dedicated provider’s bindings and singletons properties. — score 6: [@lukedowning19](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=1500s) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/providers#the-bindings-and-singletons-properties) (Official, 3)
+  - Why: keeps implementation selection easy to inspect without repetitive registration code.
+  - Flag when: A provider accumulates many equivalent bind() or singleton() calls with no custom construction logic.
+- **Should** Provide documented, repeatable commands for setup, dev, tests, formatting, and deploy, plus useful seed data. — score 6: [@mattstauffer](https://www.youtube.com/watch?v=KBigS5vLwZk&t=1560s) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/sail) (Official, 3)
+  - Why: lets new developers get a fresh checkout running quickly with working tests and representative data.
+  - Flag when: New setup requirements or required services lack corresponding setup commands or documentation.
+- **Should** Register framework extensions and macros in service providers instead of editing vendor code or introducing unnecessary subclasses. — score 6: [@themsaid](https://laracasts.com/episodes/2780) (Tier 1, 3); [Laravel (official)](https://laravel.com/docs/13.x/authentication#adding-custom-guards) (Official, 3)
+  - Why: centralizes extension setup and preserves dependency upgrades.
+  - Flag when: A framework extension is installed ad hoc in business code or implemented by modifying vendor files.
+- **Should** Use an ordered pipeline of focused stages for complex sequential workflows; keep short straightforward flows direct. — score 6: [@ashallendesign](https://ashallendesign.co.uk/blog/laravel-pipeline) (Tier 2, 3); [@bobbybouwmann](https://www.youtube.com/watch?v=ru-0QSciNvU) (Laracon speaker, 3)
+  - Why: makes significant workflow steps independently understandable without adding unnecessary machinery.
+  - Flag when: A growing workflow mixes many separable steps in one method or introduces a pipeline for a trivial sequence.
+- **Should** Give each domain module a service provider that registers its bindings and loads its routes, configuration, and other resources. — score 5: [@mateusjatenee](https://laracasts.com/episodes/3029) (Tier 2, 3); [@ryutahamasaki](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=4011s) (Laracon speaker, 2)
+  - Why: makes module integration explicit and keeps registration with the owning module.
+  - Flag when: Module resources or bindings are scattered across unrelated application registration files.
+- **Should** Replace legacy request paths incrementally behind a defined bridge while preserving existing user workflows. — score 5: [@jbrooksuk](https://www.youtube.com/watch?v=he2-4Dbc-y0) (Laracon speaker (employee), 3); [@jordanhavard](https://www.youtube.com/watch?v=riJBa0Bxo-8) (Laracon speaker, 2)
+  - Why: reduces migration risk and permits old and new behavior to coexist until replacement is verified.
+  - Flag when: A replacement removes working legacy paths or changes required user behavior before equivalent routes are ready.
+- **Should** Review your own diff and get CI green before requesting review; get a second developer's eyes on every change. — score 5: [Laravel (official)](https://laravel.com/docs/13.x/pint) (Official, 3); [@lukekuzmish](https://www.youtube.com/watch?v=cucIWpAenro&t=23273s) (Laracon speaker, 2)
+  - Why: keeps repetitive mechanical fixes out of human reviews and brings another developer’s perspective.
+- **Should** Separate event-derived domain state from read projections and make projections safely rebuildable from retained events. — score 5: [@freekmurze](https://spatie.be/docs/laravel-event-sourcing/v7/getting-familiar-with-event-sourcing/introduction) (Tier 2, 3); [@coulbourne](https://www.youtube.com/watch?v=tX6nBpSvh4s) (Laracon speaker, 2)
+  - Why: allows projection corrections and schema changes without guessing lost history.
+  - Flag when: Projection handlers depend on unrecoverable mutable data or replay duplicates rows without reset or idempotency.
+- **Should** Use Laravel’s scheduler for periodic cleanup and time-based state updates instead of defining a separate cron entry for each task. — score 5: [@joshcirre](https://laracasts.com/episodes/3337) (Tier 1, 3); [@drehimself](https://laracasts.com/episodes/2528) (Tier 2, 2)
+  - Why: keeps recurring application work centrally configured and maintained.
+  - Flag when: A periodic application task adds its own cron entry or relies on page visits to refresh time-based state.
+- **Consider** Centralize a recipient’s notification and mail locale preference on the notifiable model when recipient-specific localization is required. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: makes localized delivery consistent across notification paths.
+  - Flag when: Notification callers repeatedly select a recipient locale instead of using a shared preference.
+- **Consider** Choose Livewire or an Inertia-backed JavaScript stack for interactive pages according to the application and team’s needs. — score 3: [@taylorotwell](https://x.com/taylorotwell/status/1570777261342883840) (Tier 1, 3)
+  - Why: provides an established interactive UI approach that fits how the team builds pages.
+  - Flag when: A new interactive page invents custom client-server plumbing where the chosen application stack already provides it.
+- **Consider** Configure service-specific clients explicitly when global credentials or endpoints could affect unrelated services. — score 3: [Laravel (official)](https://laravel.com/cloud/docs/resources/object-storage) (Official, 3)
+  - Why: isolates client configuration for unrelated services.
+  - Flag when: Service clients inherit global credentials or endpoints that belong to another service.
+- **Consider** Define compensation for completed external effects in multi-step workflows and invoke the appropriate recovery actions when later steps fail. — score 3: [@bobbybouwmann](https://www.youtube.com/watch?v=ru-0QSciNvU) (Laracon speaker, 3)
+  - Why: addresses partial success that a local database rollback cannot undo.
+  - Flag when: A workflow performs several external effects but has no recovery path after a later failure.
+- **Consider** Document team conventions (naming, structure, branching, review) and enforce formatting with Pint. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/structure) (Official, 3)
+  - Why: makes recurring implementations predictable and applies shared conventions consistently.
+- **Consider** Handle request-wide presentation concerns in middleware and share their resolved values with views. — score 3: [Laravel (official)](https://github.com/laravel/react-starter-kit/blob/717b8f55aefd82d25d4119eaebdc8e3a72b8d7e5/app/Http/Middleware/HandleAppearance.php#L10-L21) (Official, 3)
+  - Why: avoids repeating cookie or preference resolution in each controller or template.
+  - Flag when: Multiple entry points independently resolve the same request-wide presentation preference.
+- **Consider** Keep authorization decisions separate from reusable business operations. — score 3: [@valorin](https://securinglaravel.com/in-depth-policy-objects) (Tier 2, 3)
+  - Why: makes permission rules explicit and keeps business behavior reusable across authorized entry points.
+  - Flag when: A business calculation or workflow embeds unrelated user permission checks instead of delegating authorization.
+- **Consider** Limit service-provider register() methods to container bindings; register routes, listeners, and other functionality in boot(). — score 3: [Laravel (official)](https://laravel.com/docs/13.x/providers#writing-service-providers) (Official, 3)
+  - Why: avoids using functionality before all providers have registered their dependencies.
+  - Flag when: A register() method registers routes or listeners or relies on another provider’s booted functionality.
+- **Consider** Model only consumed external API fields in application DTOs and broaden package DTOs for consumer needs. — score 3: [@ashallendesign](https://ashallendesign.co.uk/blog/data-transfer-objects-dtos-in-php) (Tier 2, 3)
+  - Why: sets the boundary and scope of external API data models.
+  - Flag when: Application DTOs include unused external fields or shared package DTOs omit supported consumer fields.
+- **Consider** Resolve and activate the tenant before tenant-dependent work, centralizing database, cache, and filesystem preparation in the tenancy layer. — score 3: [@freekmurze](https://www.youtube.com/watch?v=JmEmrLtMB_A) (Laracon speaker, 3)
+  - Why: keeps ordinary business services operating against the correct tenant resources.
+  - Flag when: Application queries run before tenant activation or business methods manually switch tenant resource configuration.
+- **Consider** Send notifications to arbitrary recipients through on-demand routing rather than creating dummy persisted models. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: avoids artificial records solely to supply a notification destination.
+  - Flag when: A notification flow creates a dummy user or model just to send to an address.
+- **Consider** Treat Octane service-provider registration and booting as worker initialization; perform per-request work in request lifecycle hooks. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/octane) (Official, 3)
+  - Why: places per-request work in the proper Octane lifecycle.
+  - Flag when: Service-provider register() or boot() performs request-specific work under Octane.
+- **Consider** Use Laravel listener discovery for conventional listeners and configure discovery paths when their location changes. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: avoids redundant listener wiring while keeping listeners in custom layouts discoverable.
+  - Flag when: A listener moves outside discovery paths without corresponding discovery configuration.
+- **Consider** Use a circuit breaker for unreliable external calls when repeated failures warrant it, with a cooldown and explicit recovery probes. — score 3: [@harrisrafto](https://www.youtube.com/watch?v=E9t2lVn0z8A) (Laracon speaker, 3)
+  - Why: avoids continually calling a failing dependency while allowing recovery.
+  - Flag when: Repeated dependency failures trigger unlimited new attempts with no open state or recovery policy.
+- **Consider** Use the agreed business vocabulary consistently across operations, events, code, and docs. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/eloquent) (Official, 3)
+  - Why: preserves shared understanding between developers and domain experts as terminology evolves.
+  - Flag when: A renamed business concept retains conflicting names in related operations, events, or documentation.
+- **Consider** When organizing by application area, keep admin and public entry points distinct and place genuinely shared code in a common area. — score 3: [@freekmurze](https://spatie.be/blog/expose-legacy-javascript-code-with-import-aliases) (Tier 2, 3)
+  - Why: makes area-specific behavior discoverable while avoiding duplication of shared responsibilities.
+  - Flag when: Area-specific entry points are mixed together or equivalent shared behavior is copied into each area.
+- **Consider** Centralize configurable construction of interchangeable implementations in a factory or manager and select providers through configuration. — score 2: [@maryperry](https://www.youtube.com/watch?v=KroiagwnV0s) (Laracon speaker, 2)
+  - Why: prevents consumers from duplicating implementation selection and construction.
+  - Flag when: Several consumers repeat switches over provider or storage types and construct implementations themselves.
+- **Consider** Deliver early deployable increments that exercise critical assumptions and the hardest unavoidable dependencies. — score 2: [@johndrexler](https://www.youtube.com/watch?v=YJmuKPk3d9M&t=11255s) (Laracon speaker, 2)
+  - Why: reveals integration constraints before the project commits to a prolonged speculative design.
+  - Flag when: A large change defers its critical external integration while building substantial dependent functionality.
+- **Consider** Depend on narrow domain contracts for calculations that need only a subset of a persistence model’s data. — score 2: [@sileence](https://www.youtube.com/watch?v=1sixoOQliZI) (Laracon speaker, 2)
+  - Why: keeps calculations independent of irrelevant persistence and framework behavior.
+  - Flag when: A calculation requires a concrete Eloquent model despite using only a small stable set of domain values.
+- **Consider** When strict module independence is required, avoid foreign-key constraints across module-owned tables while retaining internal integrity constraints. — score 2: [@ryutahamasaki](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=4011s) (Laracon speaker, 2)
+  - Why: avoids database coupling that would prevent independent module evolution or extraction.
+  - Flag when: An independently isolated module adds a foreign key to another module’s owned table.
+- **Consider** While legacy and replacement applications coexist, synchronize changes from both into each required representation before migrating users. — score 2: [@coulbourne](https://www.youtube.com/watch?v=m0T99MEY0tQ) (Laracon speaker, 2)
+  - Why: keeps either application able to serve users with consistent data during migration.
+  - Flag when: Writes from one active application fail to update the representation used by the other.
+
+### Routing & controllers
+
+- **Must** Put cross-cutting request/response concerns in scoped middleware registered in `bootstrap/app.php`. — score 15: [@lukedowning19](https://laracasts.com/episodes/3105) (Tier 2, 3); [@taylorotwell](https://www.youtube.com/watch?v=1P3wLy49t2c) (Laracon speaker (employee), 3); [@wendell_adriel](https://x.com/wendell_adriel/status/1948026448570089919) (Tier 1, 3); [Laravel (official)](https://laravel.com/docs/13.x/middleware) (Official, 3); [@maryperry](https://www.youtube.com/watch?v=w7jKcbVcI54) (Laracon speaker, 2); [@joelclermont](https://masteringlaravel.io/daily/2026-09-02-republished-sharing-redirect-logic-between-controller-actions) (Tier 3, 1)
+  - Why: scoped middleware reuses shared request checks and response processing across the endpoints that need them.
+  - Flag when: Multiple controllers repeat the same request check or response processing.
+- **Must** Use direct view or page routes for simple rendering endpoints, and limit file-based route discovery to explicitly selected page or controller directories. — score 15: [@aarondfrancis](https://www.youtube.com/watch?v=lXjYStxGFIQ) (Laracon speaker (employee), 3); [@freekmurze](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=27816s) (Laracon speaker, 3); [@povilaskorop](https://laraveldaily.com/post/my-cursor-rules-for-laravel) (Tier 2, 3); [@taylorotwell](https://www.youtube.com/watch?v=1P3wLy49t2c) (Laracon speaker (employee), 3); [Laravel (official)](https://github.com/laravel/react-starter-kit/blob/717b8f55aefd82d25d4119eaebdc8e3a72b8d7e5/routes/web.php#L5-L11) (Official, 3)
+  - Why: simple page routing avoids empty controllers while deliberate discovery keeps route boundaries clear.
+  - Flag when: A controller only renders a static page, or route discovery scans unrelated directories.
+- **Must** Scope nested route-model binding to the parent (`scopeBindings()`) so a child ID can't resolve under an unrelated parent. — score 13: [@taylorotwell](https://www.youtube.com/watch?v=1P3wLy49t2c&t=2220s) (Laracon speaker (employee), 3); [@valorin](https://securinglaravel.com/security-tip-scoping-bindings) (Tier 2, 3); [@wendell_adriel](https://x.com/wendell_adriel/status/1947608079689760944) (Tier 1, 3); [Laravel (official)](https://laravel.com/docs/13.x/routing) (Official, 3); [Instructor Team](https://laracasts.com/episodes/3715) (Tier 3, 1)
+  - Why: parent-scoped lookup prevents unrelated child records from resolving under another parent URL.
+  - Flag when: A nested route resolves its child globally without scoped binding or a parent relationship lookup.
+- **Must** Never add custom controller actions; when you need one, model the concept as a new resource with its own controller (e.g. `PodcastSubscriptionController@store` instead of `PodcastController@subscribe`). — score 12: [@adamwathan](https://github.com/adamwathan/laracon2017/pull/3) (Laracon speaker, 3); [@enunomaduro](https://github.com/pestphp/pest/blob/5.x/src/ArchPresets/Laravel.php) (Tier 1, 3); [@jeffrey_way](https://laracasts.com/episodes/3878) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/controllers) (Official, 3)
+  - Why: custom verbs can hide domain concepts with their own identity and lifecycle.
+  - Flag when: A parent controller gains subscribe, unsubscribe, publish, or another custom resource operation.
+- **Must** Use implicit route-model binding with matching segment names so missing models 404 before the action runs. — score 12: [@aarondfrancis](https://aaronfrancis.com/2023/self-healing-urls-in-laravel-e8886c3e) (Tier 1, 3); [@jeffrey_way](https://laracasts.com/episodes/3879) (Tier 2, 3); [@taylorotwell](https://www.youtube.com/watch?v=1P3wLy49t2c) (Laracon speaker (employee), 3); [Laravel (official)](https://laravel.com/docs/13.x/routing) (Official, 3)
+  - Why: implicit binding retrieves records and handles missing models before controller logic runs.
+  - Flag when: A model parameter name differs from its route segment, or an action manually repeats a standard lookup.
+- **Must** Agree API contracts with consumers and keep a versioned OpenAPI spec in the repo, validated in CI. — score 9: [@christophrumpel](https://x.com/christophrumpel/status/1629387465562935298) (Tier 1, 3); [@jbrooksuk](https://www.youtube.com/watch?v=K-g-t99mKZU) (Laracon speaker (employee), 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent-resources) (Official, 3)
+  - Why: a shared, versioned specification lets clients develop in parallel against a consistent, testable contract.
+  - Flag when: CI removes API specification validation, or an endpoint changes without updating its checked-in contract.
+- **Must** Group related routes by shared middleware, URI prefixes, and name prefixes, keeping public exceptions explicit. — score 9: [@freekmurze](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=27816s) (Laracon speaker, 3); [@valorin](https://securinglaravel.com/security-tip-scoping-bindings) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/react-starter-kit/blob/717b8f55aefd82d25d4119eaebdc8e3a72b8d7e5/routes/settings.php#L10-L18) (Official, 3)
+  - Why: route groups apply shared access rules and naming consistently.
+  - Flag when: Related routes duplicate shared middleware or prefixes, or a protected endpoint falls outside its group.
+- **Must** Shape public API output with API Resources for consistent fields, types, dates, and pagination. — score 9: [@mattstauffer](https://laracasts.com/episodes/3313) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent-resources) (Official, 3); [@dunglas](https://www.youtube.com/watch?v=DJJt_2V26V8) (Laracon speaker, 2); [@jwmcpeak](https://laracasts.com/episodes/3196) (Tier 3, 1)
+  - Why: reusable resource mappings preserve predictable public response shapes when internal model attributes change.
+  - Flag when: A public API returns raw models or duplicates field mappings across controllers.
+- **Should** Declare specific and supplemental routes before broad parameterized routes and resource registrations that could match them. — score 6: [@freekmurze](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=27816s) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/controllers#restful-supplementing-resource-controllers) (Official, 3)
+  - Why: route ordering prevents general routes from capturing requests intended for specific endpoints.
+  - Flag when: A fixed endpoint is declared after a parameterized or resource route that matches the same URL.
+- **Should** Evolve APIs backward-compatibly with announced deprecations; introduce a new major version only for breaking changes. — score 6: [Laravel (official)](https://laravel.com/docs/13.x/routing) (Official, 3); [@dunglas](https://www.youtube.com/watch?v=DJJt_2V26V8) (Laracon speaker, 2); [@jwmcpeak](https://laracasts.com/episodes/3193) (Tier 3, 1)
+  - Why: compatible changes avoid integrator migration costs while versions let incompatible contracts coexist.
+  - Flag when: An existing API response removes or renames a public field without preserving the previous contract.
+- **Should** For slug-plus-ID URLs, resolve records by the stable identifier and redirect stale or incorrect slugs to the canonical URL. — score 6: [@aarondfrancis](https://aaronfrancis.com/2023/year-in-review-2023-5431fc1f) (Tier 1, 3); [@lukedowning19](https://laracasts.com/episodes/3081) (Tier 2, 3)
+  - Why: stable identifiers preserve lookup while canonical redirects keep public URLs consistent.
+  - Flag when: A slug-plus-ID route fails after a slug changes or serves multiple noncanonical URLs without redirecting.
+- **Should** Make retryable mutations idempotent; use idempotency keys and replay stored responses when repeated execution could duplicate effects. — score 6: [@simonswiss](https://laracasts.com/episodes/3656) (Tier 2, 3); [@wendell_adriel](https://github.com/WendellAdriel/laravel-idempotency) (Tier 1, 3)
+  - Why: retries must not duplicate charges, creations, or other state changes.
+  - Flag when: A retryable mutation blindly repeats effects or a toggle reverses state on repeated requests.
+- **Should** Stream incremental responses when users need live progress; run work asynchronously and notify later when they do not need to wait. — score 6: [@burtds](https://www.youtube.com/watch?v=xxAv6s5045Y) (Laracon speaker, 3); [@freekmurze](https://freek.dev/3092-streaming-ai-replies-from-laravel-to-react) (Tier 2, 3)
+  - Why: the response strategy should match whether the user needs immediate incremental feedback.
+  - Flag when: An interactive progress endpoint buffers all output, or a request waits for work whose result can be delivered later.
+- **Should** Use `Route::resource()` / `apiResource()` with `only()` to declare routes; treat a controller that outgrows the 7 actions as a sign a resource is missing. — score 6: [@lukedowning19](https://www.youtube.com/watch?v=GERCwd65O-8) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/controllers) (Official, 3)
+  - Why: conventional resource routes reduce repetitive API plumbing while custom actions reveal missing resource boundaries.
+  - Flag when: A resource route registers unimplemented actions, or its controller gains custom resource operations.
+- **Should** Use a single-action invokable controller for a named business operation that has no natural resource. — score 6: [@enunomaduro](https://www.youtube.com/watch?v=328A3aFOy6M) (Laracon speaker (employee), 3); [Laravel (official)](https://laravel.com/docs/13.x/controllers) (Official, 3)
+  - Why: a dedicated controller keeps a named business operation separate from general CRUD responsibilities.
+- **Should** Use nested resources (and nested controllers) for actions on a child concept of a parent, e.g. `episodes.publish` → `EpisodePublicationController`. — score 6: [@adamwathan](https://github.com/adamwathan/laracon2017/pull/1) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/controllers) (Official, 3)
+  - Why: dedicated child controllers separate operations with different loading, authorization, views, and response data.
+  - Flag when: One action branches between global and parent-specific child operations using an optional parent parameter.
+- **Should** Map domain and validation exceptions to consistent responses centrally, returning JSON for APIs and redirects for browsers. — score 4: [Laravel (official)](https://laravel.com/docs/13.x/errors) (Official, 3); [@jwmcpeak](https://laracasts.com/episodes/3212) (Tier 3, 1)
+  - Why: central error rendering gives failures consistent responses without repeated controller-level catch branches.
+  - Flag when: Controllers duplicate validation or domain exception catches to construct error responses.
+- **Should** Use HTTP methods that match endpoint semantics: POST for creation, PUT for full replacement, PATCH for partial updates, and DELETE for removal. — score 4: [@freekmurze](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=27816s) (Laracon speaker, 3); [@jwmcpeak](https://laracasts.com/episodes/3204) (Tier 3, 1)
+  - Why: method semantics make mutation behavior predictable for clients.
+  - Flag when: An endpoint uses a mismatched method or requires omitted fields for a partial update.
+- **Should** Use consistent plural resource names in resource URLs and corresponding controller names ending in Controller. — score 4: [@freekmurze](https://spatie.be/guidelines/laravel) (Tier 2, 3); [@jwmcpeak](https://laracasts.com/episodes/3192) (Tier 3, 1)
+  - Why: consistent resource naming makes endpoints and their handlers predictable.
+  - Flag when: A resource URL or controller introduces inconsistent singular/plural naming.
+- **Consider** Accept related resource identifiers in the request body when creating a derived resource whose URL does not identify those related resources. — score 3: [@adamwathan](https://github.com/adamwathan/laracon2017/pull/4) (Laracon speaker, 3)
+  - Why: creation inputs identify the source entities without overloading route parameters.
+  - Flag when: A derived-resource creation endpoint lacks an explicit related identifier or uses an unrelated route parameter for creation input.
+- **Consider** Authenticate APIs with distinct per-client credentials (Sanctum tokens) and use cookie sessions for first-party SPAs; authorize each resource separately. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/sanctum) (Official, 3)
+  - Why: distinct credentials identify clients, while ownership checks restrict access to protected resources.
+  - Flag when: An API shares one credential across clients or accesses protected records without resource authorization.
+- **Consider** Choose endpoint-specific relationship filtering and eager loading at the application boundary, such as the controller. — score 3: [@reinink](https://reinink.ca/articles/optimize-database-queries-in-the-perimeter-of-your-laravel-apps) (Laracon speaker, 3)
+  - Why: endpoint-specific query choices should reflect the data that the response actually needs.
+  - Flag when: A model imposes endpoint-specific relationship filtering or loading globally.
+- **Consider** Expose /.well-known/change-password with a successful response or redirect to the application password-change page. — score 3: [@valorin](https://securinglaravel.com/security-tip-a-well-known-url-for) (Tier 2, 3)
+  - Why: the standard endpoint lets password managers discover the password-change flow.
+  - Flag when: The password-change flow lacks the well-known endpoint or that endpoint returns an error status.
+- **Consider** For first-party APIs needing client-specific compatibility handling, send platform and application-version metadata with requests. — score 3: [@samwhoo](https://x.com/samwhoo/status/1836398266940092499) (Tier 1, 3)
+  - Why: client metadata lets compatibility handling target the affected client versions.
+  - Flag when: Client-specific API workarounds cannot identify the platform or application version they apply to.
+- **Consider** Generate application links and post-mutation redirects with named routes using route() or to_route(). — score 3: [Laravel (official)](https://github.com/laravel/react-starter-kit/blob/main/app/Http/Controllers/Settings/ProfileController.php) (Official, 3)
+  - Why: named routes keep navigation aligned with route definitions when URLs change.
+  - Flag when: Application navigation or a mutation redirect hardcodes an internal URL instead of using its named route.
+- **Consider** Give each rate-limit bucket a distinct key when applying multiple segmented limits to the same route. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/routing#multiple-rate-limits) (Official, 3)
+  - Why: distinct keys prevent independent rate limits from sharing counters.
+  - Flag when: Multiple rate limits use identical by() keys without a distinguishing prefix.
+- **Consider** Guard feature-dependent routes with middleware that checks feature availability and rejects requests when the feature is inactive. — score 3: [Laravel (official)](https://github.com/laravel/pennant/blob/d49771e646a7c598509c85f33755e1353bccc7dc/src/Middleware/EnsureFeaturesAreActive.php#L20-L33) (Official, 3)
+  - Why: route guards consistently enforce feature availability before endpoint execution.
+  - Flag when: A feature-dependent endpoint executes without checking whether its feature is enabled.
+- **Consider** Inspect route:list after adding or changing route discovery to verify URLs, names, methods, actions, and middleware. — score 3: [@freekmurze](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=27816s) (Laracon speaker, 3)
+  - Why: generated routes can differ from the intended route contract.
+  - Flag when: Route discovery or its conventions change without checking the resulting route registrations.
+- **Consider** Keep controllers focused on coordinating HTTP input, authorization, validation, an application operation, and the response. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: focused HTTP coordination keeps application behavior reusable and controller actions easy to review.
+  - Flag when: A route closure or controller action accumulates business logic or duplicates form-request validation.
+- **Consider** Keep route declarations, names, parameters, and middleware easy to locate through familiar Laravel routing conventions. — score 3: [@lukedowning19](https://www.youtube.com/watch?v=GERCwd65O-8) (Laracon speaker, 3)
+  - Why: visible route declarations let reviewers understand endpoint behavior without searching every controller.
+  - Flag when: A routing abstraction obscures where URLs, names, parameters, or access middleware are declared.
+- **Consider** Keep stateless API routes free of sessions and cookies; keep session and CSRF for browser and Sanctum SPA routes. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/routing) (Official, 3)
+  - Why: stateless requests otherwise create unnecessary persistent session records and session cookies.
+  - Flag when: A stateless token API adds session middleware, or a browser authentication flow removes session or CSRF middleware.
+- **Consider** Paginate the query and pass the paginator to a resource collection for consistent pagination metadata. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/eloquent-resources) (Official, 3)
+  - Why: passing the paginator preserves reusable item formatting and supplies consistent pagination metadata.
+  - Flag when: A resource collection receives paginator items instead of the paginator, discarding pagination metadata.
+- **Consider** Place injected dependencies before route parameters in route callbacks and controller method signatures. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/requests#dependency-injection-route-parameters) (Official, 3)
+  - Why: consistent parameter ordering allows dependency injection and route arguments to resolve correctly.
+  - Flag when: A route callback or controller signature places route parameters before injected dependencies.
+- **Consider** Retain the password.reset named route when providing a custom password-reset page. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/fortify#disabling-views-and-password-reset) (Official, 3)
+  - Why: password-reset notifications need the conventional named route to generate reset links.
+  - Flag when: Custom authentication views remove or rename the password.reset route while password reset remains enabled.
+- **Consider** Return explicit delegation signals from exception reporting and rendering hooks when default handling must continue. — score 3: [Laravel (official)](https://github.com/laravel/boost/blob/d165b9ea6086294a8f1999ac3dcf4e61da267b23/.ai/laravel/skill/laravel-best-practices/rules/error-handling.md) (Official, 3)
+  - Why: preserves default exception handling through hook signals.
+  - Flag when: Exception hooks omit an explicit delegation result when default reporting or rendering must continue.
+- **Consider** Return the created resource from an API store action when clients need its representation. — score 3: [@adamwathan](https://github.com/adamwathan/laracon2017/pull/4) (Laracon speaker, 3)
+  - Why: the creation response gives clients the resulting resource and its server-generated values.
+  - Flag when: A resource-creation API returns an empty response despite clients needing the created representation.
+- **Consider** Set request-wide URL parameter defaults when shared parameters are required, and run middleware that sets them before SubstituteBindings. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/urls#default-values) (Official, 3)
+  - Why: defaults simplify URL generation and must be established before dependent binding runs.
+  - Flag when: Shared required URL parameters are repeatedly supplied, or URL-default middleware runs after SubstituteBindings.
+- **Consider** Use kebab-case for public-facing URL path words. — score 3: [@freekmurze](https://spatie.be/guidelines/php) (Tier 2, 3)
+  - Why: consistent URL spelling makes public routes predictable.
+  - Flag when: A public URL introduces camelCase or underscore-separated path words.
+- **Consider** When exposing encoded public identifiers, keep URL generation and route-model binding consistent with the encoding. — score 3: [@julienbourdeau](https://www.julienbourdeau.com/laravel-hashid) (Tier 1, 3)
+  - Why: consistent encoding and resolution lets public identifiers retrieve the intended records.
+  - Flag when: A URL exposes an encoded identifier but route binding expects a raw database key, or encoding differs between generation and lookup.
+- **Consider** Choose the API response format to match the consumer contract, adding linked-data metadata when consumers benefit from it. — score 2: [@dunglas](https://www.youtube.com/watch?v=DJJt_2V26V8) (Laracon speaker, 2)
+  - Why: response format should serve client interoperability requirements.
+  - Flag when: An endpoint changes serialization formats or adds linked-data metadata without matching the consumer contract.
+- **Consider** Encapsulate a legacy HTTP entry point behind a dedicated controller that returns Laravel responses and translates legacy redirects. — score 2: [@jordanhavard](https://www.youtube.com/watch?v=riJBa0Bxo-8) (Laracon speaker, 2)
+  - Why: a response boundary lets legacy code participate in Laravel routing and middleware during migration.
+  - Flag when: A legacy entry point prints output or sends redirect headers directly instead of returning a Laravel response.
+
+### Eloquent & database
+
+- **Must** Enable `Model::preventLazyLoading()` outside production and eager load relationships needed across model sets. — score 33: [@enunomaduro](https://x.com/enunomaduro/status/1808527718528499781) (Tier 1, 3); [@jasonlbeggs](https://laravel.com/blog/cutting-laravel-cloud-load-times-by-60-with-nightwatch) (Tier 1, 3); [@lukedowning19](https://laracasts.com/episodes/2850) (Tier 2, 3); [@marcelpociot](https://www.youtube.com/watch?v=rk29Hyk59JY) (Laracon speaker, 3); [@reinink](https://reinink.ca/articles/dynamic-relationships-in-laravel-using-subqueries) (Laracon speaker, 3); [@wendell_adriel](https://wendelladriel.com/blog/eloquent-performance-and-database-design-evidence-before-eager-loading) (Tier 1, 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent-relationships) (Official, 3); [laravel/framework PR author cosmastech](https://github.com/laravel/framework/pull/48052) (Tier 2, 3); [@sebarmand](https://www.youtube.com/watch?v=9mDkf4popb8) (Laracon speaker, 2); [Tim](https://www.youtube.com/watch?v=NcucthcnGY0&t=780s) (Laracon speaker, 2); [laravel/framework PR author dreadkopp](https://github.com/laravel/framework/pull/44769) (Tier 2, 2); [laravel/framework PR author timacdonald](https://github.com/laravel/framework/pull/42690) (Tier 2, 2); [@jwmcpeak](https://laracasts.com/episodes/3768) (Tier 3, 1)
+  - Why: lazy-loading detection exposes missing eager loads that cause a separate relationship query for every model.
+  - Flag when: A loop accesses an unloaded relationship on each model.
+- **Must** Enable Eloquent checks for missing attributes and discarded mass assignments; configure violation handlers deliberately for production. — score 22: [@aarondfrancis](https://x.com/aarondfrancis/status/1582864077382373377) (Tier 1, 3); [@enunomaduro](https://github.com/nunomaduro/essentials) (Tier 1, 3); [@taylorotwell](https://x.com/taylorotwell/status/1579840823281483777) (Tier 1, 3); [@wendell_adriel](https://github.com/WendellAdriel/laravel-exa) (Tier 1, 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent#configuring-eloquent-strictness) (Official, 3); [laravel/framework PR author inxilpro](https://github.com/laravel/framework/pull/44283) (Tier 2, 3); [laravel/framework PR author aarondfrancis](https://github.com/laravel/framework/pull/44664) (Tier 2, 2); [laravel/framework PR author crynobone](https://github.com/laravel/framework/pull/44627) (Tier 2, 2)
+  - Why: strictness exposes incomplete projections and silent model mistakes.
+  - Flag when: A model silently accepts discarded mass assignments or reads unselected attributes without diagnostics.
+- **Must** Put reusable filters, visibility rules, selects, and required eager loads in named query scopes, passing user context explicitly. — score 15: [@aarondfrancis](https://aaronfrancis.com/2024/reservable-models-in-laravel-990d6e9e) (Tier 1, 3); [@reinink](https://reinink.ca/articles/dynamic-relationships-in-laravel-using-subqueries) (Laracon speaker, 3); [@wendell_adriel](https://github.com/WendellAdriel/eloquent-query-classes) (Tier 1, 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent) (Official, 3); [laravel/framework PR author shaedrich](https://github.com/laravel/framework/pull/54450) (Tier 2, 2); [Instructor Team](https://laracasts.com/episodes/3743) (Tier 3, 1)
+  - Why: named scopes let callers reuse and compose domain constraints without repeating query details.
+  - Flag when: Recurring visibility predicates or related-value selections are duplicated across controllers.
+- **Must** Use indexed full-text queries or a suitable search engine for full-text search instead of broad substring scans. — score 15: [@jeffrey_way](https://laracasts.com/episodes/3571) (Tier 2, 3); [@lukedowning19](https://laracasts.com/episodes/3258) (Tier 2, 3); [@reinink](https://laracasts.com/episodes/2637) (Tier 2, 3); [@tightenco](https://tighten.com/insights/blazing-fast-full-text-search-in-laravel-from-mysql-to-typesense) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/search#adding-full-text-indexes) (Official, 3)
+  - Why: search indexes support relevance and avoid scanning text columns.
+  - Flag when: A full-text search feature runs leading-wildcard LIKE queries over large tables.
+- **Must** Declare attribute casts, preferably in casts(), so stored booleans, dates, enums, and structured values have the application types callers expect. — score 14: [@lukedowning19](https://laracasts.com/episodes/3112) (Tier 2, 3); [@povilaskorop](https://laraveldaily.com/post/my-cursor-rules-for-laravel) (Tier 2, 3); [@taylorotwell](https://www.youtube.com/watch?v=1P3wLy49t2c) (Laracon speaker (employee), 3); [Laravel (official)](https://github.com/laravel/boost/blob/5c0a822e35cce497a595f5ee3eb6418ae2111aeb/.ai/laravel/skill/laravel-best-practices/rules/eloquent.md#L77-L89) (Official, 3); [laravel/framework PR author nunomaduro](https://github.com/laravel/framework/pull/47237) (Tier 2, 2)
+  - Why: centralized conversion prevents inconsistent attribute interpretation.
+  - Flag when: Application code repeatedly parses a date or decodes a structured model attribute.
+- **Must** Wrap related writes that must succeed together in a database transaction. — score 14: [@jeffrey_way](https://laracasts.com/episodes/3906) (Tier 2, 3); [@mateusjatenee](https://laracasts.com/episodes/3037) (Tier 2, 3); [@themsaid](https://themsaid.com/defensive-programming-the-byzantine-generals-problem) (Tier 1, 3); [Laravel (official)](https://github.com/hirethunk/verbs/blob/13ee038c0a/docs/upgrading.md) (Official, 3); [@benjamincrozat](https://benjamincrozat.com/database-transactions-laravel) (Tier 2, 2)
+  - Why: atomic writes prevent partially completed business operations.
+  - Flag when: Multiple dependent records are written without a transaction.
+- **Must** Enforce every business uniqueness invariant with a database unique constraint. — score 13: [@simonswiss](https://laracasts.com/episodes/3653) (Tier 2, 3); [@valorin](https://securinglaravel.com/security-tip-avoiding-filename-collisions) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/migrations) (Official, 3); [@jalphonse](https://www.youtube.com/watch?v=HhcieSa52SQ) (Laracon speaker, 2); [@jwmcpeak](https://laracasts.com/episodes/3761) (Tier 3, 1); [Instructor Team](https://laracasts.com/episodes/3708) (Tier 3, 1)
+  - Why: database constraints reject duplicate business keys that error-prone application checks can miss.
+  - Flag when: Business uniqueness is checked only in application code without a matching database unique constraint.
+- **Must** Denormalize or add read models only when measured cost justifies the freshness and maintenance tradeoff. — score 12: [@freekmurze](https://spatie.be/blog/speeding-up-database-searches-using-an-invisible-column) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent-relationships) (Official, 3); [@coulbourne](https://www.youtube.com/watch?v=-mb2L97Yq88) (Laracon speaker, 2); [@devansh0207](https://www.youtube.com/watch?v=eJJsGhu9gtI) (Laracon speaker, 2); [@maryperry](https://www.youtube.com/watch?v=vsxoaTgtyjw) (Laracon speaker, 2)
+  - Why: efficient related-record queries can avoid cached derived state and its real-time freshness problems.
+- **Must** Maintain realistic factories and seeders with meaningful relations and states; never distribute production data. — score 12: [@jeffrey_way](https://laracasts.com/episodes/3893) (Tier 2, 3); [@lukedowning19](https://laracasts.com/episodes/3085) (Tier 2, 3); [@mattstauffer](https://www.youtube.com/watch?v=KBigS5vLwZk) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/seeding) (Official, 3)
+  - Why: synthetic data supports development and testing without exposing sensitive production records.
+  - Flag when: A committed fixture or seeder contains identifiable production records.
+- **Must** Match model key type and incrementing configuration, identifier generation, and referencing column types to the chosen primary key. — score 12: [@enunomaduro](https://x.com/enunomaduro/status/1589598736715370496) (Tier 1, 3); [@jeffrey_way](https://laracasts.com/episodes/3571) (Tier 2, 3); [@valorin](https://securinglaravel.com/security-tip-type-coercion-in-broadcast-routes) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent#primary-keys) (Official, 3)
+  - Why: consistent identifier types prevent incorrect casting and broken associations.
+  - Flag when: A string primary key uses integer key configuration or incompatible foreign-key columns.
+- **Must** Order by related or pivot data in SQL using joins or correlated subqueries, with a stable secondary sort, before paginating. — score 11: [@lukedowning19](https://x.com/LukeDowning19/status/1734565039816814751) (Tier 2, 3); [@reinink](https://laracasts.com/episodes/2581) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent#subquery-ordering) (Official, 3); [@drehimself](https://laracasts.com/episodes/2522) (Tier 2, 2)
+  - Why: sQL ordering sorts the full result set before pagination without loading everything into PHP.
+  - Flag when: Related values are sorted in a fetched collection after pagination.
+- **Must** Reserve global scopes for constraints required on every query and use local scopes for optional filters. — score 11: [@christophrumpel](https://christoph-rumpel.com/2024/9/all-laravel-php-attributes-at-your-disposal) (Tier 1, 3); [@valorin](https://securinglaravel.com/security-tip-scoping-orwhere-can-be-disastrous) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/boost/blob/5c0a822e35cce497a595f5ee3eb6418ae2111aeb/.ai/laravel/skill/laravel-best-practices/rules/eloquent.md#L45-L48) (Official, 3); [laravel/framework PR author emargareten](https://github.com/laravel/framework/pull/50034) (Tier 2, 2)
+  - Why: hidden universal constraints otherwise alter unrelated queries unexpectedly.
+  - Flag when: An optional screen-specific filter is installed as a global scope.
+- **Must** Use custom casts for domain value objects and provide array and JSON serialization when those objects appear in serialized models. — score 11: [@ashallendesign](https://ashallendesign.co.uk/blog/custom-laravel-casts) (Tier 2, 3); [@mateusjatenee](https://laracasts.com/episodes/3597) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent-mutators#value-object-casting) (Official, 3); [Craig Morris](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=7258s) (Laracon speaker, 2)
+  - Why: typed values centralize storage conversion and preserve domain semantics.
+  - Flag when: A structured domain attribute is passed as loosely shaped arrays across callers.
+- **Must** Create and associate related records through relationship methods, wrapping repeated linking in named domain methods. — score 10: [@jeffrey_way](https://laracasts.com/episodes/3885) (Tier 2, 3); [@shrutibalasa](https://laracasts.com/episodes/3754) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent-relationships) (Official, 3); [Instructor Team](https://laracasts.com/episodes/3709) (Tier 3, 1)
+  - Why: relationship methods assign linking keys while domain methods hide repeated association details.
+  - Flag when: Child creation manually assigns the parent foreign key instead of using the existing relationship.
+- **Must** Keep model lifecycle reactions focused and group substantial related handlers in registered observers, using ObservedBy or explicit observe registration. — score 10: [@christophrumpel](https://christoph-rumpel.com/2024/9/all-laravel-php-attributes-at-your-disposal) (Tier 1, 3); [@povilaskorop](https://laraveldaily.com/post/my-cursor-rules-for-laravel) (Tier 2, 3); [@maryperry](https://www.youtube.com/watch?v=w7jKcbVcI54) (Laracon speaker, 2); [laravel/framework PR author emargareten](https://github.com/laravel/framework/pull/49843) (Tier 2, 2)
+  - Why: focused observers keep lifecycle behavior discoverable and models readable.
+  - Flag when: Unrelated workflows or numerous lifecycle callbacks accumulate inside a model.
+- **Must** Model associations with behavior or independent domain identity as explicit models; use custom Pivot models for behavior confined to the association. — score 10: [@adamwathan](https://github.com/adamwathan/laracon2017/pull/3) (Laracon speaker, 3); [@shrutibalasa](https://laracasts.com/episodes/4021) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent-relationships#defining-custom-intermediate-table-models) (Official, 3); [@jwmcpeak](https://laracasts.com/episodes/3763) (Tier 3, 1)
+  - Why: explicit association models give state and lifecycle behavior a clear owner.
+  - Flag when: An association with domain behavior is manipulated only through anonymous pivot attachment.
+- **Must** Enforce relationships with compatible foreign keys and deliberate delete actions; enable foreign-key enforcement on SQLite. — score 9: [@christophrumpel](https://laracasts.com/episodes/2875) (Tier 1, 3); [@jeffrey_way](https://laracasts.com/episodes/3884) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/boost/blob/5c0a822e35cce497a595f5ee3eb6418ae2111aeb/.ai/laravel/skill/laravel-best-practices/rules/migrations.blade.php#L15-L22) (Official, 3)
+  - Why: database referential integrity prevents orphaned relationships.
+  - Flag when: A relationship migration lacks a foreign key or uses an inappropriate cascade action.
+- **Must** Explicitly allowlist serialized model fields with API Resources or visibility controls, and hide sensitive attributes when fields are added. — score 9: [@enunomaduro](https://x.com/enunomaduro/status/2001685435349692754) (Tier 1, 3); [@valorin](https://securinglaravel.com/security-tip-leaking-data-after-changes) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent-resources#introduction) (Official, 3)
+  - Why: unrestricted model serialization can expose private or newly added fields.
+  - Flag when: A response serializes an entire model containing sensitive attributes.
+- **Must** Explicitly bind models and migrations to the correct named database connection, separating tenant data from landlord metadata when databases differ. — score 9: [@freekmurze](https://www.youtube.com/watch?v=JmEmrLtMB_A) (Laracon speaker, 3); [@jessarchercodes](https://www.youtube.com/watch?v=G9Toicww8BU) (Laracon speaker (employee), 3); [Laravel (official)](https://laravel.com/docs/13.x/migrations#setting-the-migration-connection) (Official, 3)
+  - Why: explicit connections prevent reads and writes reaching the wrong database.
+  - Flag when: A tenant model or non-default migration relies on the default connection.
+- **Must** Group OR predicates in nested query closures, including conditions combined with scopes or ID-based iteration. — score 9: [@freekmurze](https://freek.dev/3118-searching-multiple-columns-with-one-url-parameter-in-laravel-query-builder) (Tier 2, 3); [@valorin](https://securinglaravel.com/security-tip-scoping-orwhere-can-be-disastrous) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent#chunking-results) (Official, 3)
+  - Why: parentheses keep alternative predicates from escaping ownership or iteration constraints.
+  - Flag when: An ungrouped orWhere follows a scope, relationship constraint, or chunkById predicate.
+- **Must** Keep executed migrations immutable and independent of evolving application models; use explicit tables and new migrations for changes. — score 9: [@enunomaduro](https://x.com/enunomaduro/status/1957750631071994254) (Tier 1, 3); [@freekmurze](https://spatie.be/blog/run-seeders-from-migrations) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/boost/blob/5c0a822e35cce497a595f5ee3eb6418ae2111aeb/.ai/laravel/skill/laravel-best-practices/rules/eloquent.md#L156-L158) (Official, 3)
+  - Why: historical migrations must remain reproducible as application code changes.
+  - Flag when: A migration imports an application model or edits a migration already applied in a shared environment.
+- **Must** Separate required settings seeders from demo/fixture seeders, and never truncate live data when seeding production. — score 9: [@christophrumpel](https://laracasts.com/episodes/2889) (Tier 1, 3); [@freekmurze](https://spatie.be/blog/run-seeders-from-migrations) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/migrations) (Official, 3)
+  - Why: purpose-specific seeders install required settings without inserting demo records or destroying live data.
+  - Flag when: A production seeder calls demo seeders or truncates live tables.
+- **Must** Use Eloquent models and relationships for ordinary model-backed application queries, with explicit query intent. — score 9: [@themsaid](https://x.com/themsaid/status/1658411971824218113) (Tier 1, 3); [@tightenco](https://tighten.com/insights/bol-ep17-patrick-omeara-and-steven-quayle-maintainly) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: model-aware queries preserve relationship semantics and model conventions.
+  - Flag when: Raw application queries duplicate an existing model relationship.
+- **Must** Use chunkById or lazyById when writes can change the result set being processed; keep the iteration key stable. — score 9: [@brendt_gd](https://stitcher.io/blog/processing-11-million-rows) (Tier 2, 3); [@wendell_adriel](https://wendelladriel.com/blog/eloquent-performance-and-database-design-evidence-before-eager-loading) (Tier 1, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: offset iteration can skip or repeat records as rows move out of the filtered set.
+  - Flag when: A chunk or lazy loop updates the column used to filter its own query.
+- **Must** Use one-of-many relationships (`latestOfMany`) or subquery-selected IDs with eager loading when you need several attributes from one related row. — score 9: [@reinink](https://laracasts.com/episodes/2545) (Tier 2, 3); [@wendell_adriel](https://x.com/wendell_adriel/status/1962479188109058525) (Tier 1, 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent-relationships#has-one-of-many) (Official, 3)
+  - Why: fetching one related model avoids duplicating scalar subqueries for each of its attributes.
+  - Flag when: Multiple subqueries independently select attributes from the same latest related row.
+- **Must** Decide relationship loading at the query, and use `whenLoaded()`/conditional resource fields so rendering never triggers hidden N+1s. — score 8: [@reinink](https://reinink.ca/articles/optimize-database-queries-in-the-perimeter-of-your-laravel-apps) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent-relationships) (Official, 3); [Tim](https://www.youtube.com/watch?v=NcucthcnGY0&t=840s) (Laracon speaker, 2)
+  - Why: queries during rendering create hidden repeated retrievals and counts that lazy-loading detection can miss.
+  - Flag when: A Blade loop or resource serializer executes relationship queries or counts.
+- **Must** Protect concurrent read-modify-write operations with transactions and row locks or atomic updates; acquire locks consistently and keep external work outside locks. — score 8: [@wendell_adriel](https://wendelladriel.com/blog/eloquent-performance-and-database-design-evidence-before-eager-loading) (Tier 1, 3); [Laravel (official)](https://laravel.com/docs/13.x/queries#pessimistic-locking) (Official, 3); [@jwmcpeak](https://laracasts.com/episodes/3993) (Tier 3, 1); [@sabatinomasala](https://x.com/SabatinoMasala/status/1989280428977721704) (Tier 3, 1)
+  - Why: concurrency control prevents lost updates while short consistent locking reduces contention.
+  - Flag when: Stock or balances are checked and changed without concurrency protection.
+- **Must** Encapsulate important model state transitions in expressive domain methods. — score 7: [@mateusjatenee](https://laracasts.com/episodes/3038) (Tier 2, 3); [Laravel (official)](https://github.com/spatie/laravel-model-states/blob/5fe3c004c3d33c8984db07b208e30e1f40c42c0e/docs/working-with-transitions/02-custom-transition-classes.md) (Official, 3); [@matthiasnoback](https://matthiasnoback.nl/2022/04/ddd-entities-and-orm-entities/) (Tier 3, 1)
+  - Why: named transitions centralize state invariants.
+  - Flag when: Callers duplicate the attribute mutations needed for a domain transition.
+- **Must** Validate and allowlist request filters and sort columns, using exact comparisons for identifiers and literal values. — score 7: [@freekmurze](https://spatie.be/docs/laravel-query-builder/v7/features/filtering) (Tier 2, 3); [@jeffrey_way](https://laracasts.com/episodes/3898) (Tier 2, 3); [@jwmcpeak](https://laracasts.com/episodes/3199) (Tier 3, 1)
+  - Why: controlled inputs prevent unintended queries and incorrect partial identifier matches.
+  - Flag when: User-supplied sort columns are applied without an allowlist.
+- **Should** Annotate collection and relationship generics in PHPDoc so model types survive iteration and chaining. — score 6: [@lucgiovanny](https://www.youtube.com/watch?v=PWV5b0sL5Wo&t=1230s) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent-relationships) (Official, 3)
+  - Why: generic annotations preserve concrete model types through iteration and query chaining for static analysis.
+  - Flag when: A collection or relationship declaration omits model generic types where inference loses them.
+- **Should** Apply visibility and filter constraints in SQL before pagination, never by filtering fetched collections. — score 6: [@bobbybouwmann](https://www.youtube.com/watch?v=ru-0QSciNvU) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/pagination) (Official, 3)
+  - Why: sQL visibility constraints avoid hydrating unauthorized records and allow database pagination.
+  - Flag when: Visibility or search filters run on a fetched collection instead of the query before pagination.
+- **Should** Declare relationships that match the association, use polymorphic relations for shared associations across model types, and give relationship methods concrete Eloquent return types. — score 6: [@lukedowning19](https://laracasts.com/episodes/3251) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/boost/blob/5c0a822e35cce497a595f5ee3eb6418ae2111aeb/.ai/laravel/skill/laravel-best-practices/rules/eloquent.md#L3-L16) (Official, 3)
+  - Why: precise relationship types document semantics and improve tooling.
+  - Flag when: A relationship method omits its concrete relation return type.
+- **Should** Defer external side effects and transaction-dependent event dispatch until after commit. — score 6: [@wendell_adriel](https://x.com/wendell_adriel/status/1973719258354901440) (Tier 1, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: effects must not escape a transaction that later rolls back.
+  - Flag when: An email, file write, or external event is triggered before its database transaction commits.
+- **Should** Define search document fields, types, and ranking explicitly, indexing only fields used for search, filtering, or faceting. — score 6: [@jeffrey_way](https://laracasts.com/episodes/3574) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/scout#meilisearch-data-types) (Official, 3)
+  - Why: explicit search schemas keep engine behavior consistent with stored data.
+  - Flag when: A search document exposes every model attribute or gives numeric fields string types.
+- **Should** Design composite indexes with equality columns before range columns, and verify with `EXPLAIN`. — score 6: [@aarondfrancis](https://www.youtube.com/watch?v=f4QShF42c6E&t=21743s) (Laracon speaker (employee), 3); [Laravel (official)](https://laravel.com/docs/13.x/migrations#creating-indexes) (Official, 3)
+  - Why: leading equality constraints narrow the index scan before a range limits usable subsequent columns.
+  - Flag when: A composite index puts a range-filter column before equality-filter columns used by the same query.
+- **Should** Fetch a single related value (e.g. last login date) with a subquery select (`addSelect`) under a clear alias, plus query-time casts. — score 6: [@reinink](https://reinink.ca/articles/dynamic-relationships-in-laravel-using-subqueries) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent#subquery-selects) (Official, 3)
+  - Why: a scalar subquery avoids loading entire histories while casting enables normal date formatting.
+  - Flag when: A full relationship history is loaded solely to display one date.
+- **Should** Follow Jonathan Reinink's Eloquent Performance Patterns: fetch only the columns, counts, aggregates, or single related row you need; never hydrate whole histories to read one value. — score 6: [@lukedowning19](https://laracasts.com/episodes/3110) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent-relationships) (Official, 3)
+  - Why: hydrating entire histories wastes memory and request time when only one value is needed.
+  - Flag when: A related collection is loaded and sorted solely to read its latest value.
+- **Should** Give a recurring subset its own relationship (e.g. `recentComments()`) so it can be eager loaded directly. — score 6: [@christophrumpel](https://laracasts.com/episodes/2885) (Tier 1, 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent-relationships) (Official, 3)
+  - Why: naming the subset keeps relationship meaning clear and removes repeated filtering closures.
+  - Flag when: Multiple callers redefine the same recurring subset with constrained eager-loading closures.
+- **Should** In shared-database multi-tenancy, apply a global tenant scope and set the tenant key automatically; bypass it only deliberately. — score 6: [@freekmurze](https://www.youtube.com/watch?v=JmEmrLtMB_A&t=390s) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent) (Official, 3)
+  - Why: automatic scoping and ownership keep ordinary reads and writes confined to the active tenant.
+  - Flag when: A tenant-owned model lacks the tenant scope or automatic tenant-key assignment.
+- **Should** Keep migrations focused enough to deploy, understand, and reverse as a coherent change. — score 6: [@enunomaduro](https://x.com/enunomaduro/status/1932479878852718969) (Tier 1, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: focused changes reduce deployment and rollback complexity.
+  - Flag when: A migration mixes unrelated schema operations.
+- **Should** Preserve existing projections when scopes add computed columns; use addSelect and initialize the base table selection when needed. — score 6: [@reinink](https://laracasts.com/episodes/2639) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent#writing-global-scopes) (Official, 3)
+  - Why: composable selects avoid silently discarding caller-selected model attributes.
+  - Flag when: A scope replaces the caller projection with select instead of addSelect.
+- **Should** Put recurring operations on sets of models in a custom Eloquent collection class. — score 6: [@christophrumpel](https://christoph-rumpel.com/2024/9/all-laravel-php-attributes-at-your-disposal) (Tier 1, 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent-collections) (Official, 3)
+  - Why: domain-named collection methods make dense model-set pipelines understandable and reusable.
+  - Flag when: The same model-set pipeline is duplicated across callers.
+- **Should** Rebuild event projections by replaying stored events into reset state or an idempotent projector. — score 6: [@freekmurze](https://spatie.be/docs/laravel-event-sourcing/v7/advanced-usage/replaying-events) (Tier 2, 3); [Laravel (official)](https://github.com/hirethunk/verbs/blob/13ee038c0a/docs/replaying-events.md) (Official, 3)
+  - Why: uncontrolled replay can duplicate previously applied effects.
+  - Flag when: Events are replayed into populated projection state without reset or deduplication.
+- **Should** Use model broadcasting and conventional model channels when broadcasting model lifecycle changes. — score 6: [@_joedixon](https://laracasts.com/episodes/3408) (Tier 1, 3); [@pascalbaljet](https://x.com/pascalbaljet/status/1496073019340513285) (Tier 1, 3)
+  - Why: framework lifecycle broadcasting avoids duplicated event and channel wiring.
+  - Flag when: Custom broadcasts duplicate model lifecycle event handling.
+- **Should** Use pivot attributes for simple association metadata and `syncWithoutDetaching()` to add links without dropping existing ones. — score 6: [@mattstauffer](https://laracasts.com/episodes/3312) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent-relationships) (Official, 3)
+  - Why: pivot attributes keep simple assignment metadata on the association it describes.
+  - Flag when: `sync()` is used to add links while existing associations must be preserved.
+- **Should** Use supported generated or spatial columns with appropriate indexes for recurring computed-value or geographic lookups. — score 6: [@aarondfrancis](https://x.com/aarondfrancis/status/1615753303899373574) (Tier 1, 3); [@reinink](https://laracasts.com/episodes/2648) (Tier 2, 3)
+  - Why: indexed stored representations avoid repeated full-table computation.
+  - Flag when: A frequent geographic or computed lookup calculates every row without an appropriate index.
+- **Should** Encrypt sensitive attributes with the `encrypted` casts, size columns for ciphertext, and don't bulk-write or search them in plaintext. — score 5: [Laravel (official)](https://laravel.com/docs/13.x/eloquent-mutators) (Official, 3); [@samsehnert](https://www.youtube.com/watch?v=32788JRtEnQ&t=1260s) (Laracon speaker, 2)
+  - Why: model encryption protects sensitive database fields only when writes pass through the encryption layer.
+  - Flag when: Bulk insert or update writes plaintext directly to an attribute configured with an encrypted cast.
+- **Should** Extract genuinely shared model or factory behavior into focused traits or base classes. — score 5: [@lukedowning19](https://laracasts.com/episodes/3097) (Tier 2, 3); [laravel/framework PR author lukeraymonddowning](https://github.com/laravel/framework/pull/46804) (Tier 2, 2)
+  - Why: shared behavior should have one maintainable implementation.
+  - Flag when: Several model factories duplicate the same behavior.
+- **Should** Use SoftDeletes and a deleted_at column for models whose deletion must be recoverable. — score 5: [Laravel (official)](https://laravel.com/docs/13.x/eloquent#soft-deleting) (Official, 3); [@maybeedward](https://x.com/MaybeEdward/status/1695244065720123396) (Tier 2, 2)
+  - Why: retained rows allow restoring accidentally deleted domain records.
+  - Flag when: A recoverable-delete requirement is implemented with permanent deletion.
+- **Should** Store application timestamps in UTC and use consistent UTC ISO-8601 serialization; convert timezones at presentation boundaries. — score 4: [Laravel (official)](https://laravel.com/docs/13.x/eloquent-mutators#date-casting-and-timezones) (Official, 3); [@jwmcpeak](https://laracasts.com/episodes/3996) (Tier 3, 1)
+  - Why: a common time basis prevents timezone-dependent storage and interpretation.
+  - Flag when: A timestamp is persisted in a user-specific timezone.
+- **Should** Use an enforced morph map for persistent polymorphic types instead of model class names. — score 4: [Laravel (official)](https://laravel.com/docs/13.x/ai-sdk#conversation-participants) (Official, 3); [@jwmcpeak](https://laracasts.com/episodes/3765) (Tier 3, 1)
+  - Why: stable aliases decouple stored relationships from PHP class renames.
+  - Flag when: A new polymorphic association persists fully qualified model class names.
+- **Consider** Apply authorization and tenant constraints in the search engine before pagination rather than relying on Eloquent global scopes alone. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/scout#pagination) (Official, 3)
+  - Why: external search engines do not apply Eloquent scopes to their result set.
+  - Flag when: Scout pagination relies solely on an Eloquent tenant scope.
+- **Consider** Avoid statements that implicitly commit the database transaction when atomicity is required. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/database#implicit-commits-in-transactions) (Official, 3)
+  - Why: implicit commits break the transaction boundary tracked by Laravel.
+  - Flag when: DDL or another implicit-commit statement runs inside a business transaction.
+- **Consider** Batch database writes in bounded transactions and tune size for memory, lock duration, and recovery. — score 3: [@brendt_gd](https://stitcher.io/blog/processing-11-million-rows) (Tier 2, 3)
+  - Why: bounds database write transactions for operational safety.
+  - Flag when: Bulk writes use one unbounded transaction or lack configurable batch sizing.
+- **Consider** Build request-driven queries from an already constrained Eloquent builder and preserve its scopes and ownership predicates. — score 3: [@freekmurze](https://spatie.be/docs/laravel-query-builder/v7/introduction) (Tier 2, 3)
+  - Why: restarting the query can discard authorization or tenant constraints.
+  - Flag when: A filtering layer replaces the supplied constrained builder with a fresh model query.
+- **Consider** Check foreign-key constraint names before renaming tables and explicitly preserve names that depend on the old table name. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/migrations#renaming-tables-with-foreign-keys) (Official, 3)
+  - Why: convention-derived names can make later constraint changes reference the wrong name.
+  - Flag when: A table rename leaves later migrations relying on newly inferred foreign-key names.
+- **Consider** Choose column types and lengths for the expected value domain; do not treat MySQL integer display width as storage size. — score 3: [@aarondfrancis](https://www.youtube.com/watch?v=f4QShF42c6E&t=21743s) (Laracon speaker (employee), 3)
+  - Why: appropriate types prevent truncation and avoid unnecessary storage.
+  - Flag when: A migration uses INT(n) as a range limit or an undersized column for valid values.
+- **Consider** Commit migrations with the code that needs them; never rely on copying production databases to recreate schema. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/migrations) (Official, 3)
+  - Why: versioned migrations let developers and tests recreate the schema without production database copies or coordinated manual edits.
+  - Flag when: Code uses a new table or column without a corresponding migration.
+- **Consider** Declare model table names explicitly when pluralization or naming differs from Eloquent conventions. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/localization#pluralization-language) (Official, 3)
+  - Why: explicit names keep model queries aligned with the schema.
+  - Flag when: A changed pluralizer language leaves model table names inferred incorrectly.
+- **Consider** Enable sticky read connections when reads in the same request must observe preceding writes. — score 3: [@philo01](https://www.youtube.com/watch?v=857ean0JIHE) (Laracon speaker, 3)
+  - Why: replica lag can otherwise return stale data after a successful write.
+  - Flag when: A write is immediately followed by a replica read requiring the updated value.
+- **Consider** Enforce required stored data types and JSON shape with supported database constraints or strict table definitions. — score 3: [@aarondfrancis](https://x.com/aarondfrancis/status/1600568712205041664) (Tier 1, 3)
+  - Why: storage constraints reject malformed values even outside application validation.
+  - Flag when: A fixed-shape JSON column has no database validation where supported.
+- **Consider** Give recursive database queries an explicit termination condition. — score 3: [@aarondfrancis](https://aaronfrancis.com/2024/finding-missing-orders-with-a-recursive-cte-bf59e6de) (Tier 1, 3)
+  - Why: bounded recursion prevents runaway traversal.
+  - Flag when: A recursive CTE lacks a stopping predicate or a guaranteed finite traversal.
+- **Consider** Implement migration rollbacks that safely reverse reversible schema changes. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: honest rollback paths make deployment recovery predictable.
+  - Flag when: A reversible migration has an empty or incorrect down method.
+- **Consider** Keep application Eloquent models in App\Models with domain names that omit a redundant Model suffix, following project convention. — score 3: [@enunomaduro](https://github.com/pestphp/pest/blob/5.x/src/ArchPresets/Laravel.php) (Tier 1, 3)
+  - Why: consistent model placement and naming make domain types easy to locate.
+  - Flag when: An ordinary application model is declared outside App\Models or adds a redundant Model suffix.
+- **Consider** Keep attribute and cast names distinct from relationships and configure primary-key types through key metadata rather than attribute casts. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/eloquent-mutators#attribute-casting) (Official, 3)
+  - Why: name collisions and primary-key casts interfere with Eloquent behavior.
+  - Flag when: A cast has the same name as a relationship or targets the primary key.
+- **Consider** Keep local scopes composable by returning the same builder instance or void. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/eloquent#local-scopes) (Official, 3)
+  - Why: scope chaining relies on preserving the active query.
+  - Flag when: A local scope returns results or an unrelated builder.
+- **Consider** Keep persisted enum values stable and separate from changeable or translated labels. — score 3: [@brendt_gd](https://stitcher.io/blog/php-enum-style-guide) (Tier 2, 3)
+  - Why: keeps persisted enum identities stable.
+  - Flag when: Enum backing values change with labels or translations.
+- **Consider** Make Scout database semantic-search vector columns nullable until embeddings are saved. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/scout#database-semantic-and-hybrid-search) (Official, 3)
+  - Why: permits records awaiting semantic search embeddings.
+  - Flag when: Scout semantic-search vector columns are non-nullable before embeddings are generated.
+- **Consider** Match vector-column dimensions to embedding output and use an appropriate vector cast. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/search#storing-and-indexing-vectors) (Official, 3)
+  - Why: aligns vector schema and casts with embeddings.
+  - Flag when: Vector column dimensions differ from embedding output or the model lacks an appropriate vector cast.
+- **Consider** Mirror database defaults on models only when unsaved instances need those values. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: database defaults apply on insertion rather than model construction.
+  - Flag when: An unsaved model is read as though a database default has already been applied.
+- **Consider** Model shared-resource ownership through teams or organizations when resources must outlive or be shared beyond individual users. — score 3: [@julienbourdeau](https://x.com/julienbourdeau/status/1771398329793957944) (Tier 1, 3)
+  - Why: group ownership separates resource lifetime from individual membership.
+  - Flag when: A shared workspace resource belongs directly to one user without representing its owning team.
+- **Consider** Opt into dynamic model defaults explicitly and supply raw storage values that bypass casts and mutators. — score 3: [Laravel (official)](https://laravel-news.com/laravel-13-35-0) (Official, 3)
+  - Why: initializes dynamic model defaults in raw storage form.
+  - Flag when: Dynamic defaults are applied implicitly or assign casted values directly to raw attributes.
+- **Consider** Prefer integer internal primary keys when distributed identifier generation is unnecessary; encode public identifiers at application boundaries. — score 3: [@julienbourdeau](https://www.julienbourdeau.com/laravel-hashid) (Tier 1, 3)
+  - Why: compact sequential keys reduce index storage and insertion cost.
+  - Flag when: A public identifier encoding is stored in place of an internal numeric key.
+- **Consider** Preserve validated filter and sort parameters in pagination links. — score 3: [@simonswiss](https://laracasts.com/episodes/3661) (Tier 2, 3)
+  - Why: subsequent pages must use the same query criteria.
+  - Flag when: Pagination links drop active query filters.
+- **Consider** Profile query count, latency, memory, and hydrated models against realistic data volumes; extra bounded queries are fine if total work drops. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/database) (Official, 3)
+  - Why: fewer queries can still make requests slower by hydrating thousands of unnecessary models.
+- **Consider** Provide authentication storage columns compatible with password hashes and remember tokens. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/authentication#introduction-database-considerations) (Official, 3)
+  - Why: undersized or incompatible columns break authentication persistence.
+  - Flag when: A password column is shorter than supported hashes or remember_token has an incompatible definition.
+- **Consider** Repeat all column attributes that must be retained when modifying a column in a migration. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: omitted modifiers are dropped during column changes.
+  - Flag when: A change() definition omits an existing default, unsigned modifier, or nullability setting.
+- **Consider** Represent repeating entities and hierarchical associations with stable keys and related rows instead of text links or repeated columns. — score 3: [@coulbourne](https://www.youtube.com/watch?v=OpCT3s4wTI0) (Laracon speaker, 2); [Instructor Team](https://laracasts.com/episodes/3702) (Tier 3, 1)
+  - Why: normalized relationships preserve identity and support changing cardinality.
+  - Flag when: Repeated entity columns or display text are used as relationship keys.
+- **Consider** Retain primary and relationship linking keys when selecting a subset of columns for eager loading. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/eloquent-relationships#eager-loading-specific-columns) (Official, 3)
+  - Why: relationship matching requires both model identities and linking keys.
+  - Flag when: An eager-loaded select omits a key needed to match related models.
+- **Consider** Return true from custom cast comparisons only when the compared values are semantically equal. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/eloquent-mutators#comparing-cast-values) (Official, 3)
+  - Why: aligns cast comparison with semantic equality.
+  - Flag when: Custom cast comparison returns true for values with different meanings.
+- **Consider** Scope Vitess analytical workloads with the connection OLAP callback so transactional mode is restored afterward. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/database#running-analytical-queries-on-vitess) (Official, 3)
+  - Why: scopes analytical database mode to its workload.
+  - Flag when: Vitess OLAP mode is switched manually without a callback that restores transactional mode.
+- **Consider** Slice in-memory results to the requested page before constructing a manual paginator. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/pagination#manually-creating-a-paginator) (Official, 3)
+  - Why: a paginator does not automatically limit the supplied items.
+  - Flag when: A manual paginator receives an unsliced complete result array.
+- **Consider** Specify relationship names and linking keys explicitly when dynamic relationships or custom polymorphic columns cannot use Eloquent conventions. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/eloquent-relationships#dynamic-relationships) (Official, 3)
+  - Why: explicit metadata avoids incorrect inferred keys.
+  - Flag when: A dynamic relationship omits its key arguments.
+- **Consider** Start Eloquent query chains with Model::query(). — score 3: [@enunomaduro](https://x.com/enunomaduro/status/1918409533057319163) (Tier 1, 3)
+  - Why: an explicit builder entry point makes query construction recognizable.
+  - Flag when: A new model query chain uses magic static forwarding instead of query().
+- **Consider** Store money in integer minor units or an exact decimal representation instead of floating point. — score 3: [@philo01](https://laracasts.com/episodes/3092) (Tier 2, 3)
+  - Why: exact storage avoids binary floating-point rounding errors.
+  - Flag when: A monetary database column uses float or double.
+- **Consider** Use COUNT(*) for all rows and COUNT(column) only when excluding null values is intended. — score 3: [@aarondfrancis](https://aaronfrancis.com/2022/is-count-slow-in-mysql-aabe5c35) (Tier 1, 3)
+  - Why: column counts omit nulls and can change the meaning of an aggregate.
+  - Flag when: A nullable column is counted where all matching rows are required.
+- **Consider** Use a compact numeric IPv4 representation when subnet queries or storage volume justify it, with explicit boundary conversion. — score 3: [@aarondfrancis](https://x.com/aarondfrancis/status/1599521614995279872) (Tier 1, 3)
+  - Why: numeric addresses support compact storage and range-based subnet queries.
+  - Flag when: Subnet filtering repeatedly parses textual IPv4 values in SQL.
+- **Consider** Use a set-based update for model collections when per-model lifecycle events are unnecessary, using toQuery or a suitable collection operation. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: set-based writes avoid one query per model.
+  - Flag when: A collection loop performs independent identical updates without needing model events.
+- **Consider** Use flexible SQLite column typing only where heterogeneous values are intended; keep other fields strictly typed when integrity is required. — score 3: [@aarondfrancis](https://aaronfrancis.com/2024/sqlite-is-not-weakly-typed-bfc98b9c) (Tier 1, 3)
+  - Why: mixed-value storage needs a deliberate boundary to avoid accidental type drift.
+  - Flag when: A fixed-domain field permits mixed storage types without a domain requirement.
+- **Consider** Use insertOrIgnore only when its database-specific suppression of errors is acceptable. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/queries#insert-statements) (Official, 3)
+  - Why: ignored errors can hide failures beyond duplicate records.
+  - Flag when: InsertOrIgnore is used where non-duplicate insertion errors must be reported.
+- **Consider** Use nullable collection or array-object casts when null assignments must persist SQL NULL instead of JSON null. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/eloquent-mutators#array-object-and-collection-casting) (Official, 3)
+  - Why: distinguishes SQL null from JSON null in casts.
+  - Flag when: Collection or array-object casts persist JSON null where assignments require SQL NULL.
+- **Consider** Use publication timestamps and visibility queries for timed publication when no transition side effects are required. — score 3: [@brendt_gd](https://stitcher.io/blog/reducing-code-motion) (Tier 2, 3)
+  - Why: models publication visibility through persisted timestamps and queries.
+  - Flag when: Timed publication without transition effects uses scheduled status changes instead of timestamp visibility queries.
+- **Consider** Use standard relationships when possible; implement custom relations only for associations conventions cannot express, including batched retrieval and parent matching. — score 3: [@inxilpro](https://www.youtube.com/watch?v=qLC04_BPQTY) (Laracon speaker, 3)
+  - Why: custom relations must preserve eager-loading behavior without per-parent queries.
+  - Flag when: A custom relation queries separately for every parent during eager loading.
+- **Consider** Version persistent settings structure changes and required defaults in migrations. — score 3: [@freekmurze](https://github.com/spatie/laravel-settings) (Tier 2, 3)
+  - Why: versioned defaults keep existing installations compatible with new settings.
+  - Flag when: A new required persisted setting has no upgrade path or default.
+- **Consider** Choose relationships, joins, and subquery forms according to the derived value, filter, or table the query needs. — score 2: [@benjamincrozat](https://benjamincrozat.com/laravel-subquery) (Tier 2, 2)
+  - Why: selects query forms according to the required database result.
+  - Flag when: A relationship, join, or subquery returns the wrong result shape or changes filter cardinality.
+- **Consider** Enable automatic relationship loading deliberately when collection-wide loading on access is the intended query policy. — score 2: [laravel/framework PR author litvinchuk](https://github.com/laravel/framework/pull/53655) (Tier 2, 2)
+  - Why: automatic loading can batch access while changing when queries execute.
+  - Flag when: Relationship autoloading is enabled without considering which collections it will affect.
+- **Consider** Use whereColumn() to compare correlated query columns rather than binding a column name as a value. — score 2: [@benjamincrozat](https://benjamincrozat.com/laravel-subquery) (Tier 2, 2)
+  - Why: requires column-aware correlated query comparisons.
+  - Flag when: A correlated column name is passed as the value argument to where() instead of whereColumn().
+
+### Validation & security
+
+- **Must** Authorize every protected read and write on the server, regardless of authentication, route binding, hidden URLs, or frontend flags. — score 39: [@_joedixon](https://www.youtube.com/watch?v=IDYzAMDs2YI) (Laracon speaker (employee), 3); [@calebporzio](https://laracasts.com/episodes/3924) (Tier 2, 3); [@freekmurze](https://spatie.be/guidelines/secure-coding) (Tier 2, 3); [@jeffrey_way](https://laracasts.com/episodes/3887) (Tier 2, 3); [@joetannenbaum](https://www.youtube.com/watch?v=v7spVsbN_Qc) (Laracon speaker (employee), 3); [@lukedowning19](https://laracasts.com/episodes/2856) (Tier 2, 3); [@povilaskorop](https://laraveldaily.com/post/my-cursor-rules-for-laravel) (Tier 2, 3); [@simonswiss](https://laracasts.com/episodes/3672) (Tier 2, 3); [@taylorotwell](https://www.youtube.com/watch?v=1P3wLy49t2c) (Laracon speaker (employee), 3); [@valorin](https://securinglaravel.com/security-tip-consider-all-routes-not-just-web/) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/broadcasting) (Official, 3); [@drehimself](https://laracasts.com/episodes/2525) (Tier 2, 2); [@dunglas](https://www.youtube.com/watch?v=DJJt_2V26V8) (Laracon speaker, 2); [@iamkevinmckee](https://laracasts.com/episodes/4014) (Tier 3, 1); [@jwmcpeak](https://laracasts.com/episodes/3381) (Tier 3, 1)
+  - Why: clients can alter frontend permissions, and authentication alone does not grant access to protected resources.
+  - Flag when: A protected endpoint relies on authentication or frontend flags without enforcing server authorization.
+- **Must** Centralize authorization in gates and policies and check abilities, not role names. — score 24: [@freekmurze](https://spatie.be/docs/laravel-permission/v8/best-practices/roles-vs-permissions) (Tier 2, 3); [@jeffrey_way](https://laracasts.com/episodes/3887) (Tier 2, 3); [@lukedowning19](https://laracasts.com/episodes/3055) (Tier 2, 3); [@mattstauffer](https://laracasts.com/episodes/3309) (Tier 2, 3); [@taylorotwell](https://x.com/taylorotwell/status/1555263557339586561) (Tier 1, 3); [@valorin](https://securinglaravel.com/in-depth-policy-objects) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/authorization) (Official, 3); [@dunglas](https://www.youtube.com/watch?v=DJJt_2V26V8) (Laracon speaker, 2); [@jwmcpeak](https://laracasts.com/episodes/3420) (Tier 3, 1)
+  - Why: shared abilities reuse authorization decisions without coupling callers to role names.
+  - Flag when: Controllers or templates compare role names to decide access instead of checking abilities.
+- **Must** Use Laravel's validator and put reusable constraints in `ValidationRule` objects. — score 24: [@freekmurze](https://spatie.be/blog/spatie-guidelines-as-ai-skills) (Tier 2, 3); [@jbrooksuk](https://www.youtube.com/watch?v=K-g-t99mKZU) (Laracon speaker (employee), 3); [@jeffrey_way](https://laracasts.com/episodes/3880) (Tier 2, 3); [@philo01](https://laracasts.com/episodes/3102) (Tier 2, 3); [@timacdonald87](https://x.com/timacdonald87/status/1546308230686867457) (Tier 1, 3); [@valorin](https://securinglaravel.com/security-tip-retrieving-request-values) (Tier 2, 3); [@zuzana_kunckova](https://www.youtube.com/watch?v=mW8y0Otfznw) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/validation) (Official, 3)
+  - Why: reuse Laravel’s validation engine and avoid repeating domain checks across controllers.
+  - Flag when: The same custom validation checks are duplicated across controllers instead of shared rule objects.
+- **Must** Hash passwords with Laravel's `Hash`; never store plaintext, encrypted, or MD5 passwords. — score 22: [@enunomaduro](https://www.youtube.com/watch?v=328A3aFOy6M) (Laracon speaker (employee), 3); [@freekmurze](https://spatie.be/guidelines/secure-coding) (Tier 2, 3); [@jeffrey_way](https://laracasts.com/episodes/3883) (Tier 2, 3); [@lukedowning19](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=1500s) (Laracon speaker, 3); [@valorin](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=34290s) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/hashing) (Official, 3); [@samsehnert](https://www.youtube.com/watch?v=32788JRtEnQ&t=300s) (Laracon speaker, 2); [laravel/framework PR author gdebrauwer](https://github.com/laravel/framework/pull/46947) (Tier 2, 2)
+  - Why: slow password hashing limits exposure of reusable credentials when the database is stolen.
+  - Flag when: Password persistence uses plaintext, reversible encryption, or MD5 instead of Laravel password hashing.
+- **Must** Encrypt recoverable authentication secrets and sensitive queued payloads at rest. — score 17: [@ashallendesign](https://ashallendesign.co.uk/blog/encrypting-queued-classes-in-laravel) (Tier 2, 3); [@freekmurze](https://spatie.be/guidelines/secure-coding) (Tier 2, 3); [@valorin](https://securinglaravel.com/security-tip-dont-forget-to-regenerate-2fa-secret-keys) (Tier 2, 3); [@wendell_adriel](https://x.com/wendell_adriel/status/1972988790374371626) (Tier 1, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3); [@samsehnert](https://www.youtube.com/watch?v=32788JRtEnQ) (Laracon speaker, 2)
+  - Why: reduce exposure of recoverable credentials and private payloads in storage.
+  - Flag when: A TOTP secret or sensitive queued job payload is stored unencrypted.
+- **Must** Rate-limit logins, APIs, and expensive endpoints per caller with `RateLimiter`, watching for abuse. — score 17: [@aarondfrancis](https://aaronfrancis.com/2025/a-cookieless-cache-friendly-image-proxy-in-laravel-inspired-by-cloudflare-9e95f7e0) (Tier 1, 3); [@freekmurze](https://spatie.be/guidelines/secure-coding) (Tier 2, 3); [@lukedowning19](https://laracasts.com/episodes/3113) (Tier 2, 3); [@valorin](https://securinglaravel.com/security-tip-be-careful-of-transliteration) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/routing) (Official, 3); [Tim](https://www.youtube.com/watch?v=NcucthcnGY0&t=1500s) (Laracon speaker, 2)
+  - Why: prevent one caller’s traffic bursts from consuming resources shared by other users.
+  - Flag when: Login or expensive API routes omit throttling, or limiter keys fail to distinguish callers.
+- **Must** Require authentication middleware on protected routes and enforce account-status and email-verification requirements across access paths; dispatch Registered after custom registration. — score 16: [@jeffrey_way](https://laracasts.com/episodes/3884) (Tier 2, 3); [@lukedowning19](https://laracasts.com/episodes/3053) (Tier 2, 3); [@simonswiss](https://laracasts.com/episodes/3662) (Tier 2, 3); [@valorin](https://securinglaravel.com/security-tip-use-route-groups) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/sanctum#protecting-spa-routes) (Official, 3); [@jwmcpeak](https://laracasts.com/episodes/3194) (Tier 3, 1)
+  - Why: prevent guests or unverified accounts from reaching protected application functions.
+  - Flag when: Protected route groups, API endpoints or broadcast subscriptions omit the required authentication or verification check.
+- **Must** Apply CSRF protection to browser-authenticated state changes; exempt webhooks only when an independent signature check authenticates them. — score 15: [@christophrumpel](https://laracasts.com/episodes/2895) (Tier 1, 3); [@freekmurze](https://spatie.be/guidelines/secure-coding) (Tier 2, 3); [@jeffrey_way](https://laracasts.com/episodes/3876) (Tier 2, 3); [@valorin](https://securinglaravel.com/in-depth-a-deep-dive-into-laravels-new-starter-kits-pt-1) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: prevent forged browser requests while authenticating external callbacks.
+  - Flag when: A session-authenticated state-changing form lacks a CSRF token, or an exempt webhook lacks signature verification.
+- **Must** Escape untrusted output for its rendering context; sanitize permitted HTML and render user Markdown with raw HTML and unsafe links disabled. — score 15: [@freekmurze](https://spatie.be/guidelines/secure-coding) (Tier 2, 3); [@jeffrey_way](https://laracasts.com/episodes/3875) (Tier 2, 3); [@lukedowning19](https://laracasts.com/episodes/3096) (Tier 2, 3); [@valorin](https://laracasts.com/episodes/2669) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/strings#method-str-inline-markdown) (Official, 3)
+  - Why: prevent user content from executing scripts in the browser.
+  - Flag when: Untrusted data reaches raw Blade output, HtmlString, HTML attributes, or a Markdown converter without appropriate escaping or sanitization.
+- **Must** Protect sensitive resource existence with consistent authorization responses, using a not-found denial where disclosure is inappropriate. — score 15: [@ashallendesign](https://ashallendesign.co.uk/blog/unauthorised-access-404) (Tier 2, 3); [@enunomaduro](https://x.com/enunomaduro/status/2085015248335982805) (Tier 1, 3); [@timacdonald87](https://x.com/timacdonald87/status/1547714574572752896) (Tier 1, 3); [@valorin](https://securinglaravel.com/security-tip-leaking-model-existence) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/boost/blob/0555ee4665bb375af13f272852cf3f860d1f9637/.ai/laravel/skill/testing-best-practices/rules/endpoint-tests.blade.php) (Official, 3)
+  - Why: avoid revealing protected records to unauthorized callers.
+  - Flag when: Protected resource denials expose existence when the access policy requires concealment.
+- **Must** Return safe, useful error responses for expected failures and report full diagnostics internally without leaking sensitive details. — score 15: [@freekmurze](https://spatie.be/guidelines/secure-coding) (Tier 2, 3); [@joetannenbaum](https://blog.joe.codes/api-controlled-alfred-workflows-an-experiment) (Tier 1, 3); [@valorin](https://securinglaravel.com/in-depth-a-deep-dive-into-laravels-new-starter-kits-pt-1) (Tier 2, 3); [@zuzana_kunckova](https://www.youtube.com/watch?v=Emm559sI6tI&t=90s) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/errors) (Official, 3)
+  - Why: useful responses help users handle failures while internal diagnostics support debugging without exposing sensitive information.
+  - Flag when: An error response includes exception traces, SQL, secrets, or other sensitive diagnostic details.
+- **Must** Scope resource collection queries to the caller’s authorized tenant and records, keeping query constraints consistent with policies. — score 15: [@adamwathan](https://github.com/adamwathan/laracon2017/pull/3) (Laracon speaker, 3); [@freekmurze](https://www.youtube.com/watch?v=JmEmrLtMB_A) (Laracon speaker, 3); [@jessarchercodes](https://www.youtube.com/watch?v=G9Toicww8BU) (Laracon speaker (employee), 3); [@reinink](https://laracasts.com/episodes/2563) (Tier 2, 3); [Laravel (official)](https://github.com/filamentphp/filament/blob/7c5c222be3e92439357213f8274d1548c8cb769e/docs/09-advanced/06-security.md) (Official, 3)
+  - Why: prevent unauthorized records from entering query results before presentation filtering.
+  - Flag when: A collection query omits tenant or ownership predicates and relies on per-record filtering afterward.
+- **Must** Validate uploaded content type and size on the server, use generated storage names, and store files through a configured disk. — score 15: [@freekmurze](https://spatie.be/guidelines/secure-coding) (Tier 2, 3); [@jeffrey_way](https://laracasts.com/episodes/3905) (Tier 2, 3); [@simonswiss](https://laracasts.com/episodes/3663) (Tier 2, 3); [@valorin](https://securinglaravel.com/security-tip-bypassing-csrf-protection) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/filesystem#other-uploaded-file-information) (Official, 3)
+  - Why: prevent malicious uploads and unsafe client-controlled file names.
+  - Flag when: Uploads are saved without type or size checks or use a client-provided original name as the storage path.
+- **Must** Allowlist client-selectable query filters, sorts, fields and relationship includes before building a query. — score 14: [@enunomaduro](https://x.com/enunomaduro/status/1801593918305235251) (Tier 1, 3); [@freekmurze](https://www.youtube.com/watch?v=h2JvrKHO-A0) (Laracon speaker, 3); [@valorin](https://x.com/valorin/status/1836991940614607059) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent-relationships) (Official, 3); [@dunglas](https://www.youtube.com/watch?v=DJJt_2V26V8) (Laracon speaker, 2)
+  - Why: prevent clients from querying unintended data or constructing unrestricted query options.
+  - Flag when: Request parameters choose filters, selected columns or relationship includes without an explicit allowlist.
+- **Must** Always use parameter bindings; only allow application-controlled identifiers (columns, tables) in raw SQL. — score 14: [@freekmurze](https://spatie.be/guidelines/secure-coding) (Tier 2, 3); [@jessarchercodes](https://www.youtube.com/watch?v=-9jV5ra5KB4) (Laracon speaker (employee), 3); [@valorin](https://www.youtube.com/watch?v=cI4JoO_v4Hw) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/queries) (Official, 3); [@thierylaverdure](https://www.youtube.com/watch?v=E4_QSEfInrc) (Laracon speaker, 2)
+  - Why: interpolated input lets attackers alter queries and extract database records through SQL injection.
+  - Flag when: Request data is interpolated into raw SQL or used as an unrestricted SQL identifier.
+- **Must** Hide sensitive attributes from API responses and expose privileged fields only after a permission check. — score 14: [@freekmurze](https://spatie.be/guidelines/secure-coding) (Tier 2, 3); [@jeffrey_way](https://laracasts.com/episodes/2283) (Tier 2, 3); [@valorin](https://securinglaravel.com/security-tip-fix-your-leaky-apis) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent-resources) (Official, 3); [@dunglas](https://www.youtube.com/watch?v=DJJt_2V26V8&t=1230s) (Laracon speaker, 2)
+  - Why: prevent API responses from exposing credentials or private fields to unauthorized callers.
+  - Flag when: API resources include credentials or privileged fields without checking the caller’s permission.
+- **Must** Use established authentication integrations for OAuth login and enterprise SSO rather than implementing the protocols yourself. — score 14: [@freekmurze](https://spatie.be/guidelines/secure-coding) (Tier 2, 3); [@mattstauffer](https://laracasts.com/episodes/3310) (Tier 2, 3); [@taylorotwell](https://x.com/taylorotwell/status/1895488156759470154) (Tier 1, 3); [Laravel (official)](https://laravel.com/docs/13.x/passport#implicit-grant) (Official, 3); [@maryperry](https://www.youtube.com/watch?v=KroiagwnV0s) (Laracon speaker, 2)
+  - Why: reduce protocol and credential-handling errors in authentication integrations.
+  - Flag when: A custom OAuth or SAML implementation replaces an established authentication integration.
+- **Must** Treat client-editable component properties as untrusted; lock immutable identifiers and authorize actions against server-resolved records. — score 13: [@aarondfrancis](https://www.youtube.com/watch?v=lXjYStxGFIQ) (Laracon speaker (employee), 3); [@calebporzio](https://youtu.be/f4QShF42c6E?t=6018) (Laracon speaker, 3); [@valorin](https://laracasts.com/episodes/2668) (Tier 2, 3); [Laravel (official)](https://livewire.laravel.com/docs/4.x/properties) (Official, 3); [@jwmcpeak](https://laracasts.com/episodes/3375) (Tier 3, 1)
+  - Why: prevent client property tampering from changing the target of a protected operation.
+  - Flag when: A sensitive component identifier is client-editable and trusted without server-side checks.
+- **Must** Audit security-relevant events (auth, authorization, notifications) with filtered context. — score 12: [@bobbybouwmann](https://www.youtube.com/watch?v=-jo6QjeaJXQ&t=900s) (Laracon speaker, 3); [@freekmurze](https://freek.dev/3058-whats-new-in-laravel-activitylog-v5) (Tier 2, 3); [@valorin](https://securinglaravel.com/security-tip-login-logging) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/mail) (Official, 3)
+  - Why: make allowed and denied access traceable for investigating policy or role mistakes.
+  - Flag when: Audit listeners persist passwords or unfiltered request, mail, or notification payloads.
+- **Must** Define shared password validation defaults that meet the application policy and favor adequate length over unnecessary composition rules. — score 12: [@timacdonald87](https://www.youtube.com/watch?v=MMc2TzBY6l4) (Laracon speaker (employee), 3); [@valorin](https://securinglaravel.com/security-tip-help-password-managers-get-it-right/#/portal/signin) (Tier 2, 3); [@wendell_adriel](https://github.com/WendellAdriel/laravel-exa) (Tier 1, 3); [Laravel (official)](https://github.com/laravel/react-starter-kit/blob/717b8f55aefd82d25d4119eaebdc8e3a72b8d7e5/app/Concerns/PasswordValidationRules.php#L15-L28) (Official, 3)
+  - Why: keep password requirements consistent and compatible with strong memorable passwords.
+  - Flag when: Password creation and update paths use inconsistent rules or accept passwords below the intended minimum length.
+- **Must** Deploy a restrictive CSP with explicit source directives, nonces or hashes for scripts, and a frame-ancestors policy; verify violations before enforcement. — score 12: [@calebporzio](https://x.com/calebporzio/status/1743005575800053986) (Tier 2, 3); [@freekmurze](https://spatie.be/guidelines/secure-coding) (Tier 2, 3); [@valorin](https://securinglaravel.com/security-tip-run-your-csp-in-local-development) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/horizon) (Official, 3)
+  - Why: limit script execution and framing to intended sources.
+  - Flag when: Responses omit CSP, permit unrestricted script sources or unsafe-inline, or generate scripts without the required nonce.
+- **Must** Enforce every required authentication factor before granting a full session or sensitive operation; keep reset and recovery flows from bypassing MFA. — score 12: [@enunomaduro](https://x.com/enunomaduro/status/2087575888745427245) (Tier 1, 3); [@freekmurze](https://spatie.be/guidelines/secure-coding) (Tier 2, 3); [@valorin](https://securinglaravel.com/in-depth-setting-up-two-factor-authentication) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/fortify#authenticating-with-two-factor-authentication) (Official, 3)
+  - Why: preserve the protection of multiple factors across alternate authentication paths.
+  - Flag when: A session or recovery endpoint grants protected access after only one required factor succeeds.
+- **Must** Normalize accepted input representations consistently before applying validation. — score 12: [@christophrumpel](https://laracasts.com/episodes/3071) (Tier 1, 3); [@timacdonald87](https://www.youtube.com/watch?v=MMc2TzBY6l4) (Laracon speaker (employee), 3); [@valorin](https://securinglaravel.com/security-tip-be-careful-of-transliteration) (Tier 2, 3); [@zuzana_kunckova](https://www.youtube.com/watch?v=Emm559sI6tI) (Laracon speaker, 3)
+  - Why: make validation accept intended user input without inconsistent downstream formats.
+  - Flag when: Equivalent supported inputs are rejected or normalized only after validation.
+- **Must** Protect mass assignment with explicit model guards and pass only validated, authorized fields to persistence. — score 12: [@mattstauffer](https://laracasts.com/episodes/3305) (Tier 2, 3); [@valorin](https://securinglaravel.com/security-tip-retrieving-request-values) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent#mass-assignment) (Official, 3); [laravel/framework PR author ralphjsmit](https://github.com/laravel/framework/pull/43893) (Tier 2, 2); [@jwmcpeak](https://laracasts.com/episodes/3211) (Tier 3, 1)
+  - Why: prevent client input from modifying privileged or unintended attributes.
+  - Flag when: Request all() or a broad exclusion list reaches fill/create/update, or a model is unguarded without hand-built input arrays.
+- **Must** Store private files on non-public disks and serve them through authorized endpoints or appropriately scoped temporary signed URLs. — score 12: [@freekmurze](https://spatie.be/guidelines/secure-coding) (Tier 2, 3); [@valorin](https://securinglaravel.com/security-tip-temporary-local-file-urls) (Tier 2, 3); [@wendell_adriel](https://x.com/wendell_adriel/status/1970812500657541539) (Tier 1, 3); [Laravel (official)](https://docs.vapor.build/projects/development) (Official, 3)
+  - Why: keep sensitive files from being downloaded outside their intended access policy.
+  - Flag when: Private uploads use a public disk or download links omit authorization or signature validation.
+- **Must** Use Laravel authentication services and maintained starter kits for standard login flows rather than implementing credential verification yourself. — score 12: [@mattstauffer](https://www.youtube.com/watch?v=1H4QN4_WbQE) (Laracon speaker, 3); [@shrutibalasa](https://laracasts.com/episodes/3752) (Tier 2, 3); [@valorin](https://securinglaravel.com/in-depth-a-deep-dive-into-laravels-new-starter-kits-pt-2) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/sanctum#logging-in) (Official, 3)
+  - Why: preserve established password verification and session protections.
+  - Flag when: A custom login compares password hashes manually or bypasses Laravel authentication services.
+- **Must** Validate and cast security-relevant input types explicitly, and use strict comparisons for typed values. — score 12: [@valorin](https://x.com/valorin/status/1542362924160647168) (Tier 2, 3); [@wendell_adriel](https://github.com/WendellAdriel/laravel-validated-dto) (Tier 1, 3); [Laravel (official)](https://laravel.com/docs/13.x/queries#where-clauses) (Official, 3); [laravel/framework PR author cosmastech](https://github.com/laravel/framework/pull/58676) (Tier 2, 3)
+  - Why: prevent PHP type juggling or database coercion from changing validation and access decisions.
+  - Flag when: Untyped JSON input is loosely compared or used in a query where type coercion changes matching.
+- **Must** Keep application secrets out of source control, distributed client code and frontend environment variables. — score 10: [@simonhamp](https://laracasts.com/episodes/3973) (Tier 2, 3); [@valorin](https://securinglaravel.com/security-tip-finding-secrets) (Tier 2, 3); [Laravel (official)](https://laravel.com/cloud/docs/resources/websockets) (Official, 3); [@jwmcpeak](https://laracasts.com/episodes/3228) (Tier 3, 1)
+  - Why: prevent credentials from being exposed to code recipients or browser users.
+  - Flag when: A secret is embedded in committed source, distributed code, or a VITE_-prefixed variable.
+- **Must** Read `env()` only inside config files; use `config()` everywhere else. — score 10: [@freekmurze](https://spatie.be/guidelines/secure-coding) (Tier 2, 3); [@valorin](https://securinglaravel.com/security-tip-only-use-env-within-config-files) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/configuration) (Official, 3); [@jwmcpeak](https://laracasts.com/episodes/3990) (Tier 3, 1)
+  - Why: cached configuration stops loading `.env`, leaving direct `env()` reads without those values.
+  - Flag when: An `env()` call is added outside configuration files.
+- **Must** Invalidate the session and regenerate the CSRF token on logout; regenerate the session after authentication. — score 9: [@jeffrey_way](https://laracasts.com/episodes/3894) (Tier 2, 3); [@valorin](https://securinglaravel.com/security-tip-be-careful-of-auth-helpers) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/livewire-starter-kit/blob/0f62a26c4e4b401c1300930f47d72a497add8cce/app/Livewire/Actions/Logout.php#L15-L22) (Official, 3)
+  - Why: prevent session fixation and continued use of logged-out sessions.
+  - Flag when: Custom authentication or logout flows omit session regeneration or invalidation.
+- **Must** Keep GET requests free of application state changes and use CSRF-protected write methods for browser actions. — score 9: [@freekmurze](https://spatie.be/guidelines/secure-coding) (Tier 2, 3); [@valorin](https://securinglaravel.com/security-tip-stop-putting-actions-on-get-requests) (Tier 2, 3); [Laravel (official)](https://github.com/spatie/guidelines-skills/blob/50c5c0922c4fff45267d53f6de36bec4fc75e061/resources/boost/skills/spatie-security/references/spatie-security-guidelines.md) (Official, 3)
+  - Why: prevent links, crawlers and cross-site navigation from triggering writes.
+  - Flag when: A GET route deletes records, changes account settings or performs another application write.
+- **Must** Map user-selected sort keys to predefined orderings; never pass raw input as a column or SQL expression. — score 9: [@freekmurze](https://spatie.be/docs/laravel-query-builder/v7/features/sorting) (Tier 2, 3); [@reinink](https://laracasts.com/episodes/2652) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/queries) (Official, 3)
+  - Why: user-controlled ordering identifiers can introduce SQL injection even when query values are bound.
+  - Flag when: Request sort input reaches `orderBy` or `orderByRaw` without a fixed allowlist mapping.
+- **Must** Protect `.env` and `APP_KEY`; never reuse the app key for unrelated encryption. — score 9: [@freekmurze](https://spatie.be/guidelines/secure-coding) (Tier 2, 3); [@valorin](https://securinglaravel.com/in-depth-mass-assignment-vulnerabilities) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/session) (Official, 3)
+  - Why: an encryption service sharing `APP_KEY` can produce attacker-chosen ciphertext trusted by other application components.
+  - Flag when: An arbitrary-content encryption endpoint uses the application key.
+- **Must** Review dynamic code execution and shell calls, and prevent untrusted input from controlling executed code or commands. — score 9: [@enunomaduro](https://github.com/pestphp/pest/blob/5.x/src/ArchPresets/Security.php) (Tier 1, 3); [@valorin](https://securinglaravel.com/security-tip-pests-security-preset-strict-equality/#/portal/signup) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/blade#using-attributes-slots-within-component-class) (Official, 3)
+  - Why: prevent attacker-controlled input from becoming server-side code execution.
+  - Flag when: User data reaches eval, dynamic execution, or shell commands without safe argument handling and a constrained operation.
+- **Must** Revoke affected sessions, remember tokens and access tokens after credential resets, compromise or access changes. — score 9: [@freekmurze](https://spatie.be/guidelines/security) (Tier 2, 3); [@valorin](https://securinglaravel.com/security-tip-password-resets-and-mfa/#/portal) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/passport#token-lifetimes) (Official, 3)
+  - Why: end access that remains valid after the underlying credentials or permissions change.
+  - Flag when: A password reset or access-revocation flow leaves existing credentials valid.
+- **Must** Set up exception tracking and searchable logs early, fix recurring errors, and add regression tests for them. — score 9: [@mattstauffer](https://speakerdeck.com/mattstauffer/what-to-do-after-laravel-new) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/errors) (Official, 3); [@ryanlovett](https://www.youtube.com/watch?v=AJ8MOFoDeP0&t=960s) (Laracon speaker, 2); [@matthiasnoback](https://matthiasnoback.nl/2022/09/good-design-means-easy-to-change/) (Tier 3, 1)
+  - Why: make failures traceable to their originating code so recurring causes can be fixed.
+- **Must** Use Secure, HttpOnly cookies with Sanctum's stateful CSRF flow for first-party SPAs; never store bearer tokens in JavaScript-accessible storage. — score 9: [@freekmurze](https://spatie.be/guidelines/secure-coding) (Tier 2, 3); [@valorin](https://www.youtube.com/watch?v=vZyioMO6SWo&t=352s) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/sanctum) (Official, 3)
+  - Why: reduce authentication-token exposure to JavaScript when browser code is compromised.
+  - Flag when: Bearer tokens are written to localStorage or sessionStorage, or session cookies disable Secure or HttpOnly.
+- **Must** Validate user URLs against allowed schemes; for server-side fetching, reject internal and metadata destinations after DNS resolution and on redirects. — score 9: [@freekmurze](https://spatie.be/guidelines/secure-coding) (Tier 2, 3); [@valorin](https://securinglaravel.com/owasp-tip-a102021-server-side-request) (Tier 2, 3); [Laravel (official)](https://laravel-news.com/laravel-ai-mcp-security-advisories) (Official, 3)
+  - Why: prevent unsafe links and server-side requests into private services.
+  - Flag when: A user URL is fetched without scheme, resolved-address, or redirect-target restrictions.
+- **Must** Validate array shapes with explicit allowed keys, required fields and rules for every nested item. — score 8: [@valorin](https://securinglaravel.com/security-tip-validating-array-inputs) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/validation#validating-arrays) (Official, 3); [laravel/framework PR author NurullahDemirel](https://github.com/laravel/framework/pull/59430) (Tier 2, 2)
+  - Why: prevent unexpected or unchecked nested data from reaching application logic.
+  - Flag when: An input array accepts unspecified keys or nested items without validation.
+- **Must** Give access tokens only required abilities and bounded lifetimes; enforce expiration and verify JWT signatures with approved algorithms. — score 7: [@freekmurze](https://spatie.be/guidelines/secure-coding) (Tier 2, 3); [@valorin](https://securinglaravel.com/security-tip-your-jwt-might-be-a-forever-key) (Tier 2, 3); [@jwmcpeak](https://laracasts.com/episodes/3207) (Tier 3, 1)
+  - Why: limit the authority and duration of stolen or tampered tokens.
+  - Flag when: Tokens have unrestricted abilities, no enforced expiration, or accept unsigned JWTs.
+- **Should** Bound input lengths and collection sizes according to the operation before processing them. — score 6: [@freekmurze](https://spatie.be/blog/media-library-pro-easier-validation-in-livewire) (Tier 2, 3); [@jeffrey_way](https://laracasts.com/episodes/3883) (Tier 2, 3)
+  - Why: avoid oversized input and unbounded work while enforcing the operation contract.
+  - Flag when: Strings or submitted collections lack an appropriate maximum length or item count.
+- **Should** Enforce HTTPS for deployed authentication flows and configure trusted hosts and proxies so generated URLs use the intended origin and scheme. — score 6: [@valorin](https://securinglaravel.com/security-tip-ensure-your-app-requires-https) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/octane) (Official, 3)
+  - Why: protect credentials in transit and prevent spoofed origin or proxy headers from affecting generated links.
+  - Flag when: Deployment accepts credential-bearing HTTP traffic or trusts unrestricted host or forwarded headers.
+- **Should** Fulfil payment-dependent operations only after a verified provider event or trusted server-side payment confirmation. — score 6: [@philo01](https://laracasts.com/episodes/3159) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/billing#payment-element-for-single-charges) (Official, 3)
+  - Why: prevent client redirects from fabricating completed payments.
+  - Flag when: An order is fulfilled solely because a browser reaches a payment success URL.
+- **Should** Keep authentication challenges server-generated and bound to the session, and consume them after verification. — score 6: [@joetannenbaum](https://blog.joe.codes/implementing-passkey-authentication-in-your-laravel-app) (Tier 1, 3); [@lukedowning19](https://laracasts.com/episodes/3288) (Tier 2, 3)
+  - Why: prevent clients from substituting challenges or replaying completed authentication ceremonies.
+  - Flag when: Authentication options are client-generated, unbound to the session, or left reusable after verification.
+- **Should** Keep cookie encryption enabled for cookies that contain private or trusted application state. — score 6: [@valorin](https://securinglaravel.com/security-tip-encodingserialising) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/responses#cookies-and-encryption) (Official, 3)
+  - Why: prevent client disclosure or tampering of trusted cookie values.
+  - Flag when: A sensitive application cookie is excluded from encryption without another integrity and confidentiality mechanism.
+- **Should** Keep development login shortcuts restricted to local environments. — score 6: [@freekmurze](https://www.youtube.com/watch?v=Boqfw4ZCk7g) (Laracon speaker, 3); [@valorin](https://securinglaravel.com/security-tip-disable-dev-tools-on) (Tier 2, 3)
+  - Why: prevent test-user access mechanisms from exposing deployed accounts.
+  - Flag when: A test-user login route is available outside the local environment.
+- **Should** Notify account owners through a trusted channel about sensitive account changes, suspicious recovery attempts and security-driven token revocation. — score 6: [@jeffrey_way](https://laracasts.com/episodes/3910) (Tier 2, 3); [@valorin](https://securinglaravel.com/security-tip-how-should-apis-respond-to-http/#/portal/signup) (Tier 2, 3)
+  - Why: help account owners detect and respond to compromise.
+  - Flag when: Sensitive email changes or security-driven credential revocation omit a notification to the account owner.
+- **Should** Provide persistent field guidance and accessible, field-associated validation errors with clear corrective messages. — score 6: [@timacdonald87](https://www.youtube.com/watch?v=MMc2TzBY6l4) (Laracon speaker (employee), 3); [@valorin](https://securinglaravel.com/security-tip-should-you-block-compromised) (Tier 2, 3)
+  - Why: help users understand requirements and correct invalid input.
+  - Flag when: Important requirements appear only in placeholders, or validation errors lack field association or accessible status.
+- **Should** Provide secure MFA recovery codes and authenticated reset or disable flows; invalidate old secrets, avoid security questions, and apply recovery cooldowns where required. — score 6: [@valorin](https://securinglaravel.com/security-tip-dont-forget-to-regenerate-2fa-secret-keys) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/fortify#displaying-the-recovery-codes) (Official, 3)
+  - Why: allow recovery without preserving obsolete authentication secrets.
+  - Flag when: MFA cannot be recovered securely, or disabling it retains a reusable old secret.
+- **Should** Require recent credential confirmation for sensitive account changes and throttle repeated attempts. — score 6: [@valorin](https://securinglaravel.com/security-tip-2fa-isnt-just-for-logins) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/react-starter-kit/blob/717b8f55aefd82d25d4119eaebdc8e3a72b8d7e5/routes/settings.php#L20-L28) (Official, 3)
+  - Why: reduce unauthorized changes through unattended sessions and repeated guessing.
+  - Flag when: Sensitive account settings can be changed without recent authentication confirmation.
+- **Should** Restrict CORS origins to approved clients and configure credentialed requests explicitly; retain CSRF protection for browser sessions. — score 6: [@valorin](https://securinglaravel.com/security-tip-stop-putting-actions-on-get-requests) (Tier 2, 3); [Laravel (official)](https://laravel.com/forge/docs/resources/object-storage) (Official, 3)
+  - Why: limit cross-origin access to authenticated application responses.
+  - Flag when: Credentialed CORS trusts arbitrary origins or CORS is treated as a substitute for CSRF protection.
+- **Should** Restrict user-supplied file paths to intended storage locations and never `unserialize()` untrusted data. — score 6: [@valorin](https://www.youtube.com/watch?v=yBJStg-KMlU) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/releases) (Official, 3)
+  - Why: prevent secret-file disclosure and attacker-controlled object execution.
+  - Flag when: User input reaches file reads without containment checks, or reaches unserialize().
+- **Should** Review password hashing costs and rehash on successful authentication when the configured algorithm or cost changes. — score 6: [@valorin](https://securinglaravel.com/in-depth-adding-rehashing-to-laravel) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/authentication#the-user-provider-contract) (Official, 3)
+  - Why: keep stored password hashes aligned with current security settings.
+  - Flag when: Password hashing uses an inadequate work factor or custom authentication omits needed rehashing.
+- **Should** Sanitize SVG content with an appropriate sanitizer before rendering it, or reject SVG uploads. — score 6: [@freekmurze](https://spatie.be/guidelines/secure-coding) (Tier 2, 3); [@valorin](https://securinglaravel.com/security-tip-excluding-svgs-from-image-validation) (Tier 2, 3)
+  - Why: prevent scripts and active content in vector images from executing.
+  - Flag when: User-supplied SVG is rendered without sanitization or accepted without a safe rendering policy.
+- **Should** Serve only `public/` and disable debug mode in production and any public environment. — score 6: [@valorin](https://securinglaravel.com/security-tip-dont-use-phpinfo) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/deployment) (Official, 3)
+  - Why: public debug output can disclose private records, sharing keys, and sensitive configuration.
+  - Flag when: Public deployment config enables debug mode or serves the project root instead of `public/`.
+- **Should** Sign and verify sensitive action links, and bind their parameters to the intended user or session where required. — score 6: [@valorin](https://laracasts.com/episodes/2701) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/urls#validating-signed-route-requests) (Official, 3)
+  - Why: prevent link tampering and use in an unintended authentication context.
+  - Flag when: A sensitive action URL lacks signature verification or accepts a user identity that differs from the expected session.
+- **Should** Use array notation for multi-rule validation definitions. — score 6: [@freekmurze](https://spatie.be/guidelines/laravel) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/react-starter-kit/blob/717b8f55aefd82d25d4119eaebdc8e3a72b8d7e5/app/Concerns/ProfileValidationRules.php#L29-L49) (Official, 3)
+  - Why: keep rule lists explicit and accommodate rule objects without delimiter ambiguity.
+  - Flag when: A form request declares multiple rules using a pipe-delimited string.
+- **Should** Use conditional validation and exclusion rules to make field dependencies explicit and omit inapplicable fields from validated data. — score 6: [@wendell_adriel](https://x.com/wendell_adriel/status/1954865556080775474) (Tier 1, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: keep accepted fields consistent with the requested operation.
+  - Flag when: Dependent fields use unconditional rules or inapplicable fields remain in validated data.
+- **Should** Validate passkey registration and authentication server-side with a maintained WebAuthn library and deployment-derived relying-party settings. — score 6: [@lukedowning19](https://laracasts.com/episodes/3289) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/fortify/blob/f7c3fd787a64ada544353c0423e4589b1626ec75/config/fortify.php#L71-L75) (Official, 3)
+  - Why: bind credentials to the correct relying party and verify authentic ceremonies.
+  - Flag when: Passkey credentials are stored without server-side verification or relying-party hosts are hardcoded across deployments.
+- **Should** Route writes to encrypted records through paths that preserve encryption processing and per-record key assignment. — score 5: [Laravel (official)](https://github.com/laravel/framework/pull/61991) (Official, 3); [@samsehnert](https://www.youtube.com/watch?v=32788JRtEnQ) (Laracon speaker, 2)
+  - Why: prevent bulk writes from bypassing encryption or corrupting key associations.
+  - Flag when: Bulk insert/update writes encrypted fields while bypassing model encryption hooks.
+- **Should** Throw `ValidationException::withMessages()` for rejected operations and make sure the UI shows those errors. — score 5: [Laravel (official)](https://laravel.com/docs/13.x/validation) (Official, 3); [@tightenco](https://tighten.com/insights/request-level-validation/) (Tier 2, 2)
+  - Why: give users visible, contextual feedback when a business operation is rejected.
+  - Flag when: Backend emits a synthetic validation error key that the frontend never displays.
+- **Should** Use Sanctum for simple API token authentication and Passport when a full OAuth2 authorization server is required. — score 5: [Laravel (official)](https://laravel.com/docs/13.x/passport#passport-or-sanctum) (Official, 3); [@drehimself](https://laracasts.com/episodes/2530) (Tier 2, 2)
+  - Why: match API authentication to the required protocol and avoid unnecessary OAuth complexity.
+  - Flag when: A simple token API adds OAuth infrastructure without a requirement, or an OAuth2 server is implemented without a maintained integration.
+- **Should** Disable cached-object deserialization unless needed, and allowlist only required classes. — score 4: [Laravel (official)](https://github.com/laravel/laravel/blob/f4000aeb018fcbf71d4a13e3ee4b80c7e2d45be5/config/cache.php) (Official, 3); [@joelclermont](https://masteringlaravel.io/daily/2026-08-06-adopting-laravels-hardened-cache-default-in-a-large-app) (Tier 3, 1)
+  - Why: restricts object deserialization to necessary classes.
+  - Flag when: Cached objects are deserialized by default or allowed_classes permits all classes.
+- **Should** Return null from Gate::before when the hook should defer; place mandatory denials in the authorization decision path. — score 4: [@freekmurze](https://spatie.be/docs/laravel-permission/v8/basic-usage/super-admin) (Tier 2, 3); [@jwmcpeak](https://laracasts.com/episodes/3429) (Tier 3, 1)
+  - Why: preserve normal policy evaluation and prevent grants from bypassing mandatory constraints.
+  - Flag when: Gate::before returns false for ordinary users, or a mandatory denial depends on overriding a non-null decision in Gate::after.
+- **Should** Use scoped model validation when eligibility depends on Eloquent constraints bypassed by database exists or unique rules. — score 4: [Laravel (official)](https://github.com/filamentphp/filament/blob/7c5c222be3e92439357213f8274d1548c8cb769e/docs/07-users/03-tenancy.md) (Official, 3); [@joelclermont](https://masteringlaravel.io/daily/2026-01-22-rule-exists-doesnt-work-with-scopes) (Tier 3, 1)
+  - Why: validates eligibility through model query constraints.
+  - Flag when: Exists or unique rules check a table without required Eloquent eligibility scopes.
+- **Should** When using bcrypt, reject passwords exceeding its 72-byte input limit consistently across password entry paths. — score 4: [@valorin](https://securinglaravel.com/security-tip-limiting-bcrypt-passwords-to-72-bytes) (Tier 2, 3); [@joelclermont](https://masteringlaravel.io/daily/2026-10-13-the-gap-in-our-max-password-length-advice) (Tier 3, 1)
+  - Why: prevent silently truncated passwords from authenticating as the same credential.
+  - Flag when: Bcrypt password forms accept more than 72 bytes or omit corresponding server-side length enforcement.
+- **Consider** Allow password managers to generate and fill credentials and provide appropriate password autocomplete attributes. — score 3: [@valorin](https://securinglaravel.com/security-tip-help-password-managers-get-it-right) (Tier 2, 3)
+  - Why: help users maintain strong unique passwords without obstructing credential tools.
+  - Flag when: Credential fields block paste, disable useful autocomplete, or interfere with password-manager filling.
+- **Consider** Assess timing and alternate endpoints when hiding resource existence with not-found authorization denials. — score 3: [@ashallendesign](https://ashallendesign.co.uk/blog/unauthorised-access-404) (Tier 2, 3)
+  - Why: protects resource existence across authorization paths.
+  - Flag when: One endpoint hides a resource with 404 while an alternate endpoint exposes its existence.
+- **Consider** Assign permissions through roles by default and reserve direct user permissions for deliberate exceptions. — score 3: [@freekmurze](https://spatie.be/docs/laravel-permission/v8/best-practices/roles-vs-permissions) (Tier 2, 3)
+  - Why: keep permission administration consistent and auditable.
+  - Flag when: Routine user provisioning assigns many direct permissions instead of an appropriate role.
+- **Consider** Authorize access before running validation that could disclose protected data or application state. — score 3: [@timacdonald87](https://x.com/timacdonald87/status/1560421868880154624) (Tier 1, 3)
+  - Why: prevent unauthorized callers from learning information through validation errors.
+  - Flag when: A protected operation runs revealing validation before checking access.
+- **Consider** Clear sensitive password fields after successful updates and validation failures. — score 3: [Laravel (official)](https://github.com/laravel/livewire-starter-kit/blob/0f62a26c4e4b401c1300930f47d72a497add8cce/resources/views/pages/settings/security.blade.php) (Official, 3)
+  - Why: limits persistence of sensitive password inputs.
+  - Flag when: Password update forms retain password values after success or validation errors.
+- **Consider** Clear stale MFA setup secrets and recovery codes when loading fails, and display an actionable error. — score 3: [Laravel (official)](https://github.com/laravel/livewire-starter-kit/blob/0f62a26c4e4b401c1300930f47d72a497add8cce/resources/views/pages/settings/two-factor/recovery-codes.blade.php) (Official, 3)
+  - Why: clears stale MFA secrets after setup failures.
+  - Flag when: MFA loading failures retain old secrets or recovery codes and provide no actionable error.
+- **Consider** Clear unfinished unconfirmed MFA enrollment before presenting account security state. — score 3: [Laravel (official)](https://github.com/laravel/livewire-starter-kit/blob/0f62a26c4e4b401c1300930f47d72a497add8cce/resources/views/pages/settings/security.blade.php) (Official, 3)
+  - Why: presents accurate MFA enrollment status.
+  - Flag when: Security-state loading leaves unconfirmed MFA enrollment intact.
+- **Consider** Compare secrets with a constant-time comparison such as hash_equals rather than ordinary equality. — score 3: [@valorin](https://securinglaravel.com/security-tip-compare-keys-with-hash_equals) (Tier 2, 3)
+  - Why: reduce timing disclosure of secret comparison results.
+  - Flag when: A secret key or authentication tag is compared with == or ===.
+- **Consider** Configure appropriate security response headers, including HSTS, Referrer-Policy and Permissions-Policy, for deployed environments. — score 3: [@valorin](https://securinglaravel.com/in-depth-pentesting-laravel-part-1-passive-scans) (Tier 2, 3)
+  - Why: reduce transport downgrade, referrer leakage and unnecessary browser capabilities.
+  - Flag when: Deployment responses omit required transport, referrer or browser capability restrictions.
+- **Consider** Confirm a newly enrolled MFA factor with a valid challenge response before marking it active. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/fortify#confirming-two-factor-authentication) (Official, 3)
+  - Why: ensure the user can use the enrolled factor before access depends on it.
+  - Flag when: MFA is enabled immediately after displaying a secret or QR code without verifying a code.
+- **Consider** Disable unused authentication and registration features in deployed applications. — score 3: [@lukedowning19](https://laracasts.com/episodes/3004) (Tier 2, 3)
+  - Why: reduce exposed account workflows to those the application needs.
+  - Flag when: Unused starter-kit account routes remain enabled.
+- **Consider** Keep PHP-serialized Eloquent models out of public payloads because hidden attributes and private state remain serialized. — score 3: [@valorin](https://securinglaravel.com/in-depth-from-serialised-string-to-rce/) (Tier 2, 3)
+  - Why: prevents serialized models from exposing hidden state.
+  - Flag when: Public responses contain serialize() output for Eloquent models.
+- **Consider** Keep authentication and recovery responses uniform when account existence is private. — score 3: [@valorin](https://securinglaravel.com/security-tip-dont-forget-your-registration/#/portal/signup) (Tier 2, 3)
+  - Why: prevent attackers from enumerating registered accounts.
+  - Flag when: Login, reset, or registration responses reveal whether a private account exists.
+- **Consider** Keep temporary user execution contexts from persisting an authentication session or leaking into subsequent work. — score 3: [@valorin](https://securinglaravel.com/security-tip-be-careful-of-auth-helpers) (Tier 2, 3)
+  - Why: avoid retaining impersonated identity beyond its intended operation.
+  - Flag when: A one-off user context uses persistent login or fails to clear scoped identity.
+- **Consider** Limit session lifetimes and persistent login for internal applications whose identity-provider suspension does not revoke active application sessions. — score 3: [@freekmurze](https://spatie.be/guidelines/security) (Tier 2, 3)
+  - Why: bound continued access after an external identity is disabled.
+  - Flag when: An internal federated application offers long-lived sessions or remember-me without handling identity-provider revocation.
+- **Consider** Manage administrator membership through explicit application-controlled configuration, roles or persisted flags rather than scattered hardcoded email comparisons. — score 3: [@valorin](https://securinglaravel.com/security-tip-dont-hardcode-admin) (Tier 2, 3)
+  - Why: make administrator access reviewable and consistently managed.
+  - Flag when: Administrator membership is determined by hardcoded email comparisons scattered through access checks.
+- **Consider** Match authorization domains exactly or at an explicit domain boundary; never accept a substring match. — score 3: [@valorin](https://securinglaravel.com/security-tip-privilege-escalation-through-domain-wildcards) (Tier 2, 3)
+  - Why: prevent attacker-controlled domains from matching a trusted domain name.
+  - Flag when: Domain authorization uses contains() or an unbounded suffix check.
+- **Consider** Mitigate account-enumeration timing differences in authentication and recovery flows, using Laravel Timebox where appropriate. — score 3: [@valorin](https://securinglaravel.com/security-tip-timebox-for-timing-attacks) (Tier 2, 3)
+  - Why: keep response timing from disclosing private account or credential state.
+  - Flag when: Authentication or recovery paths return early for missing accounts without timing mitigation.
+- **Consider** Offer strong MFA methods such as authenticator apps or passkeys alongside any SMS option. — score 3: [@valorin](https://securinglaravel.com/security-tip-should-you-block-compromised) (Tier 2, 3)
+  - Why: provide authentication factors with stronger protection than SMS.
+  - Flag when: MFA offers only SMS when stronger supported factors could be offered.
+- **Consider** Plan encryption-key rotation to retain legitimate sessions when continuity is required, while using the current key for new ciphertext. — score 3: [@valorin](https://securinglaravel.com/in-depth-graceful-encryption-key) (Tier 2, 3)
+  - Why: avoid unintended session loss during routine encryption-key rotation.
+  - Flag when: A planned key rotation drops required previous-key decryption support or continues creating ciphertext with an old key.
+- **Consider** Provide an explicit account-entry fallback for passkey login when automatic credential discovery is unavailable. — score 3: [@lukedowning19](https://laracasts.com/episodes/3292) (Tier 2, 3)
+  - Why: keep passkey authentication usable when conditional discovery does not work.
+  - Flag when: Passkey login relies entirely on automatic discovery with no manual account-entry fallback.
+- **Consider** Provide the standard /.well-known/change-password redirect to the application password-change page. — score 3: [@valorin](https://x.com/valorin/status/1968120471053873436) (Tier 2, 3)
+  - Why: help password managers and users locate the credential update flow.
+  - Flag when: An application with password login has no standard change-password discovery endpoint.
+- **Consider** Reject insecure transport for credential-bearing APIs and provide a safe response that directs clients to HTTPS. — score 3: [@valorin](https://securinglaravel.com/security-tip-how-should-apis-respond-to-http) (Tier 2, 3)
+  - Why: prevent continued use of credentials sent over an unencrypted connection.
+  - Flag when: A credential-bearing API accepts HTTP or redirects a credential-bearing request without rejecting it.
+- **Consider** Require advertised S256 PKCE support before linking an MCP OAuth authorization server. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/mcp#client-oauth) (Official, 3)
+  - Why: requires secure OAuth proof-key capabilities.
+  - Flag when: MCP OAuth linking proceeds without verifying advertised S256 PKCE support.
+- **Consider** Require every specified token scope unless the operation deliberately permits any one matching scope. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/passport#scope-attributes) (Official, 3)
+  - Why: enforces the complete required token scope set.
+  - Flag when: Multi-scope authorization uses any-match checks where every scope is required.
+- **Consider** Reset email verification when an account changes its email address and verify ownership of the new address. — score 3: [Laravel (official)](https://github.com/laravel/react-starter-kit/blob/717b8f55aefd82d25d4119eaebdc8e3a72b8d7e5/app/Http/Controllers/Settings/ProfileController.php#L35-L39) (Official, 3)
+  - Why: keep verified status bound to the address that was actually confirmed.
+  - Flag when: An email update preserves email_verified_at for the new address.
+- **Consider** Restrict redirects to approved destinations and validate user-controlled URLs and Referer-derived targets before redirecting. — score 3: [@valorin](https://securinglaravel.com/security-tip-open-redirects/#/portal/signup) (Tier 2, 3)
+  - Why: prevent trusted application URLs from redirecting users to attacker-controlled sites.
+  - Flag when: Request or Referer input reaches a redirect without an approved destination check.
+- **Consider** Retry remote mutations only with duplicate protection and reuse the same idempotency key across attempts. — score 3: [Laravel (official)](https://github.com/laravel/boost/blob/d165b9ea6086294a8f1999ac3dcf4e61da267b23/.ai/laravel/skill/laravel-best-practices/rules/http-client.md) (Official, 3)
+  - Why: prevents duplicate remote writes during retries.
+  - Flag when: Remote mutation retries lack duplicate protection or generate a new idempotency key on each attempt.
+- **Consider** Run cross-field and application-state validation after base field rules, and enforce concurrent data invariants in the database. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: avoid evaluating malformed fields and prevent races from violating persistent invariants.
+  - Flag when: Cross-field checks run before base validation or uniqueness and inventory rely only on request validation.
+- **Consider** Scope validation errors to separate forms or error bags when forms share field names. — score 3: [Laravel (official)](https://github.com/inertiajs/docs/blob/c390fa30307447d329deea303b4bb31e26a671fa/v3/the-basics/validation.mdx) (Official, 3)
+  - Why: isolates validation errors between independent forms.
+  - Flag when: Forms sharing field names use the same unscoped validation error bag.
+- **Consider** Set an explicit SameSite policy for authentication cookies; use Lax or Strict where compatible and require Secure when cross-site use needs None. — score 3: [@valorin](https://securinglaravel.com/in-depth-three-reasonable-decisions-one-critical-vulnerability) (Tier 2, 3)
+  - Why: reduce cross-site cookie exposure while supporting required browser flows.
+  - Flag when: Authentication cookies omit SameSite or use SameSite=None without Secure or a cross-site requirement.
+- **Consider** Set the active tenant or team context before scoped permission checks and permission administration. — score 3: [@freekmurze](https://spatie.be/docs/laravel-permission/v8/basic-usage/teams-permissions) (Tier 2, 3)
+  - Why: prevent authorization from using permissions belonging to another tenant or team.
+  - Flag when: Team-scoped authorization runs before the team context is established.
+- **Consider** Skip middleware side effects during precognitive validation requests. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/precognition#managing-side-effects) (Official, 3)
+  - Why: keep live validation from performing the real operation or triggering incidental writes.
+  - Flag when: Middleware performs writes, notifications or other operation side effects on a precognitive request.
+- **Consider** Store credentials and access tokens in platform secure storage when distributing a native client. — score 3: [@simonhamp](https://laracasts.com/episodes/3985) (Tier 2, 3)
+  - Why: protect client credentials from disclosure in bundled configuration and ordinary local storage.
+  - Flag when: A native client bundles credentials or stores access tokens outside the platform secure storage.
+- **Consider** Store password-reset tokens as one-way hashes and enforce expiration and single use. — score 3: [@valorin](https://securinglaravel.com/in-depth-timing-attacks) (Tier 2, 3)
+  - Why: limit token exposure and replay after recovery.
+  - Flag when: Password-reset tokens are stored in plaintext or remain reusable after a successful reset.
+- **Consider** Use Subresource Integrity for stable third-party scripts and styles, with hashes updated alongside the referenced assets. — score 3: [@valorin](https://securinglaravel.com/security-tip-subresource-integrity) (Tier 2, 3)
+  - Why: detect unexpected changes to externally hosted executable resources.
+  - Flag when: A stable third-party script or stylesheet is loaded without an integrity hash or with a stale hash.
+- **Consider** Use cryptographically secure generators for security tokens, passwords and challenges; avoid predictable random and shuffle helpers. — score 3: [@valorin](https://securinglaravel.com/in-depth-securing-randomness-without) (Tier 2, 3)
+  - Why: keep security credentials and challenges unguessable.
+  - Flag when: Security-sensitive values use rand, mt_rand, uniqid, array_rand, or non-cryptographic shuffle methods.
+- **Consider** Use currently supported OAuth2 grant flows appropriate to the client type. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/passport#password-grant) (Official, 3)
+  - Why: avoid obsolete or unsuitable authorization flows.
+  - Flag when: An OAuth2 client uses an obsolete grant or a flow unsuitable for its ability to keep secrets.
+- **Consider** Use established authenticated encryption and modern cryptographic primitives; avoid custom cryptography and obsolete hashes for security decisions. — score 3: [@valorin](https://securinglaravel.com/security-tip-dont-roll-your-own-crypto) (Tier 2, 3)
+  - Why: avoid weaknesses in unauthenticated encryption and obsolete cryptographic algorithms.
+  - Flag when: Custom encryption or MD5/SHA-1 is used to protect secrets or make security decisions.
+- **Consider** Use hidden Context for queue-propagated metadata excluded from logs, and propagate secrets only when deliberately required. — score 3: [Laravel (official)](https://github.com/laravel/boost/blob/75c269a8a53e931c7252e7cd562e1a209356a7c6/.ai/laravel/skill/laravel-best-practices/rules/architecture.md) (Official, 3)
+  - Why: separates sensitive propagated metadata from logged context.
+  - Flag when: Queue-propagated secrets use visible Context entries instead of hidden context.
+- **Consider** Use only trusted server-resolved identifiers in validation rules that exclude an existing database record. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/validation#rule-unique) (Official, 3)
+  - Why: prevent attacker-controlled exclusion values from altering database validation queries.
+  - Flag when: Request input is passed directly to Rule::unique()->ignore() rather than a trusted model identifier.
+- **Consider** Use opaque identifiers when resource identifiers should be difficult to enumerate, while enforcing authorization independently. — score 3: [@valorin](https://securinglaravel.com/in-depth-insecure-direct-object-references) (Tier 2, 3)
+  - Why: reduce enumeration without treating identifier secrecy as access control.
+  - Flag when: Sensitive resource URLs expose sequential identifiers or use obfuscated identifiers as their only access control.
+- **Consider** Use provider-hosted payment collection when the application does not need to handle card details directly. — score 3: [@philo01](https://laracasts.com/episodes/3156) (Tier 2, 3)
+  - Why: reduce exposure of payment credentials in application code and storage.
+  - Flag when: Application endpoints receive raw card details despite a suitable hosted payment flow.
+- **Consider** Limit sensitive-data blind indexes to necessary lookups and assess equality, frequency and chosen-input leakage. — score 2: [@samsehnert](https://www.youtube.com/watch?v=32788JRtEnQ) (Laracon speaker, 2)
+  - Why: avoid exposing sensitive low-diversity values through searchable encryption metadata.
+  - Flag when: A blind index is added to a sensitive low-diversity field without a lookup need or leakage assessment.
+- **Consider** Use envelope encryption when access must be restricted to recipients, and scope unlocked private keys to authenticated sessions. — score 2: [@samsehnert](https://www.youtube.com/watch?v=32788JRtEnQ) (Laracon speaker, 2)
+  - Why: keep recipient-restricted data from being decryptable through an unrestricted shared server key.
+  - Flag when: Recipient-restricted data uses one global key, or unlocked private keys survive session invalidation.
+
+### Design patterns & code style
+
+- **Must** Use typed DTOs with explicit mapping for complex inputs, results, and API contracts instead of loose arrays. — score 35: [@ashallendesign](https://ashallendesign.co.uk/blog/data-transfer-objects-dtos-in-php) (Tier 2, 3); [@bobbybouwmann](https://www.youtube.com/watch?v=ru-0QSciNvU) (Laracon speaker, 3); [@christophrumpel](https://laracasts.com/episodes/3069) (Tier 1, 3); [@freekmurze](https://www.youtube.com/watch?v=CrO_7Df1cBc) (Laracon speaker, 3); [@jeffrey_way](https://laracasts.com/episodes/3399) (Tier 2, 3); [@mateusjatenee](https://laracasts.com/episodes/3592) (Tier 2, 3); [@patriciooncode](https://x.com/PatricioOnCode/status/1933089793161789660) (Tier 2, 3); [@wendell_adriel](https://x.com/wendell_adriel/status/1601276500300685314) (Tier 1, 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent-collections) (Official, 3); [@ryutahamasaki](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=4011s) (Laracon speaker, 2); [@sileence](https://www.youtube.com/watch?v=1sixoOQliZI&t=810s) (Laracon speaker, 2); [@stevemcdougall](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=22075s) (Laracon speaker, 2); [Craig Morris](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=7440s) (Laracon speaker, 2)
+  - Why: explicit data types expose misspelled fields and incompatible assignments to static analysis.
+  - Flag when: Complex input or response contracts use loose arrays with repeated string-key access.
+- **Must** Add PHPDoc generics, array shapes, and element types where native types cannot express the contract. — score 25: [@aarondfrancis](https://aaronfrancis.com/2024/laravels-higher-order-collection-proxies-451f4176) (Tier 1, 3); [@brendt_gd](https://stitcher.io/blog/uncertainty-doubt-and-static-analysis) (Tier 2, 3); [@freekmurze](https://spatie.be/guidelines/laravel) (Tier 2, 3); [@lucgiovanny](https://www.youtube.com/watch?v=PWV5b0sL5Wo) (Laracon speaker, 3); [@lukedowning19](https://laracasts.com/episodes/2982) (Tier 2, 3); [@mateusjatenee](https://laracasts.com/episodes/3599) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/laravel/tree/13.x/app/Models/User.php) (Official, 3); [laravel/framework PR author calebdw](https://github.com/laravel/framework/pull/52005) (Tier 2, 2); [laravel/framework PR author puggan](https://github.com/laravel/framework/pull/46169) (Tier 2, 2)
+  - Why: precise static types preserve input and result relationships.
+  - Flag when: Untyped collection elements, factory model types, or structured arrays cross a typed boundary.
+- **Must** Follow documented project naming, folder, and formatting conventions, using Laravel defaults where no convention exists. — score 25: [@aarondfrancis](https://aaronfrancis.com/2024/dont-undo-what-you-havent-done-430ac590) (Tier 1, 3); [@adamwathan](https://github.com/adamwathan/laracon2017/pull/1) (Laracon speaker, 3); [@bobbybouwmann](https://www.youtube.com/watch?v=jX3nWXyLank) (Laracon speaker, 3); [@enunomaduro](https://x.com/enunomaduro/status/1886335243587576110) (Tier 1, 3); [@freekmurze](https://spatie.be/blog/how-to-make-your-ai-agent-program-with-grace-and-style) (Tier 2, 3); [@jbrooksuk](https://x.com/jbrooksuk/status/1697182125663945015) (Tier 1, 3); [@mattstauffer](https://www.youtube.com/watch?v=KBigS5vLwZk) (Laracon speaker, 3); [Laravel (official)](https://github.com/laravel/boost/blob/5c0a822e35cce497a595f5ee3eb6418ae2111aeb/.ai/laravel/skill/laravel-best-practices/rules/style.md#L7-L16) (Official, 3); [@jasonmccreary](https://laracasts.com/episodes/3639) (Tier 3, 1)
+  - Why: consistent conventions make code easier to locate and review.
+  - Flag when: New names or layouts conflict with established project conventions.
+- **Must** Use readable collection operations for collection transformations and convert to arrays only at required boundaries. — score 19: [@aarondfrancis](https://aaronfrancis.com/2024/laravels-higher-order-collection-proxies-451f4176) (Tier 1, 3); [@christophrumpel](https://www.youtube.com/watch?v=f4QShF42c6E&t=24315s) (Laracon speaker (employee), 3); [@freekmurze](https://spatie.be/blog/introducing-piper) (Tier 2, 3); [@tightenco](https://tighten.com/insights/building-a-calendar-with-carbon) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3); [@jasonmccreary](https://www.youtube.com/watch?v=sBpzYsMgLK8) (Laracon speaker, 2); [@maryperry](https://www.youtube.com/watch?v=w7jKcbVcI54) (Laracon speaker, 2)
+  - Why: collection operations express transformations without repetitive traversal and conversion.
+  - Flag when: Collection processing adds custom traversal or repeated intermediate array conversions.
+- **Must** Dispatch domain events for meaningful business moments with independent listeners; queue slow listeners and dispatch commit-dependent work after commit. — score 17: [@ashleyhindle](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=31692s) (Laracon speaker (employee), 3); [@mateusjatenee](https://laracasts.com/episodes/3039) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/events) (Official, 3); [@coulbourne](https://www.youtube.com/watch?v=-mb2L97Yq88) (Laracon speaker, 2); [@jasonmccreary](https://www.youtube.com/watch?v=LaKEFjA25r4) (Laracon speaker, 2); [@maryperry](https://www.youtube.com/watch?v=vsxoaTgtyjw) (Laracon speaker, 2); [@ryutahamasaki](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=4011s) (Laracon speaker, 2)
+  - Why: independent reactions keep notifications, mail, and logging separate from the core business operation.
+  - Flag when: Business operation directly performs multiple independent notification, mail, and logging side effects.
+- **Must** Declare native parameter, property, and return types wherever the contract permits, including void returns. — score 16: [@enunomaduro](https://x.com/enunomaduro/status/1590367621941108736) (Tier 1, 3); [@freekmurze](https://freek.dev/2441-returning-native-types-from-the-laravel-request-class) (Tier 2, 3); [@taylorotwell](https://x.com/taylorotwell/status/1627000622800052225) (Tier 1, 3); [@valorin](https://securinglaravel.com/security-tip-type-coercion-in-broadcast-routes) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/laravel/tree/13.x/app/Providers/AppServiceProvider.php) (Official, 3); [Instructor Team](https://laracasts.com/episodes/3835) (Tier 3, 1)
+  - Why: native declarations make contracts explicit and enforce types at runtime.
+  - Flag when: New method or property omits an expressible native type.
+- **Must** Use descriptive names and small methods; reserve comments for intent, constraints, and nonobvious reasoning. — score 15: [@christophrumpel](https://www.youtube.com/watch?v=f4QShF42c6E&t=24315s) (Laracon speaker (employee), 3); [@freekmurze](https://spatie.be/guidelines/php) (Tier 2, 3); [@lukedowning19](https://www.youtube.com/watch?v=GERCwd65O-8) (Laracon speaker, 3); [Laravel (official)](https://github.com/laravel/boost/blob/5c0a822e35cce497a595f5ee3eb6418ae2111aeb/.ai/laravel/skill/laravel-best-practices/rules/style.md#L91-L94) (Official, 3); [@ryanlovett](https://www.youtube.com/watch?v=AJ8MOFoDeP0) (Laracon speaker, 2); [@jasonmccreary](https://laracasts.com/episodes/3640) (Tier 3, 1)
+  - Why: expressive code and purposeful comments explain behavior without redundant narration.
+  - Flag when: Comments restate operations or long methods obscure their intent.
+- **Must** Use immutable value objects for recurring related primitives (money, ranges), validated on construction. — score 15: [@mateusjatenee](https://laracasts.com/episodes/3595) (Tier 2, 3); [@philo01](https://laracasts.com/episodes/3099) (Tier 2, 3); [@warsh33p](https://www.youtube.com/watch?v=f4QShF42c6E&t=874s) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/structure) (Official, 3); [@jasonmccreary](https://laracasts.com/episodes/3636) (Tier 3, 1); [@jwmcpeak](https://laracasts.com/episodes/3999) (Tier 3, 1); [@matthiasnoback](https://matthiasnoback.nl/2022/09/is-it-a-dto-or-a-value-object/) (Tier 3, 1)
+  - Why: related values share validation and calculations instead of duplicating them across callers.
+  - Flag when: Recurring amount/currency or date pairs repeat validation and calculations across callers.
+- **Must** Prefer suitable PHP or Laravel facilities before adding dependencies, and check new dependencies for active maintenance. — score 14: [@brendt_gd](https://stitcher.io/blog/dealing-with-dependencies) (Tier 2, 3); [@freekmurze](https://spatie.be/guidelines/secure-coding) (Tier 2, 3); [@timacdonald87](https://x.com/timacdonald87/status/1990212592607039964) (Tier 1, 3); [@valorin](https://securinglaravel.com/security-tip-replace-simple-dependencies) (Tier 2, 3); [@ryanlovett](https://www.youtube.com/watch?v=AJ8MOFoDeP0) (Laracon speaker, 2)
+  - Why: fewer well-maintained dependencies reduce avoidable upkeep.
+  - Flag when: New package duplicates existing facilities or has no evidence of ongoing maintenance.
+- **Must** Use immutable date objects or explicit copies when date calculations must not mutate shared values. — score 14: [@enunomaduro](https://github.com/nunomaduro/essentials) (Tier 1, 3); [@mateusjatenee](https://laracasts.com/episodes/3591) (Tier 2, 3); [@tightenco](https://tighten.com/insights/building-a-calendar-with-carbon) (Tier 2, 3); [@wendell_adriel](https://github.com/WendellAdriel/laravel-exa) (Tier 1, 3); [@dr4goonis](https://x.com/dr4goonis/status/1728478734968037826) (Tier 2, 2)
+  - Why: mutable dates can silently change values retained by other callers.
+  - Flag when: Date operation mutates an object still referenced by other code.
+- **Must** Represent closed status or version sets explicitly with enums and define an initial lifecycle state. — score 13: [@danjharrin](https://x.com/danjharrin/status/1685624702876741632) (Tier 2, 3); [@jacobbennett](https://www.youtube.com/watch?v=1A1xFtlDyzU) (Laracon speaker, 3); [@jeffrey_way](https://laracasts.com/episodes/3893) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/boost/blob/5c0a822e35cce497a595f5ee3eb6418ae2111aeb/src/Install/Enums/Platform.php#L3-L19) (Official, 3); [@jwmcpeak](https://laracasts.com/episodes/4129) (Tier 3, 1)
+  - Why: explicit states prevent inconsistent strings and ambiguous combinations of flags.
+  - Flag when: Lifecycle state is inferred from scattered flags or closed-set strings are repeated throughout the code.
+- **Must** Prefer immutable data objects and transformations when callers should retain their original values. — score 12: [@brendt_gd](https://stitcher.io/blog/readonly-classes-in-php-82) (Tier 2, 3); [@mateusjatenee](https://laracasts.com/episodes/3594) (Tier 2, 3); [@wendell_adriel](https://x.com/wendell_adriel/status/1953425349938938264) (Tier 1, 3); [Laravel (official)](https://laravel.com/docs/13.x/images#manipulating-images) (Official, 3)
+  - Why: immutable data prevents accidental changes across consumers.
+  - Flag when: Shared DTO exposes mutable state or collection transform() changes data that callers expect to retain.
+- **Must** Replace growing type-based conditionals with polymorphic implementations behind a shared interface. — score 12: [@brendt_gd](https://stitcher.io/blog/php-enum-style-guide) (Tier 2, 3); [@jacobbennett](https://www.youtube.com/watch?v=1A1xFtlDyzU) (Laracon speaker, 3); [@ktrajchevska](https://laracasts.com/episodes/3151) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/container) (Official, 3)
+  - Why: new behaviors can be added without duplicating orchestration or modifying every consumer.
+  - Flag when: Growing `switch` or `instanceof` branches select behavior by concrete type.
+- **Must** If you adopt `declare(strict_types=1)`, apply it consistently across all calling files. — score 11: [@ashleyhindle](https://x.com/ashleyhindle/status/1954904049821601876) (Tier 1, 3); [@enunomaduro](https://www.youtube.com/watch?v=AkDMDHAs09U&t=1380s) (Laracon speaker (employee), 3); [@mateusjatenee](https://laracasts.com/episodes/3589) (Tier 2, 3); [laravel/framework PR author ash-jc-allen](https://github.com/laravel/framework/pull/50349) (Tier 2, 2)
+  - Why: scalar argument checking follows the calling file, so inconsistent declarations allow unintended coercion.
+  - Flag when: Calling application file omits `declare(strict_types=1)` within a namespace adopting strict typing.
+- **Must** Prefer composition for independently varying behavior instead of expanding inheritance hierarchies. — score 10: [@brendt_gd](https://stitcher.io/blog/extends-vs-implements) (Tier 2, 3); [@jeffrey_way](https://laracasts.com/episodes/3435) (Tier 2, 3); [@tightenco](https://tighten.com/insights/extensible-blade-components) (Tier 2, 3); [@matthiasnoback](https://matthiasnoback.nl/2022/07/when-to-use-a-trait/) (Tier 3, 1)
+  - Why: composed collaborators can change independently.
+  - Flag when: New subclasses exist only to combine independently varying behaviors.
+- **Must** Remove temporary debugging calls from shipped application and package code. — score 10: [@enunomaduro](https://github.com/pestphp/pest/blob/5.x/src/ArchPresets/Php.php) (Tier 1, 3); [@valorin](https://securinglaravel.com/security-tip-intercepting-dump-could-expose-production) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/boost/blob/5c0a822e35cce497a595f5ee3eb6418ae2111aeb/tests/ArchTest.php#L11-L13) (Official, 3); [@jasonmccreary](https://laracasts.com/episodes/2710) (Tier 3, 1)
+  - Why: debug output can interrupt execution and expose internal data.
+  - Flag when: Changed production code contains dd(), dump(), var_dump(), ray(), or other temporary debugging calls.
+- **Must** Define workflow states, triggering events, and permitted transitions explicitly before implementing transition logic. — score 9: [@brendt_gd](https://stitcher.io/blog/php-enum-style-guide) (Tier 2, 3); [@jacobbennett](https://www.youtube.com/watch?v=1A1xFtlDyzU) (Laracon speaker, 3); [Laravel (official)](https://github.com/spatie/laravel-model-states/blob/8507168651fb4229f8cb71e1b7c457f82988d95a/docs/working-with-transitions/01-configuring-transitions.md) (Official, 3)
+  - Why: an explicit transition model exposes missing and invalid paths.
+  - Flag when: Workflow adds transitions without a defined state and event model.
+- **Must** Document application setup, dependencies, contribution conventions, and significant new behavior. — score 9: [@freekmurze](https://freek.dev/3118-searching-multiple-columns-with-one-url-parameter-in-laravel-query-builder) (Tier 2, 3); [@mattstauffer](https://www.youtube.com/watch?v=1H4QN4_WbQE) (Laracon speaker, 3); [@pushpak1300](https://laravel.com/blog/extracting-ai-rules-from-an-existing-codebase) (Tier 1, 3)
+  - Why: maintained documentation makes the application easier to operate and change.
+  - Flag when: New required configuration or significant behavior has no corresponding documentation.
+- **Must** Keep interfaces small and specific to what each consumer needs. — score 9: [@jeffrey_way](https://laracasts.com/episodes/3412) (Tier 2, 3); [@ktrajchevska](https://laracasts.com/episodes/3139) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/container) (Official, 3)
+  - Why: consumers avoid depending on capabilities they never use.
+  - Flag when: Interface adds unrelated capabilities that existing consumers do not need.
+- **Must** Use constructor property promotion for straightforward initialization and remove empty public constructors. — score 9: [@freekmurze](https://spatie.be/guidelines/php) (Tier 2, 3); [@themsaid](https://x.com/themsaid/status/1541462057828204544) (Tier 1, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: promotion eliminates repetitive property assignment boilerplate.
+  - Flag when: Constructor only assigns arguments to properties or has an empty zero-argument body.
+- **Must** Attach execution context to searchable workflow progress and failure logs. — score 8: [@freekmurze](https://freek.dev/3203-laravel-context-the-hidden-information-that-follows-your-code) (Tier 2, 3); [@ryanlovett](https://www.youtube.com/watch?v=AJ8MOFoDeP0) (Laracon speaker, 2); [laravel/framework PR author timacdonald](https://github.com/laravel/framework/pull/49730) (Tier 2, 2); [@jwmcpeak](https://laracasts.com/episodes/3266) (Tier 3, 1)
+  - Why: structured context connects related events for diagnosis.
+  - Flag when: Workflow logs lack searchable operation identifiers or meaningful progress and failure information.
+- **Must** Check external API failures explicitly and preserve typed error codes and response context for diagnosis and recovery. — score 8: [@wendell_adriel](https://wendelladriel.com/blog/php-errors-exceptions-and-result-types-designing-failure-boundaries) (Tier 1, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3); [@stevemcdougall](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=22075s) (Laracon speaker, 2)
+  - Why: distinct failures require recognizable diagnostics and appropriate handling.
+  - Flag when: Response payload is consumed before checking failure or exception text is treated as a stable error code.
+- **Must** Let Laravel report exceptions and throttle or deduplicate reports when repeated failures would flood diagnostics. — score 8: [@wendell_adriel](https://x.com/wendell_adriel/status/1630625890177515520) (Tier 1, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3); [@jasonmccreary](https://www.youtube.com/watch?v=sBpzYsMgLK8) (Laracon speaker, 2)
+  - Why: centralized reporting avoids duplicate noise while preserving recoverable error handling.
+  - Flag when: Catch block only logs and rethrows, or repeated identical failures generate unbounded reports.
+- **Must** Put multilingual user-facing text in translation files, use translation helpers, and avoid keys that conflict with translation filenames. — score 8: [@freekmurze](https://spatie.be/guidelines/laravel) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/localization#using-translation-strings-as-keys) (Official, 3); [@drehimself](https://laracasts.com/episodes/2532) (Tier 2, 2)
+  - Why: centralized translations keep localization reliable.
+  - Flag when: Multilingual UI hard-codes text or defines a key conflicting with a translation filename.
+- **Must** Use named arguments only when they clarify a call and the target parameter names form a stable contract. — score 8: [@danjharrin](https://x.com/danjharrin/status/1501598772656316416) (Tier 2, 3); [@timacdonald87](https://x.com/timacdonald87/status/2029753381611524422) (Tier 1, 3); [@jasonmccreary](https://www.youtube.com/watch?v=sBpzYsMgLK8) (Laracon speaker, 2)
+  - Why: named calls couple consumers to parameter names that may vary between implementations.
+  - Flag when: Named arguments target an interface whose implementations use different parameter names.
+- **Should** Attach structured diagnostic context to application exceptions. — score 6: [@freekmurze](https://freek.dev/3091-exceptions-that-explain-themselves) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: structured details make failures recognizable without parsing messages.
+  - Flag when: Domain exception needs relevant identifiers or response details but exposes only free-form text.
+- **Should** Centralize exception-specific reporting or HTTP rendering on the exception when that behavior belongs to its contract. — score 6: [@ryangjchandler](https://www.youtube.com/watch?v=cucIWpAenro&t=5098s) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/errors#renderable-exceptions) (Official, 3)
+  - Why: centralized behavior avoids repeated response logic at each throw site.
+  - Flag when: Multiple callers duplicate rendering or reporting logic for the same exception type.
+- **Should** Collect and validate console input through command arguments or interactive prompts before invoking the application action. — score 6: [@joetannenbaum](https://laracasts.com/episodes/3267) (Tier 1, 3); [@lukedowning19](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=1500s) (Laracon speaker, 3)
+  - Why: input gathering stays separate from the business operation.
+  - Flag when: Console action gathers terminal input inside domain processing.
+- **Should** Enable debugging only for local development and use production defaults in distributable environment templates. — score 6: [@valorin](https://securinglaravel.com/security-tip-disable-debug-mode-on) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/errors#configuration) (Official, 3)
+  - Why: environment-appropriate defaults allow local diagnosis without exposing production internals.
+  - Flag when: Production environment template enables APP_DEBUG or defaults APP_ENV to development.
+- **Should** Enforce domain invariants in models or value objects at the point their state is created or changed. — score 6: [@calebporzio](https://www.youtube.com/watch?v=M60-nxlrePc) (Laracon speaker, 3); [@mateusjatenee](https://laracasts.com/episodes/3602) (Tier 2, 3)
+  - Why: domain rules must hold outside request validation as well.
+  - Flag when: A business invariant exists only in request validation or lifecycle callbacks.
+- **Should** Ensure subclasses and implementations honor the behavior their contract promises. — score 6: [@ktrajchevska](https://laracasts.com/episodes/3143) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/contracts) (Official, 3)
+  - Why: consumers rely on promised behavior when implementations are substituted.
+  - Flag when: Implementation leaves required behavior empty or throws an unsupported-operation exception.
+- **Should** Exclude expected domain exceptions from automatic error reporting when they require no operational alert. — score 6: [@freekmurze](https://freek.dev/3091-exceptions-that-explain-themselves) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: expected failures should not flood diagnostic logs.
+  - Flag when: Expected domain exception is repeatedly reported as an operational error without an explicit reporting policy.
+- **Should** Group closely related domain errors in one exception class with descriptive named constructors. — score 6: [@freekmurze](https://freek.dev/3091-exceptions-that-explain-themselves) (Tier 2, 3); [@wendell_adriel](https://x.com/wendell_adriel/status/1948761110468804821) (Tier 1, 3)
+  - Why: named constructors keep related failures discoverable without proliferating exception classes.
+  - Flag when: Closely related failures create many otherwise identical exception classes.
+- **Should** Keep environment-specific configuration separate and exclude real .env files from source control. — score 6: [@valorin](https://securinglaravel.com/in-depth-securing-apps-on-forge) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/installation#environment-based-configuration) (Official, 3)
+  - Why: deployment settings and secrets vary between environments.
+  - Flag when: Real .env file is committed or local configuration is reused unchanged in production.
+- **Should** Keep resource acquisition and its cleanup together and ensure cleanup runs after processing. — score 6: [@aarondfrancis](https://aaronfrancis.com/2024/clean-up-after-yourself-618236cb) (Tier 1, 3); [Laravel (official)](https://github.com/laravel/react-starter-kit/blob/717b8f55aefd82d25d4119eaebdc8e3a72b8d7e5/resources/js/hooks/use-flash-toast.ts) (Official, 3)
+  - Why: paired cleanup prevents temporary resources from accumulating.
+  - Flag when: Temporary files or reversible setup have no reliably executed cleanup.
+- **Should** Keep reusable workflow execution separate from caller-supplied data and constraints, and reuse steps with compatible payload contracts. — score 6: [@bobbybouwmann](https://www.youtube.com/watch?v=ru-0QSciNvU) (Laracon speaker, 3); [@danjharrin](https://www.youtube.com/watch?v=cucIWpAenro&t=3257s) (Laracon speaker, 3)
+  - Why: shared execution can serve related workflows without duplicating orchestration.
+  - Flag when: Related workflows duplicate execution steps or reuse steps with incompatible payload shapes.
+- **Should** Preserve user input when submission fails and provide a way to retry. — score 6: [@povilaskorop](https://laraveldaily.com/post/my-cursor-rules-for-laravel) (Tier 2, 3); [@zuzana_kunckova](https://www.youtube.com/watch?v=MUlln-pnk3U) (Laracon speaker, 3)
+  - Why: recoverable failures should not force users to recreate their work.
+  - Flag when: Failed submission clears entered form data or offers no recovery path.
+- **Should** Publish only configuration files that the application needs to customize. — score 6: [@lukedowning19](https://laracasts.com/episodes/3104) (Tier 2, 3); [@taylorotwell](https://www.youtube.com/watch?v=1P3wLy49t2c) (Laracon speaker (employee), 3)
+  - Why: retaining framework defaults avoids unnecessary configuration copies.
+  - Flag when: Unmodified framework configuration files are added without a customization need.
+- **Should** Remove PHPDoc type tags that merely duplicate native declarations; retain descriptions and richer static types. — score 6: [@freekmurze](https://spatie.be/guidelines/laravel) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/pint/blob/main/resources/presets/laravel.php) (Official, 3)
+  - Why: redundant annotations add maintenance without describing more information.
+  - Flag when: PHPDoc repeats a native type without a description or additional type information.
+- **Should** Retry only safe transient failures with bounded attempts, appropriate delays, and defined exhaustion handling. — score 6: [@zuzana_kunckova](https://www.youtube.com/watch?v=MUlln-pnk3U) (Laracon speaker, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: controlled retries recover temporary failures without duplicating effects or waiting indefinitely.
+  - Flag when: Retry loop is unbounded, retries permanent errors, or repeats a non-idempotent operation without safeguards.
+- **Should** Use braces around conditional and loop bodies, including single statements. — score 6: [@freekmurze](https://spatie.be/guidelines/php) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: explicit blocks make later edits unambiguous.
+  - Flag when: Conditional or loop body omits braces.
+- **Should** Use multibyte-aware Laravel helpers or mb_* functions for UTF-8 text operations. — score 6: [@joetannenbaum](https://laracasts.com/episodes/3267) (Tier 1, 3); [Laravel (official)](https://github.com/laravel/boost/blob/5c0a822e35cce497a595f5ee3eb6418ae2111aeb/.ai/laravel/skill/laravel-best-practices/rules/architecture.md#L121-L140) (Official, 3)
+  - Why: byte-oriented operations can corrupt or miscount multibyte text.
+  - Flag when: UTF-8 text is sliced, counted, or case-converted with byte-oriented functions.
+- **Should** Use strict equality and inequality comparisons when comparing PHP values. — score 6: [@enunomaduro](https://x.com/enunomaduro/status/1887124218241806528) (Tier 1, 3); [@valorin](https://securinglaravel.com/security-tip-pests-security-preset-strict-equality/#/portal/signup) (Tier 2, 3)
+  - Why: strict comparisons avoid unintended type coercion.
+  - Flag when: New value comparison uses == or != instead of === or !==.
+- **Should** Validate required application configuration during provider boot and fail clearly for missing critical values. — score 6: [@christophrumpel](https://laracasts.com/episodes/3070) (Tier 1, 3); [@valorin](https://securinglaravel.com/security-tip-validate-config-at-boot) (Tier 2, 3)
+  - Why: early validation prevents obscure failures when features are later invoked.
+  - Flag when: Critical config is checked only at first use or silently accepts missing values.
+- **Should** Group third-party credentials and client defaults by provider in config/services.php. — score 5: [Laravel (official)](https://github.com/laravel/laravel/blob/f4000aeb018fcbf71d4a13e3ee4b80c7e2d45be5/config/services.php#L7-L28) (Official, 3); [@stevemcdougall](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=22075s) (Laracon speaker, 2)
+  - Why: centralized integration settings keep clients consistently configured.
+  - Flag when: Integration embeds credentials or duplicates provider URLs and client settings.
+- **Should** Remove commented-out, unreachable, and abandoned code. — score 5: [@freekmurze](https://spatie.be/blog/expose-legacy-javascript-code-with-import-aliases) (Tier 2, 3); [@jasonmccreary](https://www.youtube.com/watch?v=sBpzYsMgLK8) (Laracon speaker, 2)
+  - Why: dead code obscures the active implementation.
+  - Flag when: Diff retains commented-out code, unreachable statements, or abandoned feature toggles.
+- **Should** Store uploads through Laravel filesystem disks and generate URLs through the filesystem API. — score 5: [@simonswiss](https://laracasts.com/episodes/3651) (Tier 2, 3); [@drehimself](https://laracasts.com/episodes/2526) (Tier 2, 2)
+  - Why: disk abstractions keep storage paths and public URLs portable.
+  - Flag when: Upload code writes directly to public/ or manually builds filesystem URLs.
+- **Should** Use supported Laravel attributes for declarative framework metadata where the project has adopted them. — score 5: [Laravel (official)](https://laravel.com/docs/13.x/artisan#command-structure) (Official, 3); [laravel/framework PR author taylorotwell](https://github.com/laravel/framework/pull/58578) (Tier 2, 2)
+  - Why: declarative metadata keeps framework configuration close to the class it describes.
+  - Flag when: New metadata configuration bypasses an established attribute convention.
+- **Should** When using invokable actions, give each action a descriptive command name and its contract a descriptive capability name. — score 5: [@lukedowning19](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=1500s) (Laracon speaker, 3); [@maryperry](https://www.youtube.com/watch?v=w7jKcbVcI54) (Laracon speaker, 2)
+  - Why: clear action names expose the operation at call sites.
+  - Flag when: Invokable action or action contract has a vague name inconsistent with the project action convention.
+- **Should** Log only deliberate, minimal context and keep secrets and sensitive payloads out of ordinary logs. — score 4: [@valorin](https://securinglaravel.com/security-tip-dont-log-sensitive-data) (Tier 2, 3); [@jwmcpeak](https://laracasts.com/episodes/3265) (Tier 3, 1)
+  - Why: limited log context avoids exposing sensitive or unrelated data.
+  - Flag when: Logger receives entire models, secrets, or unfiltered sensitive payloads.
+- **Consider** Avoid mutating Context-held objects inside a temporary scope when those mutations must be rolled back. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/context#scoped-context) (Official, 3)
+  - Why: respects temporary Context scope rollback semantics.
+  - Flag when: Objects stored in Context are mutated inside a temporary scope and reused afterward.
+- **Consider** Catch specific anticipated failures in domain services and let programming errors propagate. — score 3: [@wendell_adriel](https://wendelladriel.com/blog/php-errors-exceptions-and-result-types-designing-failure-boundaries) (Tier 1, 3)
+  - Why: broad catches can disguise defects as recoverable business failures.
+  - Flag when: Domain service catches Throwable and suppresses programming errors.
+- **Consider** Centralize reusable HTTP client configuration in provider-registered macros or client factories. — score 3: [@wendell_adriel](https://x.com/wendell_adriel/status/1971548035646636514) (Tier 1, 3)
+  - Why: shared configuration prevents inconsistent headers and client defaults.
+  - Flag when: Multiple integrations repeat the same HTTP client configuration.
+- **Consider** Check asynchronous subprocess timeouts while polling their progress. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/processes#asynchronous-process-timeouts) (Official, 3)
+  - Why: enforces timeouts during asynchronous process polling.
+  - Flag when: Asynchronous process polling omits timeout checks.
+- **Consider** Commit dependency lockfiles for application dependencies. — score 3: [@freekmurze](https://spatie.be/guidelines/secure-coding) (Tier 2, 3)
+  - Why: lockfiles make dependency resolution reproducible.
+  - Flag when: Application dependency changes omit the corresponding Composer or package-manager lockfile.
+- **Consider** Configure circuit-breaker failure thresholds, sampling windows, and recovery delays per external service. — score 3: [@harrisrafto](https://www.youtube.com/watch?v=E9t2lVn0z8A) (Laracon speaker, 3)
+  - Why: service-specific recovery policies account for different traffic and failure behavior.
+  - Flag when: Multiple external services share unsuitable hard-coded breaker thresholds or recovery delays.
+- **Consider** Create a fresh mailable for each recipient when sending individual messages. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/mail#looping-over-recipients) (Official, 3)
+  - Why: reusing a mailable can accumulate recipients across sends.
+  - Flag when: Recipient loop reuses the same mutable mailable instance.
+- **Consider** Define audit logs around meaningful actor actions and relevant changed attributes. — score 3: [@freekmurze](https://freek.dev/3058-whats-new-in-laravel-activitylog-v5) (Tier 2, 3)
+  - Why: a deliberate audit contract records who changed what without irrelevant noise.
+  - Flag when: Audit logging captures every saved attribute or omits the responsible actor and meaningful changes.
+- **Consider** Define separate notification payload methods when database and broadcast representations differ. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/notifications#todatabase-vs-toarray) (Official, 3)
+  - Why: channel-specific payloads prevent one output contract from constraining another.
+  - Flag when: Notification toArray() serves incompatible database and broadcast payload requirements.
+- **Consider** Design strategy contracts so accepted input types are explicit to callers and static analyzers. — score 3: [@brendt_gd](https://stitcher.io/blog/strategies) (Tier 2, 3)
+  - Why: makes strategy input contracts statically explicit.
+  - Flag when: Strategy interfaces use mixed inputs while implementations require incompatible narrower types.
+- **Consider** Disambiguate encoded resource identifiers across model types when they share a public identifier namespace. — score 3: [@julienbourdeau](https://www.julienbourdeau.com/laravel-hashid) (Tier 1, 3)
+  - Why: type prefixes prevent different resources from producing ambiguous identifiers.
+  - Flag when: Encoded identifiers from multiple model types collide in a shared public namespace.
+- **Consider** Dispatch finite handler sets explicitly rather than assembling method names from strings. — score 3: [@ashallendesign](https://ashallendesign.co.uk/blog/php-dynamic-method-call-dangers) (Tier 2, 3)
+  - Why: makes dispatch over a finite handler set explicit.
+  - Flag when: Handler method names are concatenated from strings and invoked dynamically.
+- **Consider** Document why values exposed as trusted HTML are safe before wrapping or casting them as HtmlString. — score 3: [@valorin](https://securinglaravel.com/security-tip-eloquent-casting-to-htmlstring) (Tier 2, 3)
+  - Why: trusted HTML bypasses normal escaping and needs an explicit safety contract.
+  - Flag when: HtmlString cast or wrapper accepts data without a documented trust or sanitization boundary.
+- **Consider** Encapsulate internal object state and expose operations through methods. — score 3: [@jeffrey_way](https://laracasts.com/episodes/3413) (Tier 2, 3)
+  - Why: controlled operations preserve invariants and hide representation details.
+  - Flag when: Domain object exposes mutable internal state that callers change directly.
+- **Consider** Follow the project policy on final classes and use final only where that policy calls for it. — score 3: [@freekmurze](https://spatie.be/guidelines/laravel) (Tier 2, 3)
+  - Why: consistent extensibility policy avoids arbitrary inheritance restrictions.
+  - Flag when: New class introduces final contrary to established project conventions.
+- **Consider** Format nontrivial ternary expressions with each part on its own line. — score 3: [@freekmurze](https://spatie.be/guidelines/php) (Tier 2, 3)
+  - Why: line breaks make conditional branches easier to scan.
+  - Flag when: Long ternary expressions keep the condition and both branches on one line.
+- **Consider** Group related components in descriptive subdirectories as their number grows. — score 3: [@tightenco](https://tighten.com/insights/extensible-blade-components) (Tier 2, 3)
+  - Why: grouping keeps component locations understandable.
+  - Flag when: Growing component directory mixes unrelated features without grouping.
+- **Consider** Group scheduled tasks that share configuration instead of repeating the same settings. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/scheduling#schedule-groups) (Official, 3)
+  - Why: shared task configuration remains consistent as schedules change.
+  - Flag when: Several scheduled tasks repeat the same configuration chain.
+- **Consider** Keep business logic out of service providers; use them only for construction and bindings. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/providers) (Official, 3)
+  - Why: separating service construction from behavior keeps business services independently reusable and testable.
+  - Flag when: Service provider executes business calculations or domain operations.
+- **Consider** Keep configuration values serializable and avoid closures in configuration files. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/packages#configuration) (Official, 3)
+  - Why: configuration caching cannot reliably export closures.
+  - Flag when: Config file contains a closure.
+- **Consider** Keep mailable properties private or protected when they should not automatically become template data. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/mail#via-the-with-parameter) (Official, 3)
+  - Why: explicit template data prevents accidental exposure of internal values.
+  - Flag when: Public mailable property exposes internal data the template does not need.
+- **Consider** Mark sensitive parameters with SensitiveParameter where their values must be hidden from stack traces. — score 3: [@valorin](https://securinglaravel.com/security-tip-hide-sensitive-parameters) (Tier 2, 3)
+  - Why: redacted arguments reduce accidental disclosure in diagnostics.
+  - Flag when: Password, token, or other sensitive argument lacks redaction at a traced method boundary.
+- **Consider** Measure terminal layout using visible text width and current terminal dimensions. — score 3: [@joetannenbaum](https://blog.joe.codes/building-tuis-gotchas-and-good-info) (Tier 1, 3)
+  - Why: escape sequences and multibyte characters do not occupy their byte length in terminal columns.
+  - Flag when: Terminal layout counts ANSI bytes as visible width or uses stale dimensions when rendering.
+- **Consider** Modify only the provided context repository in context hydration and dehydration callbacks. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/context#hydrated) (Official, 3)
+  - Why: using the global facade can mutate the current process context instead of the transferred context.
+  - Flag when: Context lifecycle callback mutates context through the Context facade.
+- **Consider** Override vendor translations in application-owned lang/vendor files and include only the strings being changed. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/localization#overriding-package-language-files) (Official, 3)
+  - Why: targeted overrides survive package upgrades and avoid unnecessary copies.
+  - Flag when: Vendor translation source is edited directly or entire unchanged dictionaries are copied.
+- **Consider** Parenthesize comparisons when negation or mixed boolean operators would otherwise change the intended evaluation. — score 3: [@valorin](https://securinglaravel.com/security-tip-type-coercion-in-broadcast-routes) (Tier 2, 3)
+  - Why: explicit grouping prevents precedence from changing the comparison.
+  - Flag when: Negation or mixed boolean operators apply to the wrong operand because a comparison lacks grouping.
+- **Consider** Place a space after the negation operator when following the Laravel Pint preset. — score 3: [Laravel (official)](https://github.com/laravel/pint/blob/main/resources/presets/laravel.php) (Official, 3)
+  - Why: consistent operator spacing matches the Laravel formatter.
+  - Flag when: Negation is written as !$value instead of ! $value.
+- **Consider** Place each applied trait on its own use statement. — score 3: [@freekmurze](https://spatie.be/guidelines/php) (Tier 2, 3)
+  - Why: separate statements make trait usage easy to scan.
+  - Flag when: Class combines multiple traits in a single use statement.
+- **Consider** Place method braces consistently with the configured formatter. — score 3: [@jeffrey_way](https://laracasts.com/episodes/3949) (Tier 2, 3)
+  - Why: consistent brace placement removes arbitrary formatting differences.
+  - Flag when: Method brace placement conflicts with project formatter settings.
+- **Consider** Prefer ?T over T|null for a single nullable native type. — score 3: [@freekmurze](https://spatie.be/guidelines/php) (Tier 2, 3)
+  - Why: a consistent nullable notation keeps type declarations concise.
+  - Flag when: Single nullable type uses a union with null despite the project short-notation convention.
+- **Consider** Prefer simple string interpolation when it expresses the result more clearly than concatenation or formatting. — score 3: [@freekmurze](https://spatie.be/guidelines/laravel) (Tier 2, 3)
+  - Why: interpolation keeps ordinary string construction readable.
+  - Flag when: Simple variable substitution uses an unnecessarily complex concatenation or sprintf call.
+- **Consider** Publish structured event payloads with explicit event names and intended channels. — score 3: [@_joedixon](https://www.youtube.com/watch?v=60g-Z-dAWNk) (Laracon speaker (employee), 3)
+  - Why: explicit event contracts let listeners consume the intended fields and deliveries.
+  - Flag when: Broadcast publishes unstructured external telemetry or uses an ambiguous event name or destination.
+- **Consider** Put each subsequent chained call on a new line once a method chain spans multiple lines. — score 3: [@freekmurze](https://spatie.be/guidelines/php) (Tier 2, 3)
+  - Why: consistent wrapping makes chained steps easy to scan.
+  - Flag when: Wrapped method chain places multiple later calls on one line.
+- **Consider** Reindex filtered arrays or collections when the output contract requires a list. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/prompts#multisearch) (Official, 3)
+  - Why: preserved sparse keys can serialize as objects rather than lists.
+  - Flag when: Filtered list is returned or serialized with sparse numeric keys without values() or array_values().
+- **Consider** Represent mutable application settings with typed contracts and preserve those types across persistence. — score 3: [@freekmurze](https://github.com/spatie/laravel-settings) (Tier 2, 3)
+  - Why: typed settings prevent inconsistent values after serialization.
+  - Flag when: Persisted settings lose their declared types or mutable settings are scattered through unrelated configuration.
+- **Consider** Separate distinct guard checks when that makes their conditions and failure paths clearer. — score 3: [@freekmurze](https://spatie.be/guidelines/laravel) (Tier 2, 3)
+  - Why: individual checks can expose the reason for each early exit.
+  - Flag when: Compound guard mixes independent failure cases that need distinct handling.
+- **Consider** Store files using URL-safe names when they will be addressed through URLs. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/filesystem#file-urls) (Official, 3)
+  - Why: valid names avoid broken generated file URLs.
+  - Flag when: Stored filename contains characters that invalidate its public URL.
+- **Consider** Treat deprecation suppressions as temporary and fix the underlying code before the breaking release. — score 3: [@brendt_gd](https://stitcher.io/blog/dealing-with-deprecations) (Tier 2, 3)
+  - Why: keeps deprecation handling temporary.
+  - Flag when: New deprecation suppressions lack a removal plan or replace fixing deprecated calls.
+- **Consider** Use Collection::all() when only the underlying array is needed; use toArray() when recursive conversion is intended. — score 3: [@timacdonald87](https://x.com/timacdonald87/status/1630020572951502848) (Tier 1, 3)
+  - Why: the methods have different effects on nested Arrayable objects.
+  - Flag when: ToArray() is used where callers need original contained objects.
+- **Consider** Use ISO 15897 locale directory names for territory-specific translations. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/localization#using-short-keys) (Official, 3)
+  - Why: consistent locale identifiers keep translations discoverable.
+  - Flag when: Territory-specific language directory uses an incompatible locale name.
+- **Consider** Use Laravel utilities when they make an operation clearer and preserve framework-consistent behavior. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: well-named utilities express intent without repeating low-level logic.
+  - Flag when: Custom string, array, number, or URI manipulation repeats an available expressive utility.
+- **Consider** Use Markdown mailables when their standard HTML and plain-text templates fit the email. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: shared mail components reduce duplicated presentation work.
+  - Flag when: Email duplicates standard mail layout despite fitting the existing Markdown mail components.
+- **Consider** Use PHPDoc for declaration documentation and reserve inline comments for unusually complex logic. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: documentation belongs close to the contract it describes.
+  - Flag when: Declaration documentation is scattered through routine inline comments.
+- **Consider** Use `scoped()` bindings for request/job state and `singleton()` only for truly shared state in long-lived workers. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/container) (Official, 3)
+  - Why: singleton resolutions reuse the same object and its accumulated state.
+  - Flag when: Singleton binding stores mutable request-specific or job-specific state.
+- **Consider** Use a consistent handle() entry method for action classes that compose with Laravel workflows. — score 3: [@ryangjchandler](https://ryangjchandler.co.uk/posts/writing-code-that-feels-native-to-laravel) (Tier 2, 3)
+  - Why: standardizes the entry point of action classes.
+  - Flag when: Action classes expose inconsistent execution method names instead of handle().
+- **Consider** Use application environment helpers for environment checks instead of reading APP_ENV directly. — score 3: [Laravel (official)](https://github.com/laravel/boost/blob/5c0a822e35cce497a595f5ee3eb6418ae2111aeb/.ai/laravel/skill/laravel-best-practices/rules/config.blade.php#L49-L68) (Official, 3)
+  - Why: framework environment checks use the resolved application environment.
+  - Flag when: Environment branch reads env('APP_ENV') directly.
+- **Consider** Use backed enums for scalar serialization and unbacked enums for purely internal concepts. — score 3: [@brendt_gd](https://stitcher.io/blog/php-enum-style-guide) (Tier 2, 3)
+  - Why: chooses enum forms by their serialization role.
+  - Flag when: A serialized enum has no backing value or an internal-only enum adds unnecessary scalar backing.
+- **Consider** Use contextual or factory bindings when values or implementations can't be inferred. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/container) (Official, 3)
+  - Why: autowiring cannot infer required configuration values or consumer-specific implementations.
+  - Flag when: Container-resolved constructor adds a required scalar or unbound interface without a resolution strategy.
+- **Consider** Use decorators to layer caching, logging, or eligibility checks around an operation without changing its contract. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/structure) (Official, 3)
+  - Why: independently varying behaviors can be composed without multiplying subclasses.
+- **Consider** Use distinct exception classes for domain errors that require distinct handling. — score 3: [@freekmurze](https://freek.dev/3091-exceptions-that-explain-themselves) (Tier 2, 3)
+  - Why: separate types allow consumers to select domain-specific recovery.
+  - Flag when: Different domain failures requiring different handling share an indistinguishable exception type.
+- **Consider** Use separate logging channels for distinct operational purposes. — score 3: [@aarondfrancis](https://aaronfrancis.com/2024/configuring-and-viewing-logs-in-laravel-91cf1ec3) (Tier 1, 3)
+  - Why: separate channels allow appropriate routing and retention.
+  - Flag when: Audit, workflow, and diagnostic logs with different requirements share an undifferentiated channel.
+- **Consider** Use supported PHP property hooks or asymmetric visibility when they clearly replace accessor boilerplate. — score 3: [@jeffrey_way](https://laracasts.com/episodes/3434) (Tier 2, 3)
+  - Why: property-level contracts can express simple access and mutation rules directly.
+  - Flag when: Boilerplate getters and setters duplicate straightforward property access rules.
+- **Consider** Use the existing asset pipeline and reusable presentation components for substantial JavaScript and CSS. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: established presentation tooling keeps assets maintainable.
+  - Flag when: Substantial inline scripts or styles bypass the project asset pipeline.
+- **Consider** Use values directly unless the API must evaluate a closure or accept both a value and a closure. — score 3: [@ryangjchandler](https://www.youtube.com/watch?v=bZMgPoC2n_Y) (Laracon speaker, 3)
+  - Why: unnecessary helper calls obscure simple values.
+  - Flag when: Value() wraps an expression that cannot be a closure.
+- **Consider** Write comparisons in natural operand order rather than Yoda style when using Laravel formatting conventions. — score 3: [Laravel (official)](https://github.com/laravel/pint/blob/main/resources/presets/laravel.php) (Official, 3)
+  - Why: natural order matches the Laravel formatter and normal reading order.
+  - Flag when: Comparison puts a constant first contrary to the configured Laravel style.
+- **Consider** Use an explicit Collection construction when doing so makes the intended collection type clearer. — score 2: [laravel/framework PR author browner12](https://github.com/laravel/framework/pull/53563) (Tier 2, 2)
+  - Why: explicit construction can preserve a visible concrete type contract.
+  - Flag when: A collection helper obscures a concrete collection type needed by the consumer.
+- **Consider** Use exceptions and framework responses instead of request-time die or exit calls. — score 2: [@jordanhavard](https://www.youtube.com/watch?v=riJBa0Bxo-8) (Laracon speaker, 2)
+  - Why: normal response handling allows framework cleanup and tests to complete.
+  - Flag when: Request handling terminates the process directly with die or exit.
+
+### Performance
+
+- **Must** Measure before optimizing: profile app logic, queries, rendering, and blocking calls before adding capacity or blaming the framework. — score 45: [@aarondfrancis](https://x.com/aarondfrancis/status/1653442441364504584) (Tier 1, 3); [@ashallendesign](https://ashallendesign.co.uk/blog/laravel-benchmark-class) (Tier 2, 3); [@brendt_gd](https://stitcher.io/blog/processing-11-million-rows) (Tier 2, 3); [@calebporzio](https://www.youtube.com/watch?v=M60-nxlrePc) (Laracon speaker, 3); [@enunomaduro](https://x.com/enunomaduro/status/1907807395289391584) (Tier 1, 3); [@freekmurze](https://github.com/spatie/laravel-ray) (Tier 2, 3); [@jessarchercodes](https://www.youtube.com/watch?v=0j6z_oq4cZU) (Laracon speaker (employee), 3); [@marcelpociot](https://www.youtube.com/watch?v=rk29Hyk59JY) (Laracon speaker, 3); [@mattstauffer](https://www.youtube.com/watch?v=KBigS5vLwZk&t=660s) (Laracon speaker, 3); [@reinink](https://reinink.ca/articles/ordering-database-queries-by-relationship-columns-in-laravel) (Laracon speaker, 3); [@timacdonald87](https://x.com/timacdonald87/status/1694516066373014015) (Tier 1, 3); [@wendell_adriel](https://x.com/wendell_adriel/status/1959962874106748987) (Tier 1, 3); [Laravel (official)](https://laravel.com/docs/13.x/cache) (Official, 3); [@dr4goonis](https://x.com/dr4goonis/status/1588226596388880389) (Tier 2, 2); [@ruchitpatel](https://www.youtube.com/watch?v=MdIli5VczSU&t=270s) (Laracon speaker, 2); [@sairahcaz2k](https://x.com/Sairahcaz2k/status/1710647796343111681) (Tier 2, 2)
+  - Why: target the actual bottleneck before spending money on capacity that may not solve it.
+- **Must** Add indexes for measured filter, join, and ordering patterns; choose composite column order, coverage, and index type to match the query and database. — score 16: [@aarondfrancis](https://planetscale.com/blog/why-isnt-mysql-using-my-index) (Tier 1, 3); [@freekmurze](https://spatie.be/blog/speeding-up-database-searches-using-an-invisible-column) (Tier 2, 3); [@reinink](https://stephenjude.me/articles/lessons-from-eloquent-performance-patterns) (Laracon speaker, 3); [@simonswiss](https://laracasts.com/episodes/3660) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3); [@sabatinomasala](https://x.com/SabatinoMasala/status/2003069291222982658) (Tier 3, 1)
+  - Why: support selective lookups and ordered retrieval without unnecessary scans or sorting.
+  - Flag when: Frequent large-table queries lack matching indexes, or composite indexes omit the required leading columns or sort tie-breaker.
+- **Must** Bound interactive listings and search results; use pagination suited to the dataset, avoiding full counts or deep offsets when continuation or cursor pagination suffices. — score 16: [@aarondfrancis](https://aaronfrancis.com/2022/efficient-mysql-pagination-using-deferred-joins-15d0de14) (Tier 1, 3); [@jbrooksuk](https://www.youtube.com/watch?v=he2-4Dbc-y0) (Laracon speaker (employee), 3); [@jessarchercodes](https://www.youtube.com/watch?v=uZLkGuylXDQ) (Laracon speaker (employee), 3); [@tightenco](https://tighten.com/insights/blazing-fast-full-text-search-in-laravel-from-mysql-to-typesense) (Tier 2, 3); [@dunglas](https://www.youtube.com/watch?v=DJJt_2V26V8) (Laracon speaker, 2); [@jordanhavard](https://www.youtube.com/watch?v=riJBa0Bxo-8) (Laracon speaker, 2)
+  - Why: limit response size and avoid unnecessary counting and offset scans.
+  - Flag when: List endpoints return unbounded results, load all rows before pagination, or calculate totals that the interface does not use.
+- **Must** Select only needed columns, and use scalar projections such as pluck when full models are unnecessary. — score 15: [@brendt_gd](https://stitcher.io/blog/11-million-rows-in-seconds) (Tier 2, 3); [@jeffrey_way](https://laracasts.com/episodes/3575) (Tier 2, 3); [@marcelpociot](https://www.youtube.com/watch?v=rk29Hyk59JY) (Laracon speaker, 3); [@reinink](https://laracasts.com/episodes/2543) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: reduce transferred data, model hydration, and memory consumption.
+  - Flag when: Large listings or exports select unused text, JSON, binary, or embedding columns, or hydrate models for scalar-only output.
+- **Must** Queue slow work the response doesn't need, on a real async connection with supervised workers. — score 14: [@freekmurze](https://freek.dev/3058-whats-new-in-laravel-activitylog-v5) (Tier 2, 3); [@joetannenbaum](https://blog.joe.codes/creating-a-loading-spinner-in-the-terminal-using-php) (Tier 1, 3); [@wendell_adriel](https://x.com/wendell_adriel/status/1978427159153668577) (Tier 1, 3); [Laravel (official)](https://laravel.com/docs/13.x/queues) (Official, 3); [Tim](https://www.youtube.com/watch?v=NcucthcnGY0) (Laracon speaker, 2)
+  - Why: keep expensive work such as sending email from delaying the web response.
+  - Flag when: Request handlers synchronously perform deferrable work, or queued jobs explicitly use the sync connection.
+- **Must** Retrieve relationship counts and totals with database aggregates such as withCount, withSum, or withAvg. — score 14: [@marcelpociot](https://www.youtube.com/watch?v=rk29Hyk59JY) (Laracon speaker, 3); [@shrutibalasa](https://laracasts.com/episodes/4022) (Tier 2, 3); [@wendell_adriel](https://x.com/wendell_adriel/status/1973350834839646364) (Tier 1, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3); [@benjamincrozat](https://benjamincrozat.com/laravel-debugbar) (Tier 2, 2)
+  - Why: avoid loading related collections or issuing an aggregate query for every parent.
+  - Flag when: Code loads relations solely to count or sum them, or runs relationship aggregate queries inside a parent loop.
+- **Must** Choose an indexed search strategy suited to the required matching semantics, using prefix matching where sufficient and full-text or a search engine for broad text search and relevance. — score 13: [@freekmurze](https://spatie.be/docs/laravel-query-builder/v7/features/filtering) (Tier 2, 3); [@lukedowning19](https://laracasts.com/episodes/2842) (Tier 2, 3); [@reinink](https://eloquent-course.reinink.ca/) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/search#running-full-text-queries) (Official, 3); [@jwmcpeak](https://laracasts.com/episodes/3998) (Tier 3, 1)
+  - Why: avoid large-table substring scans while preserving the intended search behavior.
+  - Flag when: Large-table search relies on leading-wildcard LIKE, or relevance-sensitive results have no ranked search strategy.
+- **Must** Memoize repeated expensive computations or lookups within the current request or execution context. — score 12: [@ashallendesign](https://ashallendesign.co.uk/blog/laravel-memoisation-once-helper) (Tier 2, 3); [@calebporzio](https://laracasts.com/episodes/4098) (Tier 2, 3); [@lukedowning19](https://laracasts.com/episodes/3111) (Tier 2, 3); [laravel/framework PR author nunomaduro](https://github.com/laravel/framework/pull/49744) (Tier 2, 2); [@jwmcpeak](https://laracasts.com/episodes/3419) (Tier 3, 1)
+  - Why: avoid repeating identical retrieval or rendering work while keeping cached state scoped to its context.
+  - Flag when: Repeated authorization checks, computations, or identical component renders repeat the same expensive work within one request.
+- **Must** Register a cumulative query-time threshold (`DB::whenQueryingForLongerThan`) to catch requests with many small queries. — score 11: [@jessarchercodes](https://www.youtube.com/watch?v=0j6z_oq4cZU) (Laracon speaker (employee), 3); [@timacdonald87](https://timacdonald.me/fast-database-queries-are-not-always-better/) (Tier 1, 3); [Laravel (official)](https://laravel.com/docs/13.x/database) (Official, 3); [Tim](https://www.youtube.com/watch?v=NcucthcnGY0&t=990s) (Laracon speaker, 2)
+  - Why: detect accumulated database latency that individually fast queries hide.
+- **Must** Run independent slow operations concurrently using an appropriate HTTP, process, or concurrency driver. — score 11: [@freekmurze](https://www.youtube.com/watch?v=klMO4vn540A) (Laracon speaker, 3); [@wendell_adriel](https://x.com/wendell_adriel/status/1950522528138412216) (Tier 1, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3); [Tim](https://www.youtube.com/watch?v=NcucthcnGY0) (Laracon speaker, 2)
+  - Why: overlap independent waiting or computation instead of adding their elapsed times.
+  - Flag when: Independent outbound requests or expensive tasks run sequentially before their results are combined.
+- **Must** Process large datasets incrementally (`chunk`, `lazy`, cursors) instead of loading everything into memory. — score 10: [@wendell_adriel](https://wendelladriel.com/blog/eloquent-performance-and-database-design-evidence-before-eager-loading) (Tier 1, 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent) (Official, 3); [@coulbourne](https://www.youtube.com/watch?v=YJmuKPk3d9M&t=20462s) (Laracon speaker, 2); [@devansh0207](https://www.youtube.com/watch?v=eJJsGhu9gtI) (Laracon speaker, 2)
+  - Why: keep memory use from growing with the entire recipient list or import input.
+  - Flag when: Large recipient sets or import inputs are fully materialized before processing.
+- **Must** Keep predicates on indexed columns index-usable; use direct range comparisons or indexed generated expressions when transformations are required. — score 9: [@aarondfrancis](https://x.com/aarondfrancis/status/1654152758453317632) (Tier 1, 3); [@reinink](https://laracasts.com/episodes/2560) (Tier 2, 3); [@wendell_adriel](https://wendelladriel.com/blog/eloquent-performance-and-database-design-evidence-before-eager-loading) (Tier 1, 3)
+  - Why: preserve useful index access for normalized values and date ranges.
+  - Flag when: WHERE clauses wrap indexed columns in functions without a matching expression or generated-column index.
+- **Must** Precompute or cache repeatedly requested aggregates over large histories, with explicit refresh, synchronization, and freshness behavior. — score 9: [@jessarchercodes](https://www.youtube.com/watch?v=uZLkGuylXDQ) (Laracon speaker (employee), 3); [@lukedowning19](https://laracasts.com/episodes/3252) (Tier 2, 3); [@tobias_petry](https://www.youtube.com/watch?v=cucIWpAenro&t=10520s) (Laracon speaker, 3)
+  - Why: avoid repeatedly scanning historical data while keeping reported totals sufficiently current.
+  - Flag when: Hot counts or rolling analytics recompute over the full history on every request, or cached totals lack a refresh strategy.
+- **Must** Resize and compress images for their intended display dimensions before storage or delivery. — score 9: [@aarondfrancis](https://aaronfrancis.com/2025/a-cookieless-cache-friendly-image-proxy-in-laravel-inspired-by-cloudflare-9e95f7e0) (Tier 1, 3); [@freekmurze](https://spatie.be/blog/five-levels-of-handling-images-in-laravel) (Tier 2, 3); [@simonswiss](https://laracasts.com/episodes/3666) (Tier 2, 3)
+  - Why: reduce image transfer size and unnecessary decoding work.
+  - Flag when: Uploads or delivered images retain unnecessarily large dimensions or unoptimized file sizes.
+- **Must** Set explicit connect and total timeouts and retries on every outbound HTTP/SDK call. — score 9: [Laravel (official)](https://laravel.com/framework/docs/13.x/http-client) (Official, 3); [@drehimself](https://laracasts.com/episodes/2533) (Tier 2, 2); [@stevemcdougall](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=22590s) (Laracon speaker, 2); [Tim](https://www.youtube.com/watch?v=NcucthcnGY0&t=300s) (Laracon speaker, 2)
+  - Why: keep slow external dependencies from holding up user requests.
+  - Flag when: Outbound clients have no explicit connection or total timeout in their call, shared builder, or configuration.
+- **Must** Apply filtering, sorting, limiting, and grouping in database queries before materializing results. — score 8: [@reinink](https://laravelpodcast.com/episodes/eloquent-with-jonathan-reinink/transcript) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/scout#collection-engine) (Official, 3); [@drehimself](https://laracasts.com/episodes/2522) (Tier 2, 2)
+  - Why: avoid moving and processing large intermediate datasets in PHP.
+  - Flag when: Large results are fetched and then filtered, sorted, grouped, or limited in PHP.
+- **Must** Fetch only the related values or bounded related rows needed; use subquery selects, one-of-many relationships, or per-parent eager-load limits for latest-related data. — score 8: [@reinink](https://reinink.ca/articles/dynamic-relationships-in-laravel-using-subqueries) (Laracon speaker, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3); [laravel/framework PR author staudenmeir](https://github.com/laravel/framework/pull/49695) (Tier 2, 2)
+  - Why: avoid hydrating entire related histories or duplicating parent rows to obtain a single related value.
+  - Flag when: A whole has-many relationship is loaded to display one value or latest record, or an ordering join multiplies parent rows.
+- **Must** Reuse already loaded parent models for inverse relationships with setRelation or supported inverse hydration such as chaperone. — score 8: [@reinink](https://reinink.ca/articles/optimizing-circular-relationships-in-laravel) (Laracon speaker, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3); [laravel/framework PR author samlev](https://github.com/laravel/framework/pull/51582) (Tier 2, 2)
+  - Why: avoid redundant parent queries and duplicate model hydration.
+  - Flag when: Code accesses child-to-parent relationships after loading the same parent and its children, triggering extra queries.
+- **Should** Cache routes in production and regenerate on deploy; don't cache routes in local dev. — score 6: [@freekmurze](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=28200s) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/routing) (Official, 3)
+  - Why: avoid repeating route registration and discovery work on every production request.
+  - Flag when: Deployment clears route caches without rebuilding them, or local startup runs route:cache.
+- **Should** Combine counts or totals over the same dataset into one conditional aggregate query using expressions supported by the database. — score 6: [@reinink](https://laracasts.com/episodes/2546) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: avoid repeated scans and query round trips for dashboard totals.
+  - Flag when: Several queries count the same filtered dataset with different status or flag conditions.
+- **Should** Consider SQL subqueries instead of materializing identifier lists and benchmark alternatives on the target database. — score 6: [@ashallendesign](https://ashallendesign.co.uk/blog/laravel-wherein-reduce-queries) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/boost/blob/d165b9ea6086294a8f1999ac3dcf4e61da267b23/.ai/laravel/skill/laravel-best-practices/rules/advanced-queries.md) (Official, 3)
+  - Why: compares database execution with application-side materialization.
+  - Flag when: Queries pluck identifier lists into memory for subsequent whereIn calls without alternative benchmarks.
+- **Should** Consider separate indexed queries or UNION branches when cross-table OR conditions or complex queries prevent useful index access; verify the resulting plans. — score 6: [@freekmurze](https://spatie.be/blog/speeding-up-database-searches-using-an-invisible-column) (Tier 2, 3); [@reinink](https://eloquent-course.reinink.ca/) (Laracon speaker, 3)
+  - Why: allow each selective branch to use its indexes without assuming one complex query is cheaper.
+  - Flag when: Cross-table search combines OR predicates in one query with poor index access.
+- **Should** Load nonessential data and offscreen media only when needed. — score 6: [@freekmurze](https://spatie.be/blog/the-latest-and-greatest-in-postcardware-at-spatie) (Tier 2, 3); [@jasonlbeggs](https://laravel.com/blog/cutting-laravel-cloud-load-times-by-60-with-nightwatch) (Tier 1, 3)
+  - Why: reduce initial page work and network contention.
+  - Flag when: Initial rendering eagerly requests data or images that are not needed until a later interaction or scroll.
+- **Should** Batch repeated remote commands or requests when measurements show round-trip and serialization overhead dominates. — score 5: [Laravel (official)](https://laravel.com/docs/13.x/redis#pipelining-commands) (Official, 3); [@thierylaverdure](https://www.youtube.com/watch?v=E4_QSEfInrc) (Laracon speaker, 2)
+  - Why: reduce repeated network and encoding costs while preserving required operation semantics.
+  - Flag when: A loop sends independently batchable commands to the same remote service one round trip at a time.
+- **Consider** Accumulate commutative projection updates per key within each batch before persisting them. — score 3: [@brendt_gd](https://stitcher.io/blog/11-million-rows-in-seconds) (Tier 2, 3)
+  - Why: reduces redundant writes by aggregating projection changes.
+  - Flag when: Commutative projection changes write repeatedly to the same key within a batch.
+- **Consider** Batch or buffer bulk activity writes and flush them at explicit lifecycle boundaries. — score 3: [@freekmurze](https://freek.dev/3058-whats-new-in-laravel-activitylog-v5) (Tier 2, 3)
+  - Why: reduce per-record write queries without leaving buffered activity unpersisted.
+  - Flag when: Bulk updates write one activity record per query, or buffered writes have no defined flush boundary.
+- **Consider** Consider emulated prepared statements only after verifying performance and binding behavior for the database driver and workload. — score 3: [@jasonlbeggs](https://laravel.com/blog/cutting-laravel-cloud-load-times-by-60-with-nightwatch) (Tier 1, 3)
+  - Why: make driver-level performance choices without assuming emulation is universally faster or equivalent.
+  - Flag when: Database configuration enables emulated prepares without evidence that the workload benefits or that parameter behavior remains suitable.
+- **Consider** Eager-load Pennant feature values for collections of scopes to avoid per-check queries. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/pennant) (Official, 3)
+  - Why: avoids repeated feature queries for scope collections.
+  - Flag when: Loops check Pennant features for many scopes without eager-loading feature values.
+- **Consider** Exclude unnecessary loaded relationships from queued model payloads. — score 3: [@christophrumpel](https://christoph-rumpel.com/2024/9/all-laravel-php-attributes-at-your-disposal) (Tier 1, 3)
+  - Why: avoid restoring and loading unrelated model data in workers.
+  - Flag when: Queued models carry loaded relationships that the job never uses.
+- **Consider** Generate and serve responsive image variants when display sizes vary. — score 3: [@freekmurze](https://spatie.be/docs/laravel-medialibrary/v11/responsive-images/getting-started-with-responsive-images) (Tier 2, 3)
+  - Why: avoid transferring full-resolution images to small viewports.
+  - Flag when: Responsive pages serve one oversized image without appropriately sized variants.
+- **Consider** Keep service providers lean; don't eagerly build unused services or capture request state in singletons. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/providers) (Official, 3)
+  - Why: avoid paying bootstrap costs for dependency graphs the request never uses.
+  - Flag when: Providers eagerly resolve unused services or singleton factories capture the current request.
+- **Consider** Precompute or cache remote-derived values before model serialization instead of issuing HTTP calls from appended accessors. — score 3: [@marcelpociot](https://www.youtube.com/watch?v=rk29Hyk59JY) (Laracon speaker, 3)
+  - Why: prevent serialization from triggering hidden and repeated network waits.
+  - Flag when: Automatically appended model accessors perform outbound HTTP requests.
+- **Consider** Reduce repeated template work by preparing data ahead of rendering and reusing or precompiling static fragments where supported. — score 3: [@calebporzio](https://laracasts.com/episodes/4099) (Tier 2, 3)
+  - Why: avoid repeated computation and component overhead in large rendered lists.
+  - Flag when: Large template loops repeat expensive preparation or render identical static fragments independently.
+- **Consider** Repeat benchmark iterations and runs to detect transient machine-load effects. — score 3: [@ashallendesign](https://ashallendesign.co.uk/blog/laravel-benchmark-class) (Tier 2, 3)
+  - Why: requires repeated measurements for reliable benchmarks.
+  - Flag when: Benchmark scripts run a single iteration or a single measurement run.
+- **Consider** Sample expensive diagnostic logging at a rate appropriate for production traffic. — score 3: [@wendell_adriel](https://x.com/wendell_adriel/status/1978788530139635982) (Tier 1, 3)
+  - Why: limit observability overhead while retaining useful evidence.
+  - Flag when: Full SQL or similarly expensive diagnostic logging runs on every production request.
+- **Consider** Skip expensive post-validation queries when prerequisite fields already have validation errors. — score 3: [Laravel (official)](https://github.com/laravel/boost/blob/d165b9ea6086294a8f1999ac3dcf4e61da267b23/.ai/laravel/skill/laravel-best-practices/rules/validation.md) (Official, 3)
+  - Why: avoids expensive queries for already invalid requests.
+  - Flag when: Post-validation hooks query the database despite errors on prerequisite fields.
+- **Consider** Suppress subprocess output when it is unnecessary and potentially large. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/processes#disabling-process-output) (Official, 3)
+  - Why: avoids buffering unnecessary subprocess output.
+  - Flag when: Potentially large subprocess output is retained despite never being consumed.
+- **Consider** Use COUNT(*) to count rows and inspect its execution plan for costly large-table counts. — score 3: [@aarondfrancis](https://aaronfrancis.com/2022/is-count-slow-in-mysql-aabe5c35) (Tier 1, 3)
+  - Why: express row-count semantics directly and verify efficient index access.
+  - Flag when: Row counts use nullable-column COUNT expressions unintentionally, or hot counts scan more data than necessary.
+- **Consider** Use a fast noncryptographic hash for nonsecurity fingerprints when cryptographic properties are unnecessary. — score 3: [@valorin](https://securinglaravel.com/security-tip-stop-using-md5-and-sha-1) (Tier 2, 3)
+  - Why: reduce hashing overhead for cache keys and similar nonsecurity identifiers.
+  - Flag when: Frequently computed nonsecurity fingerprints use a slower cryptographic hash without needing its security properties.
+- **Consider** Use exists or doesntExist when only the presence of matching rows is needed. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/queries#determining-if-records-exist) (Official, 3)
+  - Why: avoid counting or retrieving all matches for a boolean result.
+  - Flag when: A count or fetched collection is used solely to decide whether any rows exist.
+- **Consider** Include the data required for the initial screen in the initial response when it avoids redundant startup requests. — score 2: [@sebarmand](https://www.youtube.com/watch?v=9mDkf4popb8) (Laracon speaker, 2)
+  - Why: reduce sequential round trips before the interface becomes usable.
+  - Flag when: The initial screen waits for separate settings or capability requests that could be supplied with its response.
+
+### Tooling & AI
+
+- **Must** Configure a shared code style and run the project formatters on changed files before finalizing edits. — score 29: [@ashleyhindle](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=31692s) (Laracon speaker (employee), 3); [@christophrumpel](https://laracasts.com/episodes/2871) (Tier 1, 3); [@enunomaduro](https://www.youtube.com/watch?v=328A3aFOy6M) (Laracon speaker (employee), 3); [@freekmurze](https://spatie.be/blog/expose-legacy-javascript-code-with-import-aliases) (Tier 2, 3); [@jeffrey_way](https://laracasts.com/episodes/3989) (Tier 2, 3); [@mattstauffer](https://www.youtube.com/watch?v=1H4QN4_WbQE) (Laracon speaker, 3); [@pushpak1300](https://laravel.com/blog/extracting-ai-rules-from-an-existing-codebase) (Tier 1, 3); [@tightenco](https://tighten.com/insights/announcing-duster-a-laravel-code-linter-and-fixer) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3); [@jasonmccreary](https://www.youtube.com/watch?v=sBpzYsMgLK8) (Laracon speaker, 2)
+  - Why: consistent automated formatting removes subjective review noise.
+  - Flag when: Changed files violate the configured formatter or editor settings, or formatting scripts bypass the agreed preset.
+- **Must** Maintain version-controlled project instructions for architecture, conventions, and workflows; load them into coding agents and update them when correcting drift. — score 17: [@ashleyhindle](https://x.com/ashleyhindle/status/1963168897151992056) (Tier 1, 3); [@freekmurze](https://spatie.be/blog/reading-code-with-ai-not-generating-it) (Tier 2, 3); [@jeffrey_way](https://laracasts.com/episodes/3951) (Tier 2, 3); [@pushpak1300](https://x.com/pushpak1300/status/1990416657970586029) (Tier 1, 3); [Laravel (official)](https://laravel.com/docs/13.x/boost#guidelines-vs-skills) (Official, 3); [@colindecarlo](https://www.youtube.com/watch?v=Xz4QOv5Xe_s) (Laracon speaker, 2)
+  - Why: durable project context keeps generated changes aligned with team decisions.
+  - Flag when: Agent instructions contradict repository conventions, omit relevant constraints, or lose durable corrections when regenerated.
+- **Must** Review AI-generated diffs against the actual codebase, resolve bugs and review feedback, and simplify the code before merging. — score 17: [@enunomaduro](https://x.com/enunomaduro/status/1980761725554270493) (Tier 1, 3); [@freekmurze](https://spatie.be/guidelines/version-control) (Tier 2, 3); [@jeffrey_way](https://laracasts.com/episodes/3959) (Tier 2, 3); [@marcelpociot](https://www.youtube.com/watch?v=YJmuKPk3d9M&t=22269s) (Laracon speaker, 3); [@pushpak1300](https://laravel.com/blog/extracting-ai-rules-from-an-existing-codebase) (Tier 1, 3); [@colindecarlo](https://www.youtube.com/watch?v=Xz4QOv5Xe_s) (Laracon speaker, 2)
+  - Why: model output still needs accountable review for correctness, security, and maintainability.
+  - Flag when: Generated changes merge with unresolved review findings, unsupported assumptions, or unnecessary complexity.
+- **Must** Run PHPStan with Larastan locally and in CI, starting at an attainable level and raising it over time. — score 17: [@enunomaduro](https://www.youtube.com/watch?v=328A3aFOy6M) (Laracon speaker (employee), 3); [@lukedowning19](https://laracasts.com/episodes/2980) (Tier 2, 3); [@mateusjatenee](https://laracasts.com/episodes/3598) (Tier 2, 3); [@ryangjchandler](https://www.youtube.com/watch?v=bZMgPoC2n_Y) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/facades) (Official, 3); [Craig Morris](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=7258s) (Laracon speaker, 2)
+  - Why: laravel-aware analysis catches undefined members and incompatible types before affected endpoints run.
+  - Flag when: CI removes PHPStan analysis, or PHPStan configuration omits the Larastan extension.
+- **Must** Give coding agents access to application context and documentation matching installed framework and package versions, and consult it before implementing unfamiliar APIs. — score 16: [@freekmurze](https://spatie.be/blog/reading-code-with-ai-not-generating-it) (Tier 2, 3); [@jasonlbeggs](https://x.com/jasonlbeggs/status/2007078806541197501) (Tier 1, 3); [@jeffrey_way](https://laracasts.com/episodes/3955) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3); [@colindecarlo](https://www.youtube.com/watch?v=Xz4QOv5Xe_s) (Laracon speaker, 2); [@jasonmccreary](https://www.youtube.com/watch?v=Jna0DOgnxds) (Laracon speaker, 2)
+  - Why: version-aware guidance avoids invented APIs and incompatible patterns.
+  - Flag when: Agent setup lacks repository-aware documentation tools, or generated code relies on APIs absent from installed versions.
+- **Must** Use development diagnostics to inspect logs, runtime values, and queries, choosing non-blocking output or a full debugger as the investigation requires. — score 16: [@christophrumpel](https://laracasts.com/episodes/3072) (Tier 1, 3); [@freekmurze](https://spatie.be/blog/do-not-call-toarray-to-get-all-items-from-a-laravel-collection) (Tier 2, 3); [@lukedowning19](https://laracasts.com/episodes/3109) (Tier 2, 3); [@mattstauffer](https://www.youtube.com/watch?v=1H4QN4_WbQE) (Laracon speaker, 3); [@wendell_adriel](https://x.com/wendell_adriel/status/1606275463508242437) (Tier 1, 3); [@jwmcpeak](https://laracasts.com/episodes/3991) (Tier 3, 1)
+  - Why: appropriate diagnostics reveal application behavior without unnecessary execution interruptions.
+  - Flag when: An investigation lacks relevant runtime evidence or leaves intrusive debugging in normal application paths.
+- **Must** Define outcomes, scope, constraints, and verification criteria before delegating implementation, and clarify consequential missing requirements. — score 14: [@christophrumpel](https://christoph-rumpel.com/2026/1/my-mind-has-been-blow-by-tech-and-it-is-ai) (Tier 1, 3); [@freekmurze](https://spatie.be/blog/claude-talk-small-code-still-big) (Tier 2, 3); [@jeffrey_way](https://laracasts.com/episodes/3963) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3); [@colindecarlo](https://www.youtube.com/watch?v=Xz4QOv5Xe_s) (Laracon speaker, 2)
+  - Why: bounded tasks and explicit requirements reduce incorrect or excessive agent changes.
+  - Flag when: Agent tasks omit acceptance criteria or authorize edits and provisioning beyond a defined scope.
+- **Must** Automate formatting, linting, tests, and applicable static analysis through CI or Git hooks before changes merge. — score 12: [@jeffrey_way](https://x.com/jeffrey_way/status/2026657436438814734) (Tier 2, 3); [@lukedowning19](https://github.com/lukeraymonddowning/laravel-template) (Tier 2, 3); [@tightenco](https://tighten.com/insights/husky-how-to-automatically-format-lint-and-test-before-you-commit-or-push) (Tier 2, 3); [@lukekuzmish](https://www.youtube.com/watch?v=cucIWpAenro&t=23273s) (Laracon speaker, 2); [@jasonmccreary](https://laracasts.com/episodes/2707) (Tier 3, 1)
+  - Why: repeatable checks catch regressions without relying on manual review reminders.
+  - Flag when: Quality checks are removed from CI or hooks, or failing checks no longer block integration.
+- **Must** Manage agent context budgets by compacting long histories and loading concise, task-relevant instructions and tool output. — score 12: [@enunomaduro](https://x.com/enunomaduro/status/2097991056901980460) (Tier 1, 3); [@freekmurze](https://freek.dev/3026-my-claude-code-setup) (Tier 2, 3); [@jeffrey_way](https://laracasts.com/episodes/4103) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/boost#third-party-package-ai-guidelines) (Official, 3)
+  - Why: bounded context preserves relevant information and reduces unnecessary token consumption.
+  - Flag when: Agent loops resend unbounded histories or verbose irrelevant tool output.
+- **Must** Configure Rector for supported PHP and framework versions, apply focused transformations in reviewed batches, and verify behavior with tests. — score 11: [@enunomaduro](https://www.youtube.com/watch?v=328A3aFOy6M) (Laracon speaker (employee), 3); [@mateusjatenee](https://laracasts.com/episodes/3603) (Tier 2, 3); [@tightenco](https://tighten.com/insights/automated-refactoring-with-rector-php) (Tier 2, 3); [@votrubat](https://www.youtube.com/watch?v=qGrsvcWdERc) (Laracon speaker, 2)
+  - Why: mechanical refactoring is safer when runtime compatibility and behavior are checked.
+  - Flag when: Rector targets an unsupported runtime, or broad generated refactors lack review and regression validation.
+- **Must** Keep development tools and framework dependencies maintained, reviewing upgrade requirements and compatibility before adopting updates. — score 10: [@pushpak1300](https://x.com/pushpak1300/status/2031000655293530458) (Tier 1, 3); [@tightenco](https://tighten.com/insights/bol-ep4-ben-holmen-the-boutique-hub) (Tier 2, 3); [@valorin](https://securinglaravel.com/security-tip-keep-your-tools-updated) (Tier 2, 3); [@matthiasnoback](https://matthiasnoback.nl/2022/11/dealing-with-technical-debt-during-the-sprint/) (Tier 3, 1)
+  - Why: maintained tooling preserves security fixes and correct framework guidance.
+  - Flag when: Tooling remains on unsupported versions or upgrades ignore documented compatibility requirements.
+- **Must** Provide a reproducible development environment with declared runtime and service dependencies, automated setup, source synchronization, and restorable development data. — score 10: [@ashleyhindle](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=31692s) (Laracon speaker (employee), 3); [@mattstauffer](https://www.youtube.com/watch?v=KBigS5vLwZk) (Laracon speaker, 3); [@fidao](https://www.youtube.com/watch?v=f4QShF42c6E&t=30221s) (Laracon speaker, 2); [@francescociull4](https://www.youtube.com/watch?v=CMqhOhRnOY0) (Laracon speaker, 2)
+  - Why: repeatable environments reduce setup friction and differences from production behavior.
+  - Flag when: Setup relies on undocumented local services or versions, or environment recreation loses required seed data.
+- **Must** Bound agent command and repository permissions, isolate processing of untrusted content, and require explicit approval for destructive actions. — score 9: [@freekmurze](https://spatie.be/guidelines/secure-coding) (Tier 2, 3); [@pushpak1300](https://laravel.com/blog/a-better-way-to-build-mcp-servers-with-laravel) (Tier 1, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: least privilege limits damage from unintended actions and embedded hostile instructions.
+  - Flag when: An agent processing untrusted text has unnecessary secret or write access, or destructive commands bypass approval.
+- **Must** Declare development and debugging tools as development dependencies and disable their interfaces and convenience shortcuts in production. — score 9: [@christophrumpel](https://laracasts.com/episodes/3061) (Tier 1, 3); [@reinink](https://laracasts.com/episodes/2542) (Tier 2, 3); [@valorin](https://securinglaravel.com/security-tip-disable-dev-tools-on) (Tier 2, 3)
+  - Why: development tools can expose application data and need not ship with production dependencies.
+  - Flag when: Debugging packages enter require instead of require-dev, or production enables their interfaces.
+- **Must** Start bulk generation or automated changes from a clean version-control checkpoint and inspect the resulting diff. — score 8: [@mattstauffer](https://laracasts.com/episodes/3304) (Tier 2, 3); [@valorin](https://securinglaravel.com/in-depth-securing-apps-on-forge) (Tier 2, 3); [@jasonmccreary](https://www.youtube.com/watch?v=Xfix7NoO7o4) (Laracon speaker, 2)
+  - Why: a checkpoint makes generated changes attributable and selectively reversible.
+  - Flag when: Generation is mixed into unrelated uncommitted edits without a recoverable checkpoint.
+- **Must** Use conventional framework generators for recurring scaffolding and review the generated application code and tests. — score 8: [@freekmurze](https://spatie.be/blog/utilizing-claude-skills-in-client-projects) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/boost/blob/5c0a822e35cce497a595f5ee3eb6418ae2111aeb/.ai/laravel/core.blade.php#L4-L7) (Official, 3); [@jasonmccreary](https://www.youtube.com/watch?v=Jna0DOgnxds) (Laracon speaker, 2)
+  - Why: consistent scaffolding reduces repetitive work while generated behavior still requires review.
+  - Flag when: Repeated boilerplate bypasses established generators or generated actions and tests are accepted without inspection.
+- **Must** Use narrow PHPStan suppressions or a baseline for existing violations, enforce checks on new code, and reduce the baseline over time. — score 8: [@lukedowning19](https://laracasts.com/episodes/2981) (Tier 2, 3); [Laravel (official)](https://github.com/larastan/larastan) (Official, 3); [@samsehnert](https://www.youtube.com/watch?v=IPbxscS0xiY) (Laracon speaker, 2)
+  - Why: targeted exceptions preserve useful analysis while allowing incremental adoption.
+  - Flag when: Broad ignore patterns hide new errors, or a baseline grows to cover newly introduced violations.
+- **Must** Build generated changes in small reviewable increments, using verified examples and checkpoints before expanding the scope. — score 7: [@calebporzio](https://x.com/calebporzio/status/2093342185873621031) (Tier 2, 3); [@colindecarlo](https://www.youtube.com/watch?v=Xz4QOv5Xe_s) (Laracon speaker, 2); [@jasonmccreary](https://www.youtube.com/watch?v=Jna0DOgnxds) (Laracon speaker, 2)
+  - Why: incremental review makes drift and regressions easier to isolate and correct.
+  - Flag when: A large generated change combines unrelated steps without intermediate review or validation.
+- **Must** Encode recurring project and security restrictions in PHPStan rules with precise diagnostics and tests for both allowed and violating code. — score 7: [@ryangjchandler](https://www.youtube.com/watch?v=bZMgPoC2n_Y) (Laracon speaker, 3); [@valorin](https://securinglaravel.com/security-tip-disallowing-functions-with-phpstan) (Tier 2, 3); [@matthiasnoback](https://matthiasnoback.nl/2022/07/effective-immutability-with-phpstan/) (Tier 3, 1)
+  - Why: automated restrictions catch repeatable defects while tested type handling limits false positives.
+  - Flag when: A recurring banned call is unchecked, or a custom analysis rule lacks useful diagnostics or positive and negative test cases.
+- **Must** Expose application capabilities through narrowly scoped, authorized agent tools with explicit input schemas and meaningful descriptions. — score 7: [@jeffrey_way](https://laracasts.com/episodes/4079) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/mcp#resource-name-title-and-description) (Official, 3); [@jwmcpeak](https://laracasts.com/episodes/4048) (Tier 3, 1)
+  - Why: clear tool contracts support correct calls while authorization protects application data.
+  - Flag when: Agent tools have ambiguous descriptions, unconstrained inputs, or missing authorization checks.
+- **Must** Persist and resend conversation history for multi-turn AI features, scoped to the authorized user and domain record. — score 7: [@jeffrey_way](https://laracasts.com/episodes/4077) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/ai-sdk#human-tool-approval) (Official, 3); [@jwmcpeak](https://laracasts.com/episodes/4038) (Tier 3, 1)
+  - Why: scoped history preserves continuity without mixing unrelated conversations.
+  - Flag when: AI conversations lose prior turns or share history across users or unrelated records.
+- **Must** Record per-invocation AI usage and costs, distinguish cached and uncached token categories, and enforce spending and iteration limits. — score 7: [@jeffrey_way](https://laracasts.com/episodes/3988) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/ai-sdk#usage) (Official, 3); [@jwmcpeak](https://laracasts.com/episodes/4045) (Tier 3, 1)
+  - Why: usage visibility and hard bounds prevent runaway agent loops and surprise bills.
+  - Flag when: AI calls lack usage accounting or bounds, or cost calculations collapse differently billed token categories.
+- **Must** Require schema-constrained structured AI output and validate it before consuming it as application data. — score 7: [@jeffrey_way](https://laracasts.com/episodes/4081) (Tier 2, 3); [Laravel (official)](https://github.com/prism-php/prism/blob/bcd71254685cab5969fa2aaf28ac791c11579482/docs/core-concepts/structured-output.md) (Official, 3); [@jwmcpeak](https://laracasts.com/episodes/4036) (Tier 3, 1)
+  - Why: explicit output contracts prevent free-form responses from silently corrupting downstream logic.
+  - Flag when: Code parses free-form AI prose as structured fields or trusts output without schema validation.
+- **Should** Add development-only rendered HTML annotations that identify the Blade views, components, and layouts producing complex pages. — score 6: [@christophrumpel](https://laracasts.com/episodes/3074) (Tier 1, 3); [@freekmurze](https://www.youtube.com/watch?v=Boqfw4ZCk7g) (Laracon speaker, 3)
+  - Why: source annotations shorten navigation from rendered markup to the relevant template.
+  - Flag when: Template diagnostics expose internal source metadata in production.
+- **Should** Expose development and quality workflows through named Composer scripts shared by contributors and CI. — score 6: [@enunomaduro](https://x.com/enunomaduro/status/1648038783965622283) (Tier 1, 3); [Laravel (official)](https://github.com/laravel/laravel/tree/13.x/composer.json) (Official, 3)
+  - Why: stable project commands make setup and verification repeatable across tooling.
+  - Flag when: Contributor instructions and CI duplicate inconsistent vendor commands or lack a common workflow script.
+- **Should** Expose only task-relevant tool definitions to agents and use searchable discovery for large tool catalogs. — score 6: [@pushpak1300](https://laravel.com/blog/a-better-way-to-build-mcp-servers-with-laravel) (Tier 1, 3); [Laravel (official)](https://laravel.com/docs/13.x/mcp#searchable-tool-catalogs) (Official, 3)
+  - Why: selective tool discovery reduces context cost and irrelevant capabilities.
+  - Flag when: Agent clients receive a large unconditional tool catalog despite task-specific or searchable discovery.
+- **Should** Give each parallel coding agent an isolated workspace and review its changes before integrating them. — score 6: [@jeffrey_way](https://laracasts.com/episodes/3965) (Tier 2, 3); [@marcelpociot](https://www.youtube.com/watch?v=YJmuKPk3d9M&t=22269s) (Laracon speaker, 3)
+  - Why: isolated working copies prevent concurrent edits from overwriting each other.
+  - Flag when: Concurrent agents write into the same checkout without workspace isolation.
+- **Should** Keep dependencies limited to needed capabilities and remove unused or unnecessary packages. — score 6: [@lukedowning19](https://laracasts.com/episodes/3186) (Tier 2, 3); [@valorin](https://securinglaravel.com/security-tip-keep-dependencies-updated) (Tier 2, 3)
+  - Why: fewer dependencies reduce maintenance and supply-chain exposure.
+  - Flag when: A package is added for trivial unused functionality or remains installed after its consumers are removed.
+- **Should** Measure type coverage and enforce an agreed minimum, adding declarations where signatures can accurately express the types. — score 6: [@enunomaduro](https://www.youtube.com/watch?v=328A3aFOy6M) (Laracon speaker (employee), 3); [@wendell_adriel](https://github.com/WendellAdriel/laravel-exa) (Tier 1, 3)
+  - Why: coverage checks expose missing declarations without forcing inaccurate types.
+  - Flag when: Type coverage checks are removed or newly untyped signatures lower coverage below the project threshold.
+- **Should** Prefer established local CLI tools for agent repository operations when they provide the needed capability without an additional MCP integration. — score 6: [@freekmurze](https://freek.dev/3026-my-claude-code-setup) (Tier 2, 3); [@pushpak1300](https://x.com/pushpak1300/status/1989052040463675509) (Tier 1, 3)
+  - Why: reusing available command interfaces reduces integration overhead and agent context cost.
+  - Flag when: Agent setup introduces an extra integration for operations already supported by available project CLIs.
+- **Should** Review staged changes selectively and commit coherent changes without secrets or sensitive files. — score 6: [@freekmurze](https://spatie.be/guidelines/version-control) (Tier 2, 3); [@valorin](https://x.com/valorin/status/1594177251028803586) (Tier 2, 3)
+  - Why: staging review catches accidental inclusions and keeps changes understandable.
+  - Flag when: A commit combines unrelated edits or includes credentials and sensitive files.
+- **Should** Verify the identity, necessity, and trustworthiness of agent-suggested packages, MCP servers, plugins, and skills before approving installation. — score 6: [@freekmurze](https://spatie.be/guidelines/security) (Tier 2, 3); [@valorin](https://securinglaravel.com/security-tip-have-you-heard-of-slopsquatting) (Tier 2, 3)
+  - Why: unverified dependencies can exploit hallucinated names or execute with agent permissions.
+  - Flag when: Agent workflows install unverified packages or extensions without reviewing their source and purpose.
+- **Should** In modular codebases, enforce allowed dependencies between modules with Deptrac in CI. — score 5: [@mateusjatenee](https://speakerdeck.com/mateusjatenee/unveiling-the-modular-monolith-laracon-eu-2024) (Laracon speaker, 3); [@ryutahamasaki](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=5880s) (Laracon speaker, 2)
+  - Why: catches dependencies on other modules' implementation classes before merging.
+  - Flag when: CI removes the Deptrac check or suppresses a dependency forbidden by the module ruleset.
+- **Should** Route development email to an inspectable local mail sink instead of real recipients. — score 5: [@mattstauffer](https://laracasts.com/episodes/3303) (Tier 2, 3); [@francescociull4](https://www.youtube.com/watch?v=CMqhOhRnOY0) (Laracon speaker, 2)
+  - Why: mail capture permits feature verification without accidental external delivery.
+  - Flag when: Development mail configuration sends test messages to a live provider or real recipients.
+- **Should** Generate API documentation from application code, keep supplemental metadata beside the code, and rebuild it when endpoints change. — score 4: [@jbrooksuk](https://www.youtube.com/watch?v=K-g-t99mKZU) (Laracon speaker (employee), 3); [@jwmcpeak](https://laracasts.com/episodes/3213) (Tier 3, 1)
+  - Why: code-derived documentation is easier to keep aligned with actual endpoint behavior.
+  - Flag when: Endpoint changes leave generated documentation stale or omit metadata that extraction cannot infer.
+- **Consider** Build optimized production assets and reference them via `@vite`/`Vite::asset()` for versioned URLs. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/vite) (Official, 3)
+  - Why: reduces production asset size and lets content changes invalidate cached URLs.
+  - Flag when: Templates hard-code compiled asset filenames or deployment scripts use development assets without a production build.
+- **Consider** Check identifiers and annotations for spelling errors, correcting mistakes and explicitly allowing legitimate domain terms. — score 3: [@enunomaduro](https://www.youtube.com/watch?v=328A3aFOy6M) (Laracon speaker (employee), 3)
+  - Why: consistent names improve discoverability without flagging valid domain vocabulary.
+  - Flag when: New identifiers contain accidental misspellings or spelling ignores broadly hide errors.
+- **Consider** Commit composer.lock and install application dependencies from it for reproducible versions. — score 3: [@valorin](https://securinglaravel.com/in-depth-version-numbers-are-vanity-labels) (Tier 2, 3)
+  - Why: locked dependency versions make builds consistent across environments.
+  - Flag when: Composer.lock is missing, ignored, or bypassed by deployment dependency resolution.
+- **Consider** Coordinate before rewriting pushed history and verify that collaborators have not added commits. — score 3: [@freekmurze](https://spatie.be/guidelines/version-control) (Tier 2, 3)
+  - Why: coordinated history changes avoid overwriting other contributors work.
+  - Flag when: A pushed branch is rewritten without checking for collaborator commits.
+- **Consider** Declare frontend entry points explicitly in Vite config with dev, build, and watch scripts. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/vite) (Official, 3)
+  - Why: makes asset dependencies explicit and build commands repeatable without memorizing project-specific arguments.
+  - Flag when: New frontend entry files lack Vite inputs, or package scripts omit the required build modes.
+- **Consider** Ground project rules in actual repository decisions and supporting evidence, and review them with the team before adopting them. — score 3: [@pushpak1300](https://laravel.com/blog/extracting-ai-rules-from-an-existing-codebase) (Tier 1, 3)
+  - Why: evidence-based instructions avoid encoding invented or conflicting project conventions.
+  - Flag when: New project guidelines impose unsupported conventions or contradict agreed architecture.
+- **Consider** Isolate globally installed PHP development tools from application dependencies, using self-contained distributions where appropriate. — score 3: [@freekmurze](https://freek.dev/2202-use-dd-dump-and-ray-in-any-php-file-on-your-system) (Tier 2, 3)
+  - Why: tool isolation avoids conflicting dependency requirements across projects.
+  - Flag when: Global tooling dependency changes interfere with application dependency resolution.
+- **Consider** Keep custom agent instructions outside generated guideline blocks so updates preserve them. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/boost#installation) (Official, 3)
+  - Why: preserves custom instructions during guideline regeneration.
+  - Flag when: Custom agent instructions are inserted inside generated guideline markers.
+- **Consider** Keep production credentials and sensitive customer data out of agent-readable workspaces and AI prompts, and use organization-approved AI accounts. — score 3: [@freekmurze](https://spatie.be/guidelines/security) (Tier 2, 3)
+  - Why: agent access and external prompts can disclose confidential application data.
+  - Flag when: Agent configuration exposes production secrets, uploads sensitive datasets, or uses an unapproved personal account.
+- **Consider** Keep routine linting fast enough for frequent use by profiling slow checks and narrowing incremental checks while retaining full CI coverage. — score 3: [@owenconti](https://springloaded.co/blog/turbocharge-your-laravel-tests-on-github-actions) (Tier 2, 3)
+  - Why: responsive checks encourage regular validation without sacrificing complete merge checks.
+  - Flag when: Routine hooks repeatedly run unnecessary whole-repository checks or optimized checks remove required CI coverage.
+- **Consider** Load a Livewire-aware PHPStan extension to analyze computed properties rather than suppressing their errors. — score 3: [@ashallendesign](https://ashallendesign.co.uk/blog/larastan-livewire) (Tier 2, 3)
+  - Why: configures static analysis for Livewire computed properties.
+  - Flag when: PHPStan configuration suppresses computed-property errors without a Livewire extension.
+- **Consider** Load analysis extensions for framework-specific test APIs when running PHPStan over tests. — score 3: [@enunomaduro](https://www.youtube.com/watch?v=71bMyZcDlM4) (Laracon speaker (employee), 3)
+  - Why: test-aware analysis understands closure bindings and matcher types.
+  - Flag when: PHPStan analyzes Pest tests without the Pest extension or suppresses the resulting API errors wholesale.
+- **Consider** Load the relevant project skills before changing the features or workflows they govern. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: task-specific instructions preserve established implementation and verification practices.
+  - Flag when: Agent workflow changes omit applicable feature or testing skills.
+- **Consider** Rely on Laravel's discovery for commands, events, and listeners instead of manual registration lists. — score 3: [Laravel (official)](https://laravel.com/framework/docs/13.x/artisan#registering-commands) (Official, 3)
+  - Why: avoids maintaining redundant command and listener registration lists.
+  - Flag when: Adds manual registrations for commands or listeners already covered by configured discovery.
+- **Consider** Resolve Composer dependencies against the production PHP version using config.platform.php and verify the deployment runtime satisfies package requirements. — score 3: [@enunomaduro](https://x.com/enunomaduro/status/1654421404526292992) (Tier 1, 3)
+  - Why: production-compatible resolution prevents development runtime differences from producing unusable locks.
+  - Flag when: Composer resolves for a newer PHP runtime than production or platform overrides hide incompatible deployment requirements.
+- **Consider** Run automated CLI commands non-interactively with all required options explicit and preserve approval gates for destructive operations. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: explicit inputs prevent unattended commands from hanging or choosing unintended defaults.
+  - Flag when: An automated command can prompt for input or relies on interactive defaults.
+- **Consider** Run documentation generation and its database resets or seeding in an isolated environment with disposable example data. — score 3: [@jbrooksuk](https://www.youtube.com/watch?v=K-g-t99mKZU) (Laracon speaker (employee), 3)
+  - Why: documentation tooling must not mutate production data or publish real customer records.
+  - Flag when: Documentation generation uses production credentials or non-disposable data for destructive setup.
+- **Consider** Share relevant live diagnostics through an access-controlled debugging session when collaborating on an investigation. — score 3: [@freekmurze](https://spatie.be/blog/authors/alex-vanderbist) (Tier 2, 3)
+  - Why: shared runtime evidence lets collaborators inspect the same behavior.
+  - Flag when: Shared debugging configuration exposes sensitive diagnostics without access controls.
+- **Consider** Use targeted code searches and review tools to identify insecure randomness and suspicious input handling, then inspect each match. — score 3: [@valorin](https://securinglaravel.com/in-depth-pentesting-laravel-part-3-looking-for-interesting-code) (Tier 2, 3)
+  - Why: heuristic searches focus security review on potentially dangerous code.
+  - Flag when: New insecure randomness or suspect input handling is left unexamined despite matching known review patterns.
+- **Consider** Verify agent-generated UI changes in a real browser against the requested interactions and appearance. — score 3: [@jeffrey_way](https://laracasts.com/episodes/3961) (Tier 2, 3)
+  - Why: browser verification catches rendering and interaction defects missed by source review.
+  - Flag when: UI changes have no browser verification or leave broken interactions in the rendered page.
+- **Consider** Verify structured-output schema enforcement for the exact AI provider and model before relying on it. — score 3: [Laravel (official)](https://github.com/prism-php/prism/blob/bcd71254685cab5969fa2aaf28ac791c11579482/docs/core-concepts/structured-output.md) (Official, 3)
+  - Why: checks AI structured-output guarantees for the chosen model.
+  - Flag when: Code assumes structured schema enforcement without a capability check or provider-specific verification test.
+- **Consider** Customize reusable generator templates and extensions to match recurring project conventions and the existing test framework. — score 2: [@jasonmccreary](https://www.youtube.com/watch?v=Xfix7NoO7o4) (Laracon speaker, 2)
+  - Why: shared generation conventions prevent repeated manual corrections to scaffolding.
+  - Flag when: Generated components repeatedly require the same edits or introduce a different test framework from the project.
+- **Consider** Have the human owner explain agent-assisted changes in the pull request to confirm understanding. — score 2: [@freekmurze](https://freek.dev/3205-why-i-think-we-should-write-our-own-pr-descriptions) (Tier 2, 2)
+  - Why: requires human understanding of agent-assisted changes.
+- **Consider** Keep Eloquent model property PHPDoc accurate so analyzers and editors understand dynamic attributes. — score 2: [Craig Morris](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=7258s) (Laracon speaker, 2)
+  - Why: explicit attribute types make dynamic model access checkable.
+  - Flag when: Model attribute changes leave missing or stale property annotations.
+- **Consider** Keep generation metadata current and review inferred relationships, validation, and authorization, supplying explicit definitions wherever inference is ambiguous. — score 2: [@jasonmccreary](https://www.youtube.com/watch?v=Jna0DOgnxds) (Laracon speaker, 2)
+  - Why: generators cannot reliably infer all domain constraints or permissions.
+  - Flag when: Generated relationships, validation rules, or authorization rely on incorrect or ambiguous inference.
+- **Consider** Trace the installed framework or package construction and configuration path before customizing providers or manager callbacks. — score 2: [@maryperry](https://www.youtube.com/watch?v=KroiagwnV0s) (Laracon speaker, 2)
+  - Why: source inspection prevents extensions from relying on incorrect lifecycle assumptions.
+  - Flag when: Provider or callback customization assumes a construction order that contradicts installed source.
+
+## Testing
+
+### Testing
+
+- **Must** Fake external HTTP integrations, reject stray requests, and assert relevant outgoing requests. — score 28: [@ashallendesign](https://ashallendesign.co.uk/blog/testing-saloon-api-integrations) (Tier 2, 3); [@christophrumpel](https://laracasts.com/episodes/2904) (Tier 1, 3); [@enunomaduro](https://github.com/nunomaduro/essentials) (Tier 1, 3); [@jasonlbeggs](https://x.com/jasonlbeggs/status/1521894153013153798) (Tier 1, 3); [@lukedowning19](https://www.youtube.com/watch?v=GERCwd65O-8) (Laracon speaker, 3); [@timacdonald87](https://x.com/timacdonald87/status/1521325943674982400) (Tier 1, 3); [Laravel (official)](https://laravel.com/docs/13.x/http-client#inspecting-requests) (Official, 3); [@jasonmccreary](https://www.youtube.com/watch?v=LaKEFjA25r4) (Laracon speaker, 2); [@stevemcdougall](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=22075s) (Laracon speaker, 2); [Kath Young](https://www.youtube.com/watch?v=pRaV4BG8zvg) (Laracon speaker, 2); [@jwmcpeak](https://laracasts.com/episodes/4047) (Tier 3, 1)
+  - Why: controlled responses keep tests deterministic and reveal incorrect endpoints or payloads.
+  - Flag when: Integration tests make live third-party requests or fail to verify required outgoing request data.
+- **Must** Organize suites so relevant tests run fast after changes, and always run the full suite in CI before delivery. — score 25: [@aarondfrancis](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=11684s) (Laracon speaker (employee), 3); [@christophrumpel](https://www.youtube.com/watch?v=tDqPe8LbWEI) (Laracon speaker (employee), 3); [@enunomaduro](https://www.youtube.com/watch?v=328A3aFOy6M) (Laracon speaker (employee), 3); [@jeffrey_way](https://laracasts.com/episodes/3989) (Tier 2, 3); [@lukedowning19](https://laracasts.com/episodes/2541) (Tier 2, 3); [@owenconti](https://springloaded.co/blog/turbocharge-your-laravel-tests-on-github-actions) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/testing) (Official, 3); [@ryutahamasaki](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=4011s) (Laracon speaker, 2); [@s_bergmann](https://www.youtube.com/watch?v=CpkHHxE5g7c) (Laracon speaker, 2)
+  - Why: focused suites shorten feedback loops while broader tests verify interacting components.
+  - Flag when: CI changes restrict test execution to one suite without a full-suite verification job.
+- **Must** Test UI components with representative and empty props, interactions, and rendered results, not just mounting. — score 23: [@_joshhanley](https://www.youtube.com/watch?v=esD6o8HYV5Q) (Laracon speaker, 3); [@calebporzio](https://laracasts.com/episodes/3917) (Tier 2, 3); [@christophrumpel](https://christoph-rumpel.com/2022/7/auto-refresh-livewire-components-while-keeping-states-with-vite) (Tier 1, 3); [@joetannenbaum](https://blog.joe.codes/learnings-from-creating-a-cli-library) (Tier 1, 3); [@marcelpociot](https://www.youtube.com/watch?v=f4QShF42c6E&t=11950s) (Laracon speaker, 3); [@taylorotwell](https://www.youtube.com/watch?v=1P3wLy49t2c) (Laracon speaker (employee), 3); [Laravel (official)](https://laravel.com/docs/13.x/testing) (Official, 3); [Jigar Dhulla](https://www.youtube.com/watch?v=dP88NZfVjnY) (Laracon speaker, 2)
+  - Why: mounting alone leaves prop rendering and user-visible interaction outcomes unverified.
+  - Flag when: Component tests only mount or assert existence without checking rendered data or interaction outcomes.
+- **Must** Before refactoring, pin existing behavior with tests and keep them green through small steps; add new behavior separately. — score 21: [@christophrumpel](https://christoph-rumpel.com/2023/6/three-compelling-reasons-for-developers-to-write-tests) (Tier 1, 3); [@ktrajchevska](https://laracasts.com/episodes/3173) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/testing) (Official, 3); [@benjamincrozat](https://benjamincrozat.com/laravel-architecture-best-practices) (Tier 2, 2); [@coulbourne](https://www.youtube.com/watch?v=OpCT3s4wTI0) (Laracon speaker, 2); [@jasonmccreary](https://www.youtube.com/watch?v=sBpzYsMgLK8) (Laracon speaker, 2); [@jordanhavard](https://www.youtube.com/watch?v=riJBa0Bxo-8) (Laracon speaker, 2); [@sileence](https://www.youtube.com/watch?v=1sixoOQliZI) (Laracon speaker, 2); [Kath Young](https://www.youtube.com/watch?v=pRaV4BG8zvg) (Laracon speaker, 2)
+  - Why: existing tests catch unintended behavior changes while internal structure is rearranged.
+  - Flag when: Refactoring weakens existing test expectations or mixes structural changes with new behavior.
+- **Must** Enforce agreed structural, dependency, and security conventions with scoped architecture tests. — score 21: [@ashallendesign](https://ashallendesign.co.uk/blog/architecture-testing-in-laravel-with-pest) (Tier 2, 3); [@christophrumpel](https://laracasts.com/episodes/2911) (Tier 1, 3); [@enunomaduro](https://www.youtube.com/watch?v=328A3aFOy6M) (Laracon speaker (employee), 3); [@mateusjatenee](https://www.youtube.com/watch?v=WqL6wgH1fKs) (Laracon speaker, 3); [@tightenco](https://tighten.com/insights/bol-ep12-alex-millar-govai) (Tier 2, 3); [@valorin](https://securinglaravel.com/security-tip-pests-security-preset-strict-equality/#/share) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: architecture checks detect drift in project conventions before it reaches runtime.
+  - Flag when: Architecture expectations contradict chosen conventions or exempt unrelated application namespaces.
+- **Must** Cover success, alternate paths, invalid input, forbidden access, and edge cases in acceptance scenarios. — score 20: [@enunomaduro](https://www.youtube.com/watch?v=BNhbgcNJyAk) (Laracon speaker (employee), 3); [@jeffrey_way](https://laracasts.com/episodes/3891) (Tier 2, 3); [@lukedowning19](https://www.youtube.com/watch?v=f4QShF42c6E&t=31138s) (Laracon speaker, 3); [@valorin](https://securinglaravel.com/security-tip-the-trap-that-caught-me) (Tier 2, 3); [@zuzana_kunckova](https://www.youtube.com/watch?v=MUlln-pnk3U) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/http-tests) (Official, 3); [@ryanlovett](https://www.youtube.com/watch?v=AJ8MOFoDeP0) (Laracon speaker, 2)
+  - Why: happy-path tests leave alternative inputs and failure branches unverified.
+  - Flag when: New acceptance tests cover success but omit implemented validation failures or alternative branches.
+- **Must** Use browser tests for critical interactive journeys and JavaScript behavior, asserting visible results and relevant saved state. — score 19: [@calebporzio](https://laracasts.com/episodes/3918) (Tier 2, 3); [@enunomaduro](https://www.youtube.com/watch?v=71bMyZcDlM4) (Laracon speaker (employee), 3); [@jeffrey_way](https://laracasts.com/episodes/3891) (Tier 2, 3); [@marcelpociot](https://www.youtube.com/watch?v=f4QShF42c6E&t=11950s) (Laracon speaker, 3); [@tightenco](https://tighten.com/insights/bol-ep17-patrick-omeara-and-steven-quayle-maintainly) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3); [Instructor Team](https://laracasts.com/episodes/3850) (Tier 3, 1)
+  - Why: real browser execution covers interactions that request tests cannot exercise.
+  - Flag when: Critical JavaScript interactions have only request tests or browser tests omit their observable effects.
+- **Must** Test observable application contracts and project-specific configuration rather than framework or package internals. — score 18: [@bobbybouwmann](https://www.youtube.com/watch?v=ru-0QSciNvU) (Laracon speaker, 3); [@christophrumpel](https://laracasts.com/episodes/2879) (Tier 1, 3); [@enunomaduro](https://x.com/enunomaduro/status/1826970065562177932) (Tier 1, 3); [@lukedowning19](https://www.youtube.com/watch?v=GERCwd65O-8) (Laracon speaker, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3); [Kath Young](https://www.youtube.com/watch?v=pRaV4BG8zvg) (Laracon speaker, 2); [@matthiasnoback](https://matthiasnoback.nl/2022/10/refactoring-without-tests-should-be-fine/) (Tier 3, 1)
+  - Why: behavioral tests retain value when implementations change without changing the contract.
+  - Flag when: Tests assert vendor internals or private implementation details without a project-specific contract.
+- **Must** Write readable HTTP feature tests with explicit fixtures and auth, asserting responses, redirects, validation errors, and persisted data. — score 17: [@christophrumpel](https://christoph-rumpel.com/2022/6/three-things-you-need-for-tdd) (Tier 1, 3); [@enunomaduro](https://www.youtube.com/watch?v=BNhbgcNJyAk) (Laracon speaker (employee), 3); [@lukedowning19](https://www.youtube.com/watch?v=b3ybZlxrZZY) (Laracon speaker, 3); [@valorin](https://securinglaravel.com/security-tip-test-for-missing-authorisation) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/http-tests) (Official, 3); [@jasonmccreary](https://www.youtube.com/watch?v=Xfix7NoO7o4) (Laracon speaker, 2)
+  - Why: verifies application behavior through requests, including successful writes and failure responses.
+  - Flag when: New write-endpoint tests assert only HTTP status, omitting promised redirects, errors, or persisted effects.
+- **Must** Fake mail, notifications, queues, and events before acting, then assert recipients, payloads, and counts. — score 16: [@freekmurze](https://spatie.be/docs/laravel-event-sourcing/v7/using-aggregates/testing-aggregates) (Tier 2, 3); [@jeffrey_way](https://laracasts.com/episodes/2308) (Tier 2, 3); [@lukedowning19](https://laracasts.com/episodes/3117) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/mail) (Official, 3); [@jasonmccreary](https://www.youtube.com/watch?v=LaKEFjA25r4) (Laracon speaker, 2); [laravel/framework PR author taylorotwell](https://github.com/laravel/framework/pull/49766) (Tier 2, 2)
+  - Why: detects wrong recipients and payloads without coupling tests to internal callback order.
+  - Flag when: Side-effect tests fake after execution or assert only message classes without relevant recipients or payloads.
+- **Must** Give factories sensible defaults, named states, and relationship methods without hidden unconditional relations. — score 16: [@christophrumpel](https://laracasts.com/episodes/2870) (Tier 1, 3); [@jessarchercodes](https://x.com/jessarcher/status/1569598451486453763) (Tier 1, 3); [@lukedowning19](https://laracasts.com/episodes/3006) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent-factories) (Official, 3); [laravel/framework PR author timacdonald](https://github.com/laravel/framework/pull/42844) (Tier 2, 2); [@joelclermont](https://masteringlaravel.io/daily/2026-09-18-republished-a-good-rule-for-when-to-create-a-factory-state) (Tier 3, 1); [Mastering Laravel / Aaron Saray](https://masteringlaravel.io/daily/2026-08-20-factory-states-can-accept-arguments) (Tier 3, 1)
+  - Why: makes fixture conditions readable and prevents optional related records from appearing unexpectedly.
+  - Flag when: An unconditional factory callback creates optional related records for every fixture.
+- **Must** Use `--profile` to find and fix the slowest tests. — score 16: [@christophrumpel](https://www.youtube.com/watch?v=tDqPe8LbWEI&t=740s&pp=0gcJCS8DDuyUWbzu) (Laracon speaker (employee), 3); [@enunomaduro](https://www.youtube.com/watch?v=9EGPo_enEc8&t=1920s) (Laracon speaker (employee), 3); [@owenconti](https://springloaded.co/blog/turbocharge-your-laravel-tests-on-github-actions) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/testing) (Official, 3); [@s_bergmann](https://www.youtube.com/watch?v=CpkHHxE5g7c) (Laracon speaker, 2); [Kath Young](https://www.youtube.com/watch?v=pRaV4BG8zvg) (Laracon speaker, 2)
+  - Why: measured slow tests reveal bottlenecks that make the suite impractical to run locally.
+- **Must** Use coverage reports to find untested code, not as a target in itself. — score 16: [@christophrumpel](https://laracasts.com/episodes/2906) (Tier 1, 3); [@enunomaduro](https://www.youtube.com/watch?v=AkDMDHAs09U&t=1740s) (Laracon speaker (employee), 3); [@tightenco](https://tighten.com/insights/bol-ep12-alex-millar-govai) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/testing) (Official, 3); [@s_bergmann](https://www.youtube.com/watch?v=CpkHHxE5g7c) (Laracon speaker, 2); [Kath Young](https://www.youtube.com/watch?v=pRaV4BG8zvg) (Laracon speaker, 2)
+  - Why: coverage reveals application code the test suite never executes without proving assertion quality.
+- **Must** Collapse duplicate tests of the same behavior into datasets/data providers. — score 14: [@brendt_gd](https://stitcher.io/blog/testing-patterns) (Tier 2, 3); [@enunomaduro](https://www.youtube.com/watch?v=9EGPo_enEc8) (Laracon speaker (employee), 3); [@lukedowning19](https://laracasts.com/episodes/2538) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/testing) (Official, 3); [@sileence](https://www.youtube.com/watch?v=1sixoOQliZI) (Laracon speaker, 2)
+  - Why: runs multiple input and expected-output cases without duplicating the same test body.
+  - Flag when: Multiple tests repeat identical setup, action, and assertions with only input and expected values changed.
+- **Must** Give each test only the fixtures it needs and reset database and shared state so tests can't affect each other. — score 14: [@christophrumpel](https://www.youtube.com/watch?v=tDqPe8LbWEI) (Laracon speaker (employee), 3); [@lukedowning19](https://x.com/LukeDowning19/status/1643234887967670274) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent-factories) (Official, 3); [@jasonmccreary](https://www.youtube.com/watch?v=LaKEFjA25r4) (Laracon speaker, 2); [Kath Young](https://www.youtube.com/watch?v=pRaV4BG8zvg) (Laracon speaker, 2); [@sabatinomasala](https://x.com/SabatinoMasala/status/2074765716016742606) (Tier 3, 1)
+  - Why: keeps unrelated setup and data left by other tests from changing outcomes.
+  - Flag when: Tests rely on preexisting records, execution order, or shared mutable state without cleanup.
+- **Must** Follow nearby test conventions, register shared expectations centrally, and group strict assertions by subject. — score 12: [@christophrumpel](https://www.youtube.com/watch?v=f4QShF42c6E&t=24315s) (Laracon speaker (employee), 3); [@enunomaduro](https://www.youtube.com/watch?v=IH4-bkDSqyk) (Laracon speaker (employee), 3); [@lukedowning19](https://laracasts.com/episodes/2536) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: consistent arrangement and focused assertion groups make failures easier to understand.
+  - Flag when: New tests mix declaration styles or switch subjects within one expectation chain.
+- **Must** Use lifecycle hooks for repeated setup while keeping behavior-specific mutable fixtures explicit in each test. — score 12: [@christophrumpel](https://laracasts.com/episodes/2878) (Tier 1, 3); [@enunomaduro](https://www.youtube.com/watch?v=AkDMDHAs09U) (Laracon speaker (employee), 3); [@lukedowning19](https://laracasts.com/episodes/2535) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: shared setup reduces repetition while explicit fixtures preserve local readability.
+  - Flag when: Repeated configuration is copied between tests or shared hooks obscure scenario-specific records.
+- **Must** Add a Pest arch test banning `dd`, `dump`, and `ray` in application code. — score 9: [@enunomaduro](https://www.youtube.com/watch?v=AkDMDHAs09U&t=1170s) (Laracon speaker (employee), 3); [@lukedowning19](https://laracasts.com/episodes/2722) (Tier 2, 3); [@valorin](https://securinglaravel.com/security-tip-intercepting-dump-could-expose-production) (Tier 2, 3)
+  - Why: catches leftover debugging calls even in paths behavioral tests never execute.
+- **Must** Adopt Pest incrementally, keeping existing PHPUnit tests working. — score 9: [@enunomaduro](https://www.youtube.com/watch?v=IH4-bkDSqyk) (Laracon speaker (employee), 3); [@lukedowning19](https://www.youtube.com/watch?v=b3ybZlxrZZY) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/testing) (Official, 3)
+  - Why: pest runs existing PHPUnit tests, allowing adoption without rewriting the entire suite.
+  - Flag when: Pest migration deletes existing PHPUnit tests without preserving their behavioral assertions.
+- **Must** Follow local fixture conventions and keep test-only helpers and fixture routes close to the tests that use them. — score 9: [@freekmurze](https://spatie.be/guidelines/php) (Tier 2, 3); [@pascalbaljet](https://x.com/pascalbaljet/status/1817911144150909015) (Tier 1, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: consistent placement makes test dependencies and fixture ownership easy to inspect.
+  - Flag when: New fixture files or test-only helpers use unrelated locations instead of the established test layout.
+- **Must** Name tests for the observable outcome and condition, following local method casing and avoiding Given/When/Then labels. — score 8: [@christophrumpel](https://christoph-rumpel.com/2023/6/three-compelling-reasons-for-developers-to-write-tests) (Tier 1, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3); [@s_bergmann](https://www.youtube.com/watch?v=CpkHHxE5g7c) (Laracon speaker, 2)
+  - Why: behavioral names explain the contract and the failing scenario.
+  - Flag when: Test names describe internal methods without the outcome or use inconsistent PHPUnit method casing.
+- **Must** Test both allowed and forbidden access for every authorized action. — score 8: [@valorin](https://securinglaravel.com/security-tip-test-for-missing-authorisation) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/http-tests) (Official, 3); [@jasonmccreary](https://www.youtube.com/watch?v=sBpzYsMgLK8) (Laracon speaker, 2)
+  - Why: verifies permission checks on each action even when ownership rules look repetitive.
+  - Flag when: A newly protected action has permitted-access tests but no forbidden-access case.
+- **Should** Add security regression tests for rendered input, query inputs, protected payload fields, and applicable security controls. — score 6: [@valorin](https://securinglaravel.com/security-tip-timebox-for-timing-attacks) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: attack-shaped inputs expose defects that ordinary happy paths miss.
+  - Flag when: A change to escaping, dynamic queries, signed URLs, or security controls lacks relevant adversarial cases.
+- **Should** Assert exact serialized keys when the exposed data shape is an application contract. — score 6: [@enunomaduro](https://www.youtube.com/watch?v=AkDMDHAs09U) (Laracon speaker (employee), 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: unexpected attributes can break consumers or expose unintended data.
+  - Flag when: Serialization contract tests check individual values but permit unexpected keys.
+- **Should** Exercise performance and resilience with repeatable load scenarios, dependency failure and recovery, and explicit error and latency limits. — score 6: [@enunomaduro](https://www.youtube.com/watch?v=IH4-bkDSqyk) (Laracon speaker (employee), 3); [@harrisrafto](https://www.youtube.com/watch?v=E9t2lVn0z8A) (Laracon speaker, 3)
+  - Why: normal success tests miss saturation and recovery failures under realistic workloads.
+  - Flag when: Infrastructure tuning lacks representative load or recovery checks with measurable acceptance criteria.
+- **Should** Fake deliberate sleeps and assert requested delays instead of waiting in tests. — score 6: [@enunomaduro](https://github.com/nunomaduro/essentials) (Tier 1, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: fake delays preserve verification without slowing the suite.
+  - Flag when: Tests execute real sleeps for application retry or delay behavior.
+- **Should** Keep module-specific tests and factories with their module and include them in suite discovery. — score 6: [@calebporzio](https://www.youtube.com/watch?v=M60-nxlrePc) (Laracon speaker, 3); [@mateusjatenee](https://laracasts.com/episodes/3030) (Tier 2, 3)
+  - Why: module-local fixtures and tests make ownership and dependencies visible.
+  - Flag when: A new module stores its dedicated tests outside the established module structure.
+- **Should** Keep relevant fixture details visible in the test and extract big repeated setups into domain-named factory helpers. — score 6: [@lukedowning19](https://www.youtube.com/watch?v=f4QShF42c6E&t=31138s) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent-factories) (Official, 3)
+  - Why: keeps tests understandable locally while hiding cumbersome incidental fixture preparation behind meaningful scenario names.
+  - Flag when: Helpers hide behavior-relevant fixture values, or tests repeat large manual relationship-creation graphs.
+- **Should** Mark unfinished or skipped tests explicitly with a reason rather than commenting them out or making them pass misleadingly. — score 6: [@enunomaduro](https://www.youtube.com/watch?v=9EGPo_enEc8) (Laracon speaker (employee), 3); [@lukedowning19](https://laracasts.com/episodes/2540) (Tier 2, 3)
+  - Why: visible incomplete tests keep missing verification discoverable.
+  - Flag when: An unfinished test has empty passing assertions or is removed through comments without a reason.
+- **Should** Prepare test database schemas for the test connection and clear stale configuration before the test run. — score 6: [@christophrumpel](https://www.youtube.com/watch?v=tDqPe8LbWEI) (Laracon speaker (employee), 3); [Laravel (official)](https://github.com/laravel/laravel/tree/13.x/composer.json) (Official, 3)
+  - Why: test initialization must use the intended configuration and schema.
+  - Flag when: Test scripts reuse stale configuration or lack a schema dump for the connection they initialize.
+- **Should** Retain tests for distinct defects and trim redundant higher-layer cases without deleting existing regression tests. — score 6: [@lukedowning19](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=1500s) (Laracon speaker, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: layered coverage should preserve distinct contracts without duplicating every scenario.
+  - Flag when: Tests for distinct failure modes are deleted as redundant or identical matrices are repeated across layers.
+- **Should** Use isolated test environments; match the production database engine for engine-specific behavior and use SQLite only where representative. — score 6: [@freekmurze](https://freek.dev/3021-liminal-a-full-laravel-playground-in-your-browser) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/testing) (Official, 3)
+  - Why: sQLite can miss production-specific query behavior, and shared database state makes tests interfere.
+  - Flag when: Engine-specific database tests use SQLite instead of the production engine.
+- **Should** Use mutation testing on critical code to expose weak assertions. — score 6: [@enunomaduro](https://www.youtube.com/watch?v=BNhbgcNJyAk) (Laracon speaker (employee), 3); [Laravel (official)](https://laravel.com/docs/13.x/starter-kits) (Official, 3)
+  - Why: surviving mutations expose missing cases and weak assertions even when line coverage is complete.
+- **Should** Use small snapshot tests only where clearer than explicit assertions, and review every baseline change. — score 6: [@enunomaduro](https://www.youtube.com/watch?v=AkDMDHAs09U) (Laracon speaker (employee), 3); [Laravel (official)](https://laravel.com/docs/13.x/frontend) (Official, 3)
+  - Why: unchecked snapshots can preserve buggy output, while large artifacts hinder review and cause merge conflicts.
+  - Flag when: New snapshots capture large output unrelated to the specific behavior under test.
+- **Should** Reduce test bootstrap costs with safe configuration and route caching, cheaper test hashing, and disabled unnecessary instrumentation. — score 5: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3); [Kath Young](https://www.youtube.com/watch?v=pRaV4BG8zvg) (Laracon speaker, 2)
+  - Why: repeated framework and instrumentation work can dominate suite runtime.
+  - Flag when: Test configuration enables costly request instrumentation or reuses cached configuration in tests that change it.
+- **Should** Scope event and queue fakes to expected classes unless assertions verify the complete dispatch result. — score 5: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3); [@jasonmccreary](https://www.youtube.com/watch?v=LaKEFjA25r4) (Laracon speaker, 2)
+  - Why: blanket fakes can conceal unexpected dispatches or suppress unrelated required behavior.
+  - Flag when: Event::fake() or Queue::fake() intercepts every class without assertions covering all dispatches.
+- **Should** Assert independently known outcomes; never recompute the expected value with the code under test. — score 4: [Laravel (official)](https://laravel.com/docs/13.x/database-testing) (Official, 3); [Mastering Laravel / Aaron Saray](https://masteringlaravel.io/daily/2026-10-12-is-your-test-just-copying-your-code) (Tier 3, 1)
+  - Why: prevents copied implementation logic from making incorrect behavior pass its own assertions.
+  - Flag when: Expected values call the code under test or duplicate its calculation algorithm.
+- **Should** Disable frontend asset resolution in view tests or build the required assets before running them. — score 4: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3); [@jwmcpeak](https://laracasts.com/episodes/3231) (Tier 3, 1)
+  - Why: view tests should not fail because the asset manifest is absent.
+  - Flag when: View tests resolve Vite or Mix assets without a build step or a testing helper that disables resolution.
+- **Consider** Aim for complete test coverage of application code. — score 3: [@enunomaduro](https://x.com/enunomaduro/status/2104738494585155791) (Tier 1, 3)
+  - Why: broad execution coverage can support confidence during later refactoring.
+- **Consider** Arrange each test as explicit setup, one action, and assertions. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: a single action makes the behavior responsible for each failure clear.
+  - Flag when: A test interleaves setup, multiple unrelated actions, and assertions.
+- **Consider** Assert successful HTTP status alongside content when success is part of the response contract. — score 3: [Laravel (official)](https://github.com/laravel/boost/blob/75c269a8a53e931c7252e7cd562e1a209356a7c6/.ai/laravel/skill/testing-best-practices/rules/assertions.blade.php) (Official, 3)
+  - Why: verifies HTTP success as part of response behavior.
+  - Flag when: HTTP tests assert content without asserting a successful status.
+- **Consider** Bind custom facades to service contracts and swap test fakes so facade and container resolution share the fake. — score 3: [@ryangjchandler](https://ryangjchandler.co.uk/posts/creating-custom-facade-fakes-in-laravel) (Tier 2, 3)
+  - Why: keeps facade and container fakes consistent.
+  - Flag when: A custom facade resolves a concrete class while its test fake replaces only the service contract.
+- **Consider** Call parent::setUp() first and parent::tearDown() last when overriding test lifecycle methods. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/testing#creating-tests) (Official, 3)
+  - Why: the parent lifecycle initializes the test environment and releases shared resources.
+  - Flag when: A test lifecycle override omits its parent call or runs it in the wrong order.
+- **Consider** Consider disabling exception handling in tests intended to surface unexpected exceptions directly. — score 3: [@christophrumpel](https://x.com/christophrumpel/status/1603850968369594368) (Tier 1, 3)
+  - Why: direct exceptions can make unexpected application failures easier to diagnose.
+- **Consider** Control time, randomness, and DNS lookups in tests that depend on them, using scoped framework helpers. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: controlled nondeterministic inputs keep assertions reproducible and avoid external dependencies.
+  - Flag when: Tests assert dates or generated identifiers against uncontrolled values, or perform live DNS validation.
+- **Consider** Create prerequisite factory records before broadly faking events needed by model creation hooks. — score 3: [Laravel (official)](https://github.com/laravel/boost/blob/0555ee4665bb375af13f272852cf3f860d1f9637/.ai/laravel/skill/testing-best-practices/rules/isolation.blade.php) (Official, 3)
+  - Why: preserves model creation hooks when arranging fixtures.
+  - Flag when: Event::fake() runs before prerequisite factories whose creation requires events.
+- **Consider** Enforce an agreed mutation score threshold in automated checks. — score 3: [Laravel (official)](https://github.com/pestphp/docs/blob/6daaf1678d3ecd33af75e845f7a907df69fb98a4/mutation-testing.md) (Official, 3)
+  - Why: enforces mutation testing quality automatically.
+  - Flag when: Automated mutation checks omit a minimum score or allow scores below the agreed threshold.
+- **Consider** Exercise requests through test request helpers instead of mocking the Request facade. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/mocking#mocking-facades) (Official, 3)
+  - Why: real request inputs preserve Laravel request construction and validation behavior.
+  - Flag when: A test mocks the Request facade to simulate HTTP input.
+- **Consider** Fake both tool requests and subsequent model responses when testing AI tool workflows. — score 3: [Laravel (official)](https://github.com/prism-php/prism/blob/7a7c7896236afe82f34764554cccf654a9eff3c4/docs/core-concepts/testing.md) (Official, 3)
+  - Why: covers both phases of AI tool execution.
+  - Flag when: AI tool workflow tests fake tool requests but leave subsequent model responses unfaked.
+- **Consider** Fake network calls, sleeps, and exception reporting when suite-wide isolation is intended, and separately control clients outside Laravel facades. — score 3: [Laravel (official)](https://github.com/laravel/boost/blob/add960d45917d5a2591ace88da4426dd5ccb53a1/.ai/laravel/skill/testing-best-practices/rules/performance.blade.php) (Official, 3)
+  - Why: isolates external calls and timing across the suite.
+  - Flag when: Suite isolation fakes HTTP only while real sleeps, reporting, or non-facade clients remain active.
+- **Consider** Fake storage and uploaded files when testing upload behavior. — score 3: [@wendell_adriel](https://x.com/wendell_adriel/status/1604818574228463617) (Tier 1, 3)
+  - Why: isolated disks and generated uploads avoid real filesystem dependencies.
+  - Flag when: Upload tests write to a real application disk or require existing files.
+- **Consider** Fake subprocesses and reject unmatched real processes in isolated tests. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/processes#preventing-stray-processes) (Official, 3)
+  - Why: prevents subprocess execution in isolated tests.
+  - Flag when: Process tests omit Process::fake() or protection against unmatched real subprocesses.
+- **Consider** Guard AI prompt and model changes with opt-in evaluations against reference behavior, including prompt-injection cases. — score 3: [@enunomaduro](https://www.youtube.com/watch?v=71bMyZcDlM4) (Laracon speaker (employee), 3)
+  - Why: model and prompt changes can alter behavior beyond deterministic unit-test coverage.
+  - Flag when: A changed prompt or model lacks representative evaluation cases and acceptance criteria.
+- **Consider** Ignore generated browser-test failure screenshots in version control. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: generated failure artifacts are transient diagnostics rather than maintained fixtures.
+  - Flag when: Browser failure screenshots are committed or their output directory is missing from ignore rules.
+- **Consider** Implement the general behavior required by the contract rather than hard-coding values to satisfy test fixtures. — score 3: [@jeffrey_way](https://laracasts.com/episodes/3952) (Tier 2, 3)
+  - Why: fixture-specific implementations can pass tests while failing real inputs.
+  - Flag when: Production logic recognizes literal test values without a domain requirement.
+- **Consider** Inspect actual schema and relationship definitions before writing model or factory tests. — score 3: [@povilaskorop](https://laraveldaily.com/post/my-cursor-rules-for-laravel) (Tier 2, 3)
+  - Why: grounds model and factory tests in real schema contracts.
+- **Consider** Keep architecture-test exceptions explicit and narrowly scoped. — score 3: [Laravel (official)](https://github.com/pestphp/docs/blob/378cad16c9822850a6b8ec0f7c742c6c02b1f39f/arch-testing.md) (Official, 3)
+  - Why: keeps architectural test exemptions precise.
+  - Flag when: Architecture tests add broad directory or namespace exclusions instead of explicit narrow exceptions.
+- **Consider** Name class-focused test files {ClassName}Test.php and mirror the tested class path under tests. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: consistent paths make the relevant tests easy to locate.
+  - Flag when: A new class-focused test uses an unrelated filename or directory path.
+- **Consider** Name dataset cases clearly and share reusable datasets at the narrowest appropriate scope. — score 3: [Laravel (official)](https://github.com/pestphp/docs/blob/c8fbc86501e63254899e8b90315821294456433c/datasets.md) (Official, 3)
+  - Why: organizes reusable dataset cases with clear scope.
+  - Flag when: Dataset cases are unnamed or shared globally despite use by only a narrow test group.
+- **Consider** Organize feature tests by application area, with each file focused on one action or user flow. — score 3: [Laravel (official)](https://github.com/laravel/react-starter-kit/blob/717b8f55aefd82d25d4119eaebdc8e3a72b8d7e5/tests/Feature/Settings/ProfileUpdateTest.php#L3-L9) (Official, 3)
+  - Why: focused files make behavioral coverage and missing cases easy to locate.
+  - Flag when: A feature test file combines unrelated application areas or user flows.
+- **Consider** Pin legacy user journeys with browser tests before and during a migration. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/dusk) (Official, 3)
+  - Why: automated legacy journeys catch behavior changes when undocumented interfaces are replaced.
+- **Consider** Preserve exception handling when asserting HTTP error responses and fake exception reporting when needed. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: disabling the handler changes the response behavior being verified.
+  - Flag when: An HTTP error-response test disables exception handling instead of testing the rendered response.
+- **Consider** Reload test states after activating the Verbs fake. — score 3: [Laravel (official)](https://github.com/hirethunk/verbs/blob/13ee038c0a/docs/upgrading.md) (Official, 3)
+  - Why: aligns test state with the activated Verbs fake.
+  - Flag when: Test states are loaded before Verbs::fake() and reused without reloading.
+- **Consider** Run real queries in database tests and assert resulting data, not SQL strings or builder call sequences. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/database-testing) (Official, 3)
+  - Why: verifies query results rather than merely confirming that expected builder methods were called.
+  - Flag when: Query tests mock builder calls or compare SQL strings without executing queries and checking results.
+- **Consider** Separate framework-free unit tests from application feature tests and use the appropriate base TestCase. — score 3: [Laravel (official)](https://github.com/laravel/boost/blob/5c0a822e35cce497a595f5ee3eb6418ae2111aeb/.ai/laravel/skill/testing-best-practices/rules/naming.blade.php#L38-L42) (Official, 3)
+  - Why: framework bootstrapping is required for application behavior but unnecessary for isolated logic.
+  - Flag when: A unit test relies on Laravel services without the application TestCase, or isolated logic unnecessarily boots Laravel.
+- **Consider** Test Artisan command behavior through command execution and assert its relevant results. — score 3: [@christophrumpel](https://christoph-rumpel.com/2022/6/three-things-you-need-for-tdd) (Tier 1, 3)
+  - Why: command invocation verifies application behavior at its console boundary.
+  - Flag when: Changed command behavior lacks an execution test for its output or effects.
+- **Consider** Test custom casts with independent raw-storage fixtures, including hydration, nulls, and invalid inputs. — score 3: [@ashallendesign](https://ashallendesign.co.uk/blog/custom-laravel-casts) (Tier 2, 3)
+  - Why: validates custom casts against independent storage representations.
+  - Flag when: Cast tests generate storage fixtures with the same cast or omit hydration, null, and invalid cases.
+- **Consider** Test mounted component authorization after changes to ownership, tenancy, scopes, or permissions. — score 3: [Laravel (official)](https://github.com/filamentphp/filament/blob/7c5c222be3e92439357213f8274d1548c8cb769e/docs/09-advanced/06-security.md) (Official, 3)
+  - Why: verifies authorization on already mounted components.
+  - Flag when: Authorization tests cover only initial mounting after ownership, tenancy, scope, or permission changes.
+- **Consider** Test pipeline stages individually and test their assembled order and conditional composition. — score 3: [@ashallendesign](https://ashallendesign.co.uk/blog/laravel-pipeline) (Tier 2, 3)
+  - Why: covers pipeline stages and their composition.
+  - Flag when: Pipeline tests cover only individual stages or omit order and conditional assembly.
+- **Consider** Test rendered mailable content separately from delivery and recipient assertions. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: delivery fakes do not verify what the recipient will read.
+  - Flag when: Mailable changes are covered only by assertSent or assertQueued checks.
+- **Consider** Test reusable packages in a representative host application with the models, routes, and configuration needed to exercise integration. — score 3: [@freekmurze](https://freek.dev/2558-workbench-app-for-packages) (Tier 2, 3)
+  - Why: a real application harness catches integration failures that isolated package tests miss.
+  - Flag when: Package integration behavior is tested only through mocks without a representative application harness.
+- **Consider** Test supported PHP upgrades against release candidates to uncover dependency incompatibilities early. — score 3: [@brendt_gd](https://stitcher.io/blog/dealing-with-dependencies) (Tier 2, 3)
+  - Why: checks dependency compatibility before PHP upgrades.
+  - Flag when: PHP compatibility checks omit release-candidate versions targeted for upgrade.
+- **Consider** Test the full authorization matrix in policies or gates and retain HTTP denial tests proving endpoint enforcement. — score 3: [Laravel (official)](https://github.com/laravel/boost/blob/0555ee4665bb375af13f272852cf3f860d1f9637/.ai/laravel/skill/testing-best-practices/rules/endpoint-tests.blade.php) (Official, 3)
+  - Why: covers policy decisions and HTTP authorization enforcement.
+  - Flag when: Authorization tests omit permission combinations or endpoint denial assertions.
+- **Consider** Use authentication helpers for browser scenarios that do not test the login journey itself. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/dusk#authentication) (Official, 3)
+  - Why: repeated login interactions slow unrelated scenarios and add unnecessary failure points.
+  - Flag when: Browser scenarios repeat the full login UI solely to establish authenticated state.
+- **Consider** Use bound Pest dataset closures for database fixtures created after test setup and type their parameters. — score 3: [Laravel (official)](https://github.com/pestphp/docs/blob/c8fbc86501e63254899e8b90315821294456433c/datasets.md) (Official, 3)
+  - Why: creates dataset fixtures after test setup.
+  - Flag when: Database fixtures are created eagerly in Pest datasets or bound dataset closure parameters lack types.
+- **Consider** Use realistic sanitized full-response fixtures for external API tests to reduce contract drift. — score 3: [@ashallendesign](https://ashallendesign.co.uk/blog/testing-saloon-api-integrations) (Tier 2, 3)
+  - Why: keeps external API fixtures representative of real responses.
+  - Flag when: External API tests use minimal handcrafted responses that omit realistic response fields.
+- **Consider** Use stable dedicated test attributes for frequently targeted UI elements. — score 3: [@marcelpociot](https://www.youtube.com/watch?v=f4QShF42c6E&t=11950s) (Laracon speaker, 3)
+  - Why: dedicated selectors survive unrelated markup and styling changes.
+  - Flag when: Frequently reused UI test selectors depend on incidental classes or markup structure.
+- **Consider** Use subject-specific Laravel assertions for response, database, session, and model contracts. — score 3: [Laravel (official)](https://github.com/laravel/boost/blob/75c269a8a53e931c7252e7cd562e1a209356a7c6/.ai/laravel/skill/testing-best-practices/rules/assertions.blade.php) (Official, 3)
+  - Why: uses assertions aligned with Laravel contract types.
+  - Flag when: Tests inspect response, database, session, or model internals with generic assertions instead of relevant Laravel assertions.
+- **Consider** Use the project's installed test tools and obtain user authorization before adding a new test dependency or browser. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: tool additions affect project setup and maintenance expectations.
+  - Flag when: A test change adds a dependency, plugin, or browser without requested authorization.
+- **Consider** Use unpersisted factory models when the behavior needs no database and persist fixtures when real database state is required. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: fixture persistence should match the behavior being verified.
+  - Flag when: A database-dependent test uses only make(), or a pure object test writes unnecessary records.
+- **Consider** Validate analytics and monitoring with representative real-world data and operational scenarios. — score 3: [@jessarchercodes](https://www.youtube.com/watch?v=G9Toicww8BU) (Laracon speaker (employee), 3)
+  - Why: synthetic planted failures alone do not establish that monitoring reveals actual operational problems.
+  - Flag when: Monitoring changes are verified only against artificial failures without representative data or traffic.
+- **Consider** Wait for the required browser state instead of sleeping for a fixed duration. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: state-based waits tolerate variable execution speed.
+  - Flag when: Browser tests use fixed sleeps to wait for asynchronous UI changes.
+- **Consider** Add authenticated route-discovery smoke tests with explicit bindings alongside behavior-specific tests. — score 2: [@freekmurze](https://freek.dev/2739-how-to-test-all-routes-in-your-laravel-app-by-writing-just-a-single-pest-test) (Tier 2, 2)
+  - Why: adds authenticated coverage of route registration and bindings.
+  - Flag when: Route smoke tests omit authentication or explicit model bindings.
+- **Consider** Check important user journeys with keyboard navigation and assistive technologies. — score 2: [@charliemorris](https://www.youtube.com/watch?v=y7yV-f8jDFQ) (Laracon speaker, 2)
+  - Why: ordinary pointer interaction tests miss inaccessible controls and navigation failures.
+  - Flag when: Changed critical controls or navigation lack checks for keyboard access and accessible names.
+- **Consider** Configure test discovery, application source paths, and coverage reporting to include all application modules and distinguish dependencies. — score 2: [@s_bergmann](https://www.youtube.com/watch?v=CpkHHxE5g7c) (Laracon speaker, 2)
+  - Why: misconfigured discovery and reporting silently omit relevant code.
+  - Flag when: A new application source directory is missing from test discovery or coverage configuration.
+- **Consider** Reproduce a confirmed bug with a failing regression test before fixing it. — score 2: [Kath Young](https://www.youtube.com/watch?v=pRaV4BG8zvg) (Laracon speaker, 2)
+  - Why: the failing case proves the fix addresses the defect and guards against recurrence.
+  - Flag when: A confirmed behavioral bug is fixed without a test that reproduces it.
+- **Consider** Review test-run deprecations and baseline accepted issues narrowly so new issues remain visible. — score 2: [@s_bergmann](https://www.youtube.com/watch?v=CpkHHxE5g7c) (Laracon speaker, 2)
+  - Why: passing assertions do not establish compatibility with upcoming dependency changes.
+  - Flag when: Test configuration suppresses all deprecations or expands a baseline without review.
+- **Consider** Test concurrent and replicated storage behavior when implementing shared storage or database infrastructure. — score 2: [@thierylaverdure](https://www.youtube.com/watch?v=E4_QSEfInrc) (Laracon speaker, 2)
+  - Why: single-connection tests miss coherence and invalidation failures.
+  - Flag when: A shared storage implementation is tested only with sequential single-connection operations.
+- **Consider** Test event-driven workflows through committed projections, forbidden transitions, and controlled time and side effects. — score 2: [@coulbourne](https://www.youtube.com/watch?v=-mb2L97Yq88) (Laracon speaker, 2)
+  - Why: workflow correctness includes projected state and rejected transitions after events are applied.
+  - Flag when: Workflow tests assert projections before commit or omit implemented forbidden transitions.
+
+## Frontend stacks
+
+### Frontend: Blade
+
+- **Must** Extract reusable markup and repeated utility classes into Blade components with explicit props. — score 20: [@calebporzio](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=24079s) (Laracon speaker, 3); [@freekmurze](https://freek.dev/2640-reusable-input-components-without-livewire-with-livewire) (Tier 2, 3); [@jeffrey_way](https://laracasts.com/episodes/3873) (Tier 2, 3); [@tightenco](https://tighten.com/insights/extensible-blade-components) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/blade) (Official, 3); [@benjamincrozat](https://benjamincrozat.com/laravel-blade-components-layouts-props-slots) (Tier 2, 2); [@drehimself](https://laracasts.com/episodes/2529) (Tier 2, 2); [Instructor Team](https://laracasts.com/episodes/3696) (Tier 3, 1)
+  - Why: reusable components remove repeated field markup and keep component-specific presentation work out of page controllers.
+  - Flag when: Repeated form-field markup and styling are copied across templates instead of using a shared component.
+- **Must** Use semantic HTML and proper heading hierarchy; add ARIA only with the behavior it requires. — score 14: [@calebporzio](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=24079s) (Laracon speaker, 3); [@jeffrey_way](https://laracasts.com/episodes/3903) (Tier 2, 3); [@zuzana_kunckova](https://www.youtube.com/watch?v=Emm559sI6tI&t=240s) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/blade) (Official, 3); [@charliemorris](https://www.youtube.com/watch?v=y7yV-f8jDFQ&t=495s) (Laracon speaker, 2)
+  - Why: gives assistive technology meaningful structure for navigating and understanding the interface.
+  - Flag when: Clickable divs replace native controls, or heading levels follow styling instead of document hierarchy.
+- **Must** Compose layouts and fields with slots and simple common-case props. — score 9: [@calebporzio](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=24840s) (Laracon speaker, 3); [@tightenco](https://tighten.com/insights/extensible-blade-components) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/blade) (Official, 3)
+  - Why: independent field pieces let callers rearrange markup and reuse controls without embedding every layout variation.
+  - Flag when: Input component embeds many label, error, and layout variants instead of accepting composed slot content.
+- **Must** Escape all untrusted output with `{{ }}` and pass PHP data to JS via `Js::from()`/`@js`; never concatenate raw HTML or JS. — score 9: [@calebporzio](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=26340s) (Laracon speaker, 3); [@valorin](https://securinglaravel.com/security-tip-safely-rendering-json) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/blade) (Official, 3)
+  - Why: unescaped user content can execute scripts in administrator views, and manual JavaScript serialization breaks quoting.
+  - Flag when: User-controlled values appear in raw Blade output or are concatenated into JavaScript expressions.
+- **Must** Show errors beside their fields, move focus to failures, and announce status to assistive tech without relying on color. — score 9: [@calebporzio](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=24079s) (Laracon speaker, 3); [@timacdonald87](https://www.youtube.com/watch?v=MMc2TzBY6l4&t=360s) (Laracon speaker (employee), 3); [Laravel (official)](https://laravel.com/docs/13.x/validation) (Official, 3)
+  - Why: helps users identify and correct failures, including through assistive technology.
+  - Flag when: Validation failures change only field colors without associated corrective messages.
+- **Should** Apply component-rendering optimizations to measured bottlenecks and restrict static folding to eligible static components. — score 6: [@calebporzio](https://www.youtube.com/watch?v=M60-nxlrePc) (Laracon speaker, 3); [@tightenco](https://tighten.com/insights/blaze-under-the-hood) (Tier 2, 3)
+  - Why: targets meaningful rendering costs while preserving components that depend on dynamic values.
+  - Flag when: Rendering optimizations are added without profiling evidence, or static folding is applied to dynamic component attributes.
+- **Should** Forward `$attributes` to the right element and merge default classes so callers can extend styling. — score 6: [@calebporzio](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=24660s) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/blade) (Official, 3)
+  - Why: attribute forwarding preserves caller control, while class merging avoids duplicate class attributes.
+  - Flag when: Component drops caller attributes or renders separate default and caller class attributes.
+- **Should** Generate PDFs from Blade views and prepared data, choosing a renderer that supports the required CSS. — score 6: [@freekmurze](https://www.youtube.com/watch?v=Boqfw4ZCk7g) (Laracon speaker, 3); [@jeffrey_way](https://laracasts.com/episodes/2304) (Tier 2, 3)
+  - Why: reuses templating conventions and avoids unsupported layout features in PDF output.
+  - Flag when: PDF generation duplicates view markup in application code or uses CSS unsupported by its renderer.
+- **Should** Give custom Alpine controls named hidden inputs and `x-modelable` values so native forms and bindings still work. — score 6: [@calebporzio](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=26190s) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/validation) (Official, 3)
+  - Why: lets custom control state submit with native forms and bind through the parent.
+  - Flag when: Custom Alpine form control lacks a named hidden input or exposed modelable value.
+- **Should** Use @aware for nested components that need explicitly supplied ancestor props, with defaults when they can render independently. — score 6: [@calebporzio](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=24079s) (Laracon speaker, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: avoids repeating shared component data bindings while preserving standalone rendering.
+  - Flag when: Nested components repeatedly receive the same ancestor prop through intermediate wrappers or rely on implicit ancestor defaults.
+- **Should** Use anonymous components with `@props` for simple templates and class components when PHP logic is needed. — score 6: [@calebporzio](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=24570s) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/blade) (Official, 3)
+  - Why: anonymous components avoid unnecessary PHP classes for presentation-only primitives.
+  - Flag when: New component class only returns a static view and supplies no data or behavior.
+- **Should** Move substantial view preparation into view models, composers, or components; keep templates rendering prepared data. — score 5: [Laravel (official)](https://laravel.com/docs/13.x/views) (Official, 3); [@benjamincrozat](https://benjamincrozat.com/laravel-blade-components-layouts-props-slots) (Tier 2, 2)
+  - Why: keeps shared presentation data available wherever its view is rendered.
+  - Flag when: Blade templates repeat substantial data preparation or display formatting.
+- **Consider** Add Open Graph metadata to pages intended for sharing. — score 3: [@mattstauffer](https://www.youtube.com/watch?v=1H4QN4_WbQE) (Laracon speaker, 3)
+  - Why: gives shared links useful titles, descriptions, and preview images.
+  - Flag when: A shareable page lacks Open Graph metadata or uses unrelated defaults.
+- **Consider** Avoid __DIR__ and __FILE__ in Blade templates; resolve paths using application path helpers. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/blade#including-subviews) (Official, 3)
+  - Why: these constants refer to the compiled view cache rather than the source template.
+  - Flag when: A Blade template uses __DIR__ or __FILE__ to locate source files or assets.
+- **Consider** Avoid dots in view directory names. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/views#nested-view-directories) (Official, 3)
+  - Why: dots delimit directory segments in Laravel view names.
+  - Flag when: A directory under resources/views contains a literal dot in its name.
+- **Consider** Avoid enabling autofocus by default on forms. — score 3: [@enunomaduro](https://x.com/enunomaduro/status/1798356467302699207) (Tier 1, 3)
+  - Why: automatic focus can open mobile keyboards and obscure the form before users inspect it.
+  - Flag when: A form adds unconditional autofocus to an input.
+- **Consider** Check permissions rather than role names when deciding whether to show actions in views. — score 3: [@freekmurze](https://spatie.be/docs/laravel-permission/v8/basic-usage/blade-directives) (Tier 2, 3)
+  - Why: keeps interface authorization aligned with capabilities as role assignments change.
+  - Flag when: Blade visibility checks hard-code roles for an action that has a corresponding permission.
+- **Consider** Deduplicate scripts and other stack content from repeated components with @pushOnce and a shared explicit key across templates. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/blade#the-once-directive) (Official, 3)
+  - Why: prevents repeated component renders from adding the same asset or initialization code multiple times.
+  - Flag when: A repeated component uses @push for shared assets, or separate templates push identical content without a common once key.
+- **Consider** Extend Blade only via supported directives/compiler hooks and inspect compiled views when debugging. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/blade) (Official, 3)
+  - Why: avoids freezing per-render behavior into cached compiled PHP.
+  - Flag when: Custom Blade compilation evaluates per-render values instead of emitting PHP that evaluates them at runtime.
+- **Consider** Follow the project's camelCase convention for view filenames where adopted. — score 3: [@freekmurze](https://spatie.be/guidelines/php) (Tier 2, 3)
+  - Why: consistent view filenames make template references predictable.
+  - Flag when: A new view filename deviates from the existing camelCase naming convention.
+- **Consider** Provide passwordrules on new-password inputs derived from the server-side Password validation rule. — score 3: [@valorin](https://securinglaravel.com/security-tip-help-password-managers-get-it-right/#/portal/signin) (Tier 2, 3)
+  - Why: helps password managers generate passwords that satisfy the application validation policy.
+  - Flag when: A new-password input lacks passwordrules or hard-codes rules inconsistent with server validation.
+- **Consider** Return named Blade fragments when a request needs only part of a page. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: lets partial-page clients receive the requested markup without duplicating the full-page template.
+  - Flag when: A partial-page response duplicates markup from a full-page view or returns an entire layout.
+- **Consider** Set appropriate autocomplete tokens for password, OTP, and payment inputs; allow password-manager autofill. — score 3: [@valorin](https://securinglaravel.com/security-tip-html-autocomplete-attribute) (Tier 2, 3)
+  - Why: helps browsers and password managers fill the correct values and generate new credentials.
+  - Flag when: Credential, OTP, or card inputs omit or misuse autocomplete tokens, or password fields set autocomplete="off".
+- **Consider** Use @foreach with @include when repeated child views need variables from the parent view. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/blade#rendering-views-for-collections) (Official, 3)
+  - Why: views rendered through @each do not inherit the parent view variables.
+  - Flag when: An @each child view references parent variables outside its explicitly supplied item data.
+- **Consider** Use accessible modals that manage focus entry, trapping, restoration, and keyboard behavior. — score 3: [@calebporzio](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=26640s) (Laracon speaker, 3)
+  - Why: keeps keyboard focus inside the dialog and restores it when the dialog closes.
+  - Flag when: Custom modal opens without focus management or keyboard handling.
+- **Consider** Use explicit x-on: and x-bind: attributes where Blade and Alpine shorthand would be ambiguous; reserve single-colon component attributes for PHP bindings. — score 3: [@calebporzio](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=24079s) (Laracon speaker, 3)
+  - Why: keeps client-side expressions distinct from server-side component bindings.
+  - Flag when: An Alpine expression uses a single-colon attribute on a Blade component or mixes ambiguous directive shorthand.
+- **Consider** Use four-space indentation consistently in Blade templates. — score 3: [@freekmurze](https://spatie.be/guidelines/php) (Tier 2, 3)
+  - Why: consistent indentation makes nested markup and directives easier to review.
+  - Flag when: Blade template changes introduce tabs or inconsistent indentation widths.
+
+### Frontend: Livewire
+
+- **Must** Isolate independently interactive or expensive regions in components or islands, passing explicit props and events and evaluating region data on demand. — score 18: [@burtds](https://www.youtube.com/watch?v=xxAv6s5045Y) (Laracon speaker, 3); [@calebporzio](https://laracasts.com/episodes/3926) (Tier 2, 3); [@philo01](https://laracasts.com/episodes/3127) (Tier 2, 3); [@taylorotwell](https://www.youtube.com/watch?v=1P3wLy49t2c) (Laracon speaker (employee), 3); [Laravel (official)](https://github.com/livewire/livewire/blob/6c7be5381c960bbaa51684b16f35a38bebfbb63b/docs/nesting.md) (Official, 3); [@sileence](https://www.youtube.com/watch?v=1sixoOQliZI) (Laracon speaker, 2); [@jwmcpeak](https://laracasts.com/episodes/3360) (Tier 3, 1)
+  - Why: keeps unrelated actions from changing state, rerendering regions, or rerunning expensive queries.
+  - Flag when: Unrelated interface regions share interfering state or unrelated actions rerender expensive regions and rerun their queries.
+- **Must** Keep browser-only state in Alpine; use Livewire (`$wire`, PHP actions) only for server-dependent behavior. — score 15: [@calebporzio](https://www.youtube.com/watch?v=U-N8Qqq02b0) (Laracon speaker, 3); [@philo01](https://www.youtube.com/watch?v=MbynDaPaBt4) (Laracon speaker, 3); [@shrutibalasa](https://laracasts.com/episodes/4134) (Tier 2, 3); [@wendell_adriel](https://x.com/wendell_adriel/status/1693951526312554803) (Tier 1, 3); [Laravel (official)](https://livewire.laravel.com/docs/4.x/components) (Official, 3)
+  - Why: lets local UI interactions respond without a server round trip.
+  - Flag when: PHP action only toggles modal visibility or another browser-only state.
+- **Must** Validate Livewire properties before persisting and authorize every referenced resource in actions. — score 15: [@philo01](https://www.youtube.com/watch?v=857ean0JIHE) (Laracon speaker, 3); [@taylorotwell](https://www.youtube.com/watch?v=1P3wLy49t2c&t=2940s) (Laracon speaker (employee), 3); [@valorin](https://securinglaravel.com/in-depth-dont-trust-public-livewire-properties/) (Tier 2, 3); [Laravel (official)](https://livewire.laravel.com/docs/4.x/quickstart) (Official, 3); [Jigar Dhulla](https://www.youtube.com/watch?v=dP88NZfVjnY) (Laracon speaker, 2); [@jwmcpeak](https://laracasts.com/episodes/3376) (Tier 3, 1)
+  - Why: prevents invalid component input from being persisted.
+  - Flag when: Livewire action persists editable properties without validation or accesses referenced resources without authorization.
+- **Must** Lazy-load expensive components (`#[Lazy]`) with a placeholder so they don't block initial render. — score 13: [@burtds](https://www.youtube.com/watch?v=xxAv6s5045Y) (Laracon speaker, 3); [@calebporzio](https://youtu.be/f4QShF42c6E?t=6018) (Laracon speaker, 3); [@philo01](https://www.youtube.com/watch?v=MbynDaPaBt4&t=1080s) (Laracon speaker, 3); [Laravel (official)](https://livewire.laravel.com/docs/4.x/lazy) (Official, 3); [@jwmcpeak](https://laracasts.com/episodes/3369) (Tier 3, 1)
+  - Why: lets the page or modal render promptly while expensive content loads.
+  - Flag when: Initially mounted component performs expensive initialization synchronously without lazy loading or a placeholder.
+- **Must** Extract substantial related state, validation, and helpers into typed Livewire form objects, updating bindings and hooks together. — score 10: [@_joshhanley](https://www.youtube.com/watch?v=esD6o8HYV5Q) (Laracon speaker, 3); [@calebporzio](https://x.com/calebporzio/status/1735734917781143992) (Tier 2, 3); [Laravel (official)](https://github.com/livewire/livewire/blob/ed482026c93839bf50a90d2da60b4cbd345d242f/docs/forms.md) (Official, 3); [@jwmcpeak](https://laracasts.com/episodes/3365) (Tier 3, 1)
+  - Why: keeps component actions focused and related properties organized.
+  - Flag when: Large related property and validation groups remain in the component or extracted form paths leave stale bindings and hooks.
+- **Must** Put derived queries in `#[Computed]` methods, with explicit cache keys and invalidation when caching across requests. — score 10: [@_joshhanley](https://www.youtube.com/watch?v=esD6o8HYV5Q&t=407s) (Laracon speaker, 3); [@calebporzio](https://www.youtube.com/watch?v=M60-nxlrePc&t=960s) (Laracon speaker, 3); [Laravel (official)](https://livewire.laravel.com/docs/4.x/computed-properties) (Official, 3); [@jwmcpeak](https://laracasts.com/episodes/3372) (Tier 3, 1)
+  - Why: preserves derived query data that public model collections can lose during hydration.
+  - Flag when: Public model collection stores custom joined query results needed across Livewire requests.
+- **Must** Use `$this->dispatch()` and Alpine `x-on` listeners for UI reactions like closing a modal after save. — score 10: [@philo01](https://www.youtube.com/watch?v=MbynDaPaBt4&t=960s) (Laracon speaker, 3); [@shrutibalasa](https://laracasts.com/episodes/4136) (Tier 2, 3); [Laravel (official)](https://livewire.laravel.com/docs/4.x/events) (Official, 3); [@jwmcpeak](https://laracasts.com/episodes/3361) (Tier 3, 1)
+  - Why: lets successful server actions update local UI without a full-page refresh.
+- **Must** Route full-page components through Livewire's page entry point and configure their layout and title there. — score 9: [@_joshhanley](https://www.youtube.com/watch?v=esD6o8HYV5Q) (Laracon speaker, 3); [@calebporzio](https://laracasts.com/episodes/3915) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/livewire-starter-kit/blob/0f62a26c4e4b401c1300930f47d72a497add8cce/routes/settings.php#L5-L9) (Official, 3)
+  - Why: removes controller and wrapper-view indirection while preserving the component lifecycle.
+  - Flag when: A route invokes render directly or a controller and view only host a full-page Livewire component.
+- **Must** Show loading feedback for pending Livewire interactions, scoped to the affected control or region. — score 9: [@calebporzio](https://www.youtube.com/watch?v=M60-nxlrePc) (Laracon speaker, 3); [@philo01](https://www.youtube.com/watch?v=857ean0JIHE) (Laracon speaker, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: makes pending work visible without confusing independent instances of the same action.
+  - Flag when: Livewire actions lack pending feedback or identical buttons share unrelated loading indicators.
+- **Must** Use single-file components for small components and multi-file directories when complexity grows. — score 9: [@calebporzio](https://www.youtube.com/watch?v=M60-nxlrePc&t=270s) (Laracon speaker, 3); [@taylorotwell](https://www.youtube.com/watch?v=1P3wLy49t2c&t=2460s) (Laracon speaker (employee), 3); [Laravel (official)](https://livewire.laravel.com/docs/4.x/upgrading) (Official, 3)
+  - Why: keeps related PHP, Blade, and JavaScript together as component complexity grows.
+- **Must** Use deferred `wire:model` for ordinary forms and `wire:model.live.debounce` for search-as-you-type. — score 7: [@calebporzio](https://www.youtube.com/watch?v=f4QShF42c6E&t=6014s) (Laracon speaker, 3); [Laravel (official)](https://livewire.laravel.com/docs/4.x/wire-model) (Official, 3); [@jwmcpeak](https://laracasts.com/episodes/3358) (Tier 3, 1)
+  - Why: batches ordinary input changes until an action needs their values.
+  - Flag when: Ordinary form inputs use live synchronization although intermediate values need no server processing.
+- **Should** Build reusable wrappers with `#[Modelable]`, slots, and attribute forwarding. — score 6: [@calebporzio](https://youtu.be/f4QShF42c6E?t=6018) (Laracon speaker, 3); [Laravel (official)](https://livewire.laravel.com/docs/4.x/nesting) (Official, 3)
+  - Why: lets parents bind extracted inputs and supply content and attributes to reusable wrappers.
+  - Flag when: Reusable wrapper discards caller attributes or extracted input lacks a modelable value.
+- **Should** Derive server-side search and filter results from bound Livewire properties and preserve navigable state in the URL. — score 6: [@taylorotwell](https://www.youtube.com/watch?v=1P3wLy49t2c) (Laracon speaker (employee), 3); [Jigar Dhulla](https://www.youtube.com/watch?v=dP88NZfVjnY) (Laracon speaker, 2); [@jwmcpeak](https://laracasts.com/episodes/3371) (Tier 3, 1)
+  - Why: keeps results synchronized and makes filtered views survive refreshes and shared links.
+  - Flag when: Search or filter state uses separate JavaScript synchronization or navigable filters are absent from the URL.
+- **Should** Keep background polling from blocking user actions; choose intervals and visibility conditions that match freshness needs. — score 6: [@burtds](https://www.youtube.com/watch?v=xxAv6s5045Y) (Laracon speaker, 3); [@calebporzio](https://www.youtube.com/watch?v=M60-nxlrePc) (Laracon speaker, 3)
+  - Why: avoids unnecessary refresh work and delays to user interactions.
+  - Flag when: Polling refreshes hidden or inactive content unnecessarily, runs too frequently, or blocks interactive actions.
+- **Should** Make child props reactive when the child must track parent changes. — score 6: [@calebporzio](https://www.youtube.com/watch?v=f4QShF42c6E&t=6014s) (Laracon speaker, 3); [Laravel (official)](https://github.com/livewire/livewire/blob/6c7be5381c960bbaa51684b16f35a38bebfbb63b/docs/nesting.md) (Official, 3)
+  - Why: avoids custom synchronization events for state already owned by the parent.
+  - Flag when: A child prop must follow parent updates but is nonreactive or mirrored through custom events.
+- **Should** Move substantial persistence and business workflows into focused action or service classes, leaving UI orchestration in Livewire. — score 6: [@_joshhanley](https://www.youtube.com/watch?v=esD6o8HYV5Q) (Laracon speaker, 3); [@danjharrin](https://x.com/danjharrin/status/1501598752892669959) (Tier 2, 3)
+  - Why: keeps business behavior reusable and separates it from component context.
+  - Flag when: Component actions contain substantial business workflows or extracted business actions manage UI state.
+- **Should** Preserve appropriate browser-stateful UI across Livewire navigation with matching named persist blocks in destination layouts. — score 6: [@burtds](https://www.youtube.com/watch?v=xxAv6s5045Y) (Laracon speaker, 3); [@calebporzio](https://www.youtube.com/watch?v=f4QShF42c6E&t=6014s) (Laracon speaker, 3)
+  - Why: keeps ongoing interactions intact across page changes.
+  - Flag when: Persistent UI uses mismatched persist keys or is recreated during navigation.
+- **Should** Skip view rendering for actions that only perform side effects or return data. — score 6: [@calebporzio](https://laracasts.com/episodes/3934) (Tier 2, 3); [@philo01](https://www.youtube.com/watch?v=857ean0JIHE) (Laracon speaker, 3)
+  - Why: avoids rendering work when an action cannot change the displayed view.
+  - Flag when: A side-effect-only or data-only action unnecessarily rerenders its component.
+- **Should** Synchronize Alpine state with Livewire explicitly when client changes must affect server-rendered content. — score 6: [@joshcirre](https://laracasts.com/episodes/3340) (Tier 1, 3); [@philo01](https://www.youtube.com/watch?v=MbynDaPaBt4) (Laracon speaker, 3)
+  - Why: keeps shared client and server state consistent at the interaction's required timing.
+  - Flag when: Alpine and Livewire independently mirror state or required server rendering waits on deferred synchronization.
+- **Should** Use Livewire sorting for reorderable lists and persist the resulting order server-side. — score 6: [@calebporzio](https://laracasts.com/episodes/3931) (Tier 2, 3); [@shrutibalasa](https://laracasts.com/episodes/4142) (Tier 2, 3)
+  - Why: keeps drag-and-drop ordering consistent with stored state.
+  - Flag when: A sortable list has redundant custom sorting JavaScript or never persists reordered items.
+- **Should** Use Livewire's automatic assets and bundled Alpine unless the application has a concrete integration requirement. — score 6: [@calebporzio](https://www.youtube.com/watch?v=U-N8Qqq02b0) (Laracon speaker, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: avoids duplicate Alpine initialization and unnecessary manual asset maintenance.
+  - Flag when: Alpine is loaded separately or Livewire assets are manually managed without an integration requirement.
+- **Should** Use a shared, constrained component library (e.g. Flux) for consistent typography, variants, and dark mode. — score 6: [@calebporzio](https://www.youtube.com/watch?v=31pBMi0UdYE&t=240s) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/starter-kits) (Official, 3)
+  - Why: shared defaults keep controls aligned and support dark mode without repeated styling decisions.
+- **Should** When rendering components by name (e.g. modal hosts), allowlist the component names. — score 6: [@philo01](https://www.youtube.com/watch?v=MbynDaPaBt4&t=270s) (Laracon speaker, 3); [Laravel (official)](https://livewire.laravel.com/docs/4.x/nesting) (Official, 3)
+  - Why: restricts dynamic rendering to components intended as allowed modal content.
+  - Flag when: Client-supplied component name reaches dynamic rendering without an allowlist check.
+- **Should** Choose request isolation for slow independent components and request bundling when many lazy components should load together. — score 4: [@calebporzio](https://laracasts.com/episodes/3922) (Tier 2, 3); [@jwmcpeak](https://laracasts.com/episodes/3378) (Tier 3, 1)
+  - Why: balances interactive responsiveness with the cost of simultaneous requests.
+  - Flag when: Slow independent updates block other components or many jointly loaded lazy components issue avoidable separate requests.
+- **Should** Give looped elements and child components stable, unique wire:key values. — score 4: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3); [@jwmcpeak](https://laracasts.com/episodes/3363) (Tier 3, 1)
+  - Why: keeps component identity and DOM updates correct when lists change.
+  - Flag when: Looped Livewire elements or child components lack stable unique keys.
+- **Should** Use Livewire pagination support, give simultaneous paginators distinct names, and reset pagination when filters change. — score 4: [@shrutibalasa](https://laracasts.com/episodes/4139) (Tier 2, 3); [@jwmcpeak](https://laracasts.com/episodes/3370) (Tier 3, 1)
+  - Why: keeps pagination state independent and prevents stale page positions after filtering.
+  - Flag when: Multiple paginators share a page parameter or changed filters retain a stale page position.
+- **Should** Use wire:navigate for suitable page navigation and enable hover prefetch only when its extra requests are justified. — score 4: [@calebporzio](https://www.youtube.com/watch?v=f4QShF42c6E&t=6014s) (Laracon speaker, 3); [@jwmcpeak](https://laracasts.com/episodes/3362) (Tier 3, 1)
+  - Why: improves navigation responsiveness while controlling speculative requests.
+  - Flag when: Navigation prefetch adds unnecessary requests or suitable Livewire navigation bypasses established wire:navigate usage.
+- **Consider** Append or prepend only newly queried batches for load-more and infinite-scroll interfaces. — score 3: [@calebporzio](https://www.youtube.com/watch?v=M60-nxlrePc) (Laracon speaker, 3)
+  - Why: avoids repeatedly querying and rendering records already displayed.
+  - Flag when: Loading another batch requeries or rerenders the entire accumulated list.
+- **Consider** Bind checkbox-group selections to one array and keep select-all checked, unchecked, and indeterminate states consistent. — score 3: [@calebporzio](https://www.youtube.com/watch?v=31pBMi0UdYE) (Laracon speaker, 3)
+  - Why: keeps aggregate selection controls aligned with individual selections.
+  - Flag when: Select-all state is maintained separately without reflecting partial checkbox selections.
+- **Consider** Expose only component properties that need to participate in client-visible Livewire state. — score 3: [@valorin](https://securinglaravel.com/in-depth-dont-trust-public-livewire-properties) (Tier 2, 3)
+  - Why: reduces unnecessary client access to internal component state.
+  - Flag when: Internal-only state is declared as a public Livewire property.
+- **Consider** Follow the project's established Livewire component format and directory structure when adding components. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: avoids introducing competing component conventions into an existing project.
+  - Flag when: New components adopt a different format or directory structure without a project-level reason.
+- **Consider** Handle shared request concerns through Livewire request or action interceptors supported by the installed version. — score 3: [@calebporzio](https://laracasts.com/episodes/3937) (Tier 2, 3)
+  - Why: centralizes session, error, confirmation, and request-state handling.
+  - Flag when: Cross-cutting Livewire request handling is duplicated across components.
+- **Consider** Implement tabs with associated labels and panels, appropriate ARIA semantics, and active-tab keyboard navigation. — score 3: [@calebporzio](https://www.youtube.com/watch?v=31pBMi0UdYE) (Laracon speaker, 3)
+  - Why: makes tabbed content usable with keyboards and assistive technology.
+  - Flag when: Tabs only toggle visibility without panel associations or arrow-key navigation.
+- **Consider** Introduce Livewire incrementally into legacy applications, limiting changes to the interactive features being added. — score 3: [@freekmurze](https://spatie.be/blog/livewire-and-inertia-how-we-love-and-use-both) (Tier 2, 3)
+  - Why: avoids unnecessary rewrites and complexity in existing applications.
+  - Flag when: A localized interactive feature triggers unrelated conversion of legacy views or frontend behavior.
+- **Consider** Keep Livewire methods private or protected unless browser invocation is intended. — score 3: [Laravel (official)](https://github.com/livewire/livewire/blob/1859d6670dc4469b90c2582246f8e49dae54ead0/docs/security.md) (Official, 3)
+  - Why: limits browser-callable Livewire methods.
+  - Flag when: Livewire helper methods are public even though browser invocation is unintended.
+- **Consider** Keep a consistent component member order for state, validation, computed values, lifecycle hooks, actions, helpers, and rendering. — score 3: [@_joshhanley](https://www.youtube.com/watch?v=esD6o8HYV5Q) (Laracon speaker, 3)
+  - Why: makes component responsibilities easier to scan during review.
+  - Flag when: Component member ordering diverges from the project's established convention.
+- **Consider** Keep component JavaScript alongside its template and use Livewire-managed script and asset lifecycles. — score 3: [@calebporzio](https://x.com/calebporzio/status/1726612011331494387) (Tier 2, 3)
+  - Why: scopes behavior to the component and avoids fragile document-level initialization.
+  - Flag when: Component JavaScript relies on document event listeners or is detached from its component lifecycle.
+- **Consider** Move accepted uploads into durable storage before temporary upload retention expires. — score 3: [Laravel (official)](https://docs.vapor.build/resources/storage) (Official, 3)
+  - Why: preserves accepted temporary uploads in durable storage.
+  - Flag when: Accepted Livewire uploads remain only in temporary storage without durable persistence.
+- **Consider** Persist tenant or team middleware across Livewire requests when later permission checks depend on its context. — score 3: [Laravel (official)](https://github.com/filamentphp/filament/blob/7c5c222be3e92439357213f8274d1548c8cb769e/docs/07-users/03-tenancy.md) (Official, 3)
+  - Why: retains tenant authorization context on later requests.
+  - Flag when: Tenant or team middleware needed for access checks is not registered as persistent Livewire middleware.
+- **Consider** Represent structured public state with typed objects that explicitly support Livewire serialization and reconstruction. — score 3: [@philo01](https://www.youtube.com/watch?v=MbynDaPaBt4) (Laracon speaker, 3)
+  - Why: keeps state structured while preserving it correctly across hydration.
+  - Flag when: A custom public state object lacks a supported serialization and reconstruction contract.
+- **Consider** Reuse a shared modal host and opening interface for forms that share modal behavior. — score 3: [@philo01](https://www.youtube.com/watch?v=MbynDaPaBt4) (Laracon speaker, 3)
+  - Why: avoids repeated modal containers and dispatch markup.
+  - Flag when: Multiple forms duplicate modal host behavior or repeated modal-opening event markup.
+- **Consider** Send ephemeral typing indicators through socket whispers, suppress repeated emissions, and clear them after inactivity. — score 3: [@_joedixon](https://www.youtube.com/watch?v=IDYzAMDs2YI) (Laracon speaker (employee), 3)
+  - Why: avoids HTTP overhead and stale typing status.
+  - Flag when: Typing indicators use per-keystroke HTTP actions or lack throttling and an inactivity timeout.
+- **Consider** Show unsaved-change indicators from Livewire's dirty-state tracking. — score 3: [@calebporzio](https://laracasts.com/episodes/3933) (Tier 2, 3)
+  - Why: keeps unsaved feedback aligned with actual component changes.
+  - Flag when: Editable state has misleading or independently duplicated unsaved-change tracking.
+- **Consider** Unset memoized Livewire computed properties after changing their underlying data. — score 3: [Laravel (official)](https://github.com/livewire/livewire/blob/4ec01c9c7841c107d1a84fc15adcca5977d6f759/docs/computed-properties.md) (Official, 3)
+  - Why: invalidates computed values after dependent data changes.
+  - Flag when: Livewire actions mutate dependencies without unsetting memoized computed properties.
+- **Consider** Use authorized broadcasting and Echo listeners for server-originated real-time updates. — score 3: [@joshcirre](https://laracasts.com/episodes/3342) (Tier 1, 3)
+  - Why: delivers shared updates without repeated polling or manual client synchronization.
+  - Flag when: Real-time shared updates use unnecessary polling despite an existing broadcast event path.
+- **Consider** Use authorized presence channels for online-user lists, initializing membership and handling joins and departures. — score 3: [@_joedixon](https://www.youtube.com/watch?v=yrL5eCMpqtc) (Laracon speaker (employee), 3)
+  - Why: keeps workspace presence accurate and restricted to authorized subscribers.
+  - Flag when: Presence lists omit initial membership, join or departure handling, or channel authorization.
+- **Consider** Use browser popovers for non-modal overlays and modal dialogs for blocking interactions through reusable wrappers. — score 3: [@calebporzio](https://www.youtube.com/watch?v=31pBMi0UdYE) (Laracon speaker, 3)
+  - Why: preserves native overlay behavior without repeated positioning and stacking logic.
+  - Flag when: Overlays recreate popover or dialog behavior with nested divs and manual stacking.
+- **Consider** Use consistent, domain-oriented component names and directories, distinguishing full-page components from embedded components. — score 3: [@_joshhanley](https://www.youtube.com/watch?v=esD6o8HYV5Q) (Laracon speaker, 3)
+  - Why: keeps related pages, embedded components, and form objects discoverable as the application grows.
+  - Flag when: Related domain components are scattered or page and embedded component names follow inconsistent conventions.
+- **Consider** Use ordinary navigation dropdowns for links and accessible menu components for keyboard-driven action lists. — score 3: [@calebporzio](https://www.youtube.com/watch?v=31pBMi0UdYE) (Laracon speaker, 3)
+  - Why: matches interaction semantics and keyboard behavior to the control's purpose.
+  - Flag when: An action menu lacks keyboard navigation or ordinary links use unnecessarily complex menu behavior.
+- **Consider** Use transitions where they clarify UI changes, following the installed Livewire version's transition behavior. — score 3: [@calebporzio](https://www.youtube.com/watch?v=U-N8Qqq02b0) (Laracon speaker, 3)
+  - Why: makes interface changes understandable without relying on incompatible transition syntax.
+  - Flag when: Animated Livewire UI changes use transition syntax unsupported by the installed version.
+- **Consider** Use viewport-triggered lazy loading or immediate post-render deferral according to when a component is needed. — score 3: [Laravel (official)](https://github.com/livewire/livewire/blob/80373fa09bec6532cb28572ff80dd7bf94ea4487/docs/lazy.md) (Official, 3)
+  - Why: matches component loading to when content is needed.
+  - Flag when: Components needed immediately use viewport-only lazy loading or offscreen components load immediately without need.
+- **Consider** Validate each wizard step before allowing progression to the next step. — score 3: [@shrutibalasa](https://laracasts.com/episodes/4137) (Tier 2, 3)
+  - Why: prevents incomplete or invalid state from advancing through a multi-step workflow.
+  - Flag when: A wizard advances without validating the current step.
+- **Consider** Prefer class-based components when the project needs their static-analysis and IDE support over Volt. — score 2: [@maybeedward](https://x.com/MaybeEdward/status/1846872710292422684) (Tier 2, 2)
+  - Why: supports projects whose tooling depends on ordinary PHP component classes.
+  - Flag when: A component switches to Volt despite established class-based tooling requirements.
+
+### Frontend: Inertia
+
+- **Must** Return pages with `Inertia::render()` from ordinary routes and controllers, passing prepared props. — score 14: [@freekmurze](https://spatie.be/blog/livewire-and-inertia-how-we-love-and-use-both) (Tier 2, 3); [@simonswiss](https://www.youtube.com/watch?v=vZC-rVjuiLA) (Laracon speaker, 3); [@taylorotwell](https://www.youtube.com/watch?v=1P3wLy49t2c) (Laracon speaker (employee), 3); [Laravel (official)](https://laravel.com/docs/13.x/frontend) (Official, 3); [@dianascharf](https://www.youtube.com/watch?v=50uRIFaUWqg) (Laracon speaker, 2)
+  - Why: controller props supply initial page data without separate API fetches in component mount hooks.
+  - Flag when: An Inertia page fetches its initial data from a separate API in its mount hook.
+- **Must** Use generated typed route or controller references for frontend URLs, and regenerate generated files instead of editing them. — score 13: [@freekmurze](https://www.youtube.com/watch?v=CrO_7Df1cBc) (Laracon speaker, 3); [@joetannenbaum](https://laracasts.com/episodes/3866) (Tier 1, 3); [@timacdonald87](https://x.com/timacdonald87/status/1908263115088945286) (Tier 1, 3); [Laravel (official)](https://github.com/laravel/react-starter-kit/blob/717b8f55aefd82d25d4119eaebdc8e3a72b8d7e5/.gitignore#L10-L12) (Official, 3); [Instructor Team](https://laracasts.com/episodes/3838) (Tier 3, 1)
+  - Why: generated references keep frontend navigation aligned with Laravel routes.
+  - Flag when: Frontend URLs are hard-coded or generated route files are edited manually.
+- **Must** Extract reusable frontend behavior into components, Vue composables, or React hooks once its responsibilities are clear. — score 12: [@jeffrey_way](https://laracasts.com/episodes/2301) (Tier 2, 3); [@lukedowning19](https://laracasts.com/episodes/2763) (Tier 2, 3); [@simonswiss](https://www.youtube.com/watch?v=vZC-rVjuiLA) (Laracon speaker, 3); [Laravel (official)](https://github.com/laravel/vue-starter-kit/blob/d282e817c6c2fa1bd475f7c42ea785ccfc67d0ab/resources/js/app.ts#L1-L4) (Official, 3)
+  - Why: shared behavior avoids repeated initialization and state logic across pages.
+  - Flag when: Pages duplicate reusable behavior or stateful logic.
+- **Must** Send only the attributes each page needs and never sensitive data; Inertia props are visible in the browser. — score 12: [@jeffrey_way](https://laracasts.com/episodes/2292) (Tier 2, 3); [@lukedowning19](https://laracasts.com/episodes/3009) (Tier 2, 3); [@simonswiss](https://laracasts.com/episodes/3652) (Tier 2, 3); [@dianascharf](https://www.youtube.com/watch?v=50uRIFaUWqg&t=720s) (Laracon speaker, 2); [Instructor Team](https://laracasts.com/episodes/3840) (Tier 3, 1)
+  - Why: every returned prop is browser-visible, including unnecessary attributes and sensitive data.
+  - Flag when: Inertia props explicitly include secrets or unrelated model attributes.
+- **Must** Follow the frontend’s established page and component naming conventions, and keep server page identifiers, client resolution, and Blade entry paths consistent. — score 11: [@aarondfrancis](https://aaronfrancis.com/2024/file-based-routing-in-inertiajs-c40ed2db) (Tier 1, 3); [@freekmurze](https://spatie.be/blog/how-to-structure-the-frontend-of-a-laravel-inertia-react-application) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/react-starter-kit/blob/717b8f55aefd82d25d4119eaebdc8e3a72b8d7e5/resources/js/pages/settings/profile.tsx#L22-L32) (Official, 3); [@ryutahamasaki](https://www.youtube.com/watch?v=X6xPG6DJibg) (Laracon speaker, 2)
+  - Why: consistent identifiers and paths prevent missing pages and asset resolution failures.
+  - Flag when: A new page identifier or filename disagrees with the resolver or Blade asset path.
+- **Must** Generate frontend TypeScript types from PHP data contracts and regenerate them during development and builds. — score 11: [@freekmurze](https://www.youtube.com/watch?v=CrO_7Df1cBc) (Laracon speaker, 3); [@joetannenbaum](https://laracasts.com/episodes/3865) (Tier 1, 3); [Laravel (official)](https://laravel.com/docs/13.x/starter-kits) (Official, 3); [Craig Morris](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=7258s) (Laracon speaker, 2)
+  - Why: generated contracts prevent PHP and frontend data shapes from drifting.
+  - Flag when: Frontend types duplicate PHP DTOs or generated contracts are not regenerated after PHP changes.
+- **Must** Bundle application CSS and JavaScript with Vite and load the entries through @vite, importing CSS from JavaScript where appropriate. — score 10: [@christophrumpel](https://christoph-rumpel.com/2022/6/moving-a-laravel-webpack-project-to-vite) (Tier 1, 3); [@jeffrey_way](https://laracasts.com/episodes/3888) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/vite#configuring-vite) (Official, 3); [@jwmcpeak](https://laracasts.com/episodes/3225) (Tier 3, 1)
+  - Why: one asset pipeline provides consistent development and production bundles.
+  - Flag when: Templates use runtime Tailwind CDN assets or retain obsolete Mix wiring during a Vite migration.
+- **Must** Submit with Inertia's form helpers, validate in Laravel, redirect after success, and display returned errors. — score 10: [@simonswiss](https://laracasts.com/episodes/3658) (Tier 2, 3); [@taylorotwell](https://x.com/taylorotwell/status/1956088440056852644) (Tier 1, 3); [Laravel (official)](https://github.com/laravel/react-starter-kit/blob/717b8f55aefd82d25d4119eaebdc8e3a72b8d7e5/resources/js/pages/settings/profile.tsx#L48-L54) (Official, 3); [Instructor Team](https://laracasts.com/episodes/3841) (Tier 3, 1)
+  - Why: server validation returns field errors while retaining inputs, and successful mutations redirect to a GET page.
+  - Flag when: An Inertia form bypasses server validation or never displays returned field errors.
+- **Must** Configure Vite asset prefetching when Inertia page code splitting would otherwise delay subsequent navigation. — score 9: [@enunomaduro](https://github.com/nunomaduro/essentials) (Tier 1, 3); [@timacdonald87](https://x.com/timacdonald87/status/1840542827924861423) (Tier 1, 3); [Laravel (official)](https://laravel.com/docs/13.x/vite#inertia) (Official, 3)
+  - Why: prefetching page chunks reduces subsequent navigation delays.
+  - Flag when: Code-split page navigation waits for asset downloads without configured prefetching.
+- **Must** Use strict TypeScript with explicit page-prop, shared-data, and form types; reuse shared types instead of duplicating shapes. — score 9: [@freekmurze](https://spatie.be/blog/why-we-use-react) (Tier 2, 3); [@joetannenbaum](https://laracasts.com/episodes/3853) (Tier 1, 3); [Laravel (official)](https://github.com/laravel/react-starter-kit/blob/717b8f55aefd82d25d4119eaebdc8e3a72b8d7e5/resources/js/types/auth.ts#L1-L17) (Official, 3)
+  - Why: explicit reusable types catch mismatched frontend data and form fields.
+  - Flag when: Inertia props or forms use implicit any, or shared data shapes are duplicated.
+- **Must** Navigate with Inertia links/visits; preserve state and scroll for debounced query-string filters on the same page. — score 8: [@lukedowning19](https://laracasts.com/episodes/3023) (Tier 2, 3); [@simonswiss](https://laracasts.com/episodes/3659) (Tier 2, 3); [@dianascharf](https://www.youtube.com/watch?v=50uRIFaUWqg) (Laracon speaker, 2)
+  - Why: same-page filtering retains input focus and scroll position without full document reloads.
+  - Flag when: Live query-string filtering sends every keystroke or omits state and scroll preservation.
+- **Must** Use deferred props with placeholders so cheap content renders first. — score 8: [@jeffrey_way](https://laracasts.com/episodes/3439) (Tier 2, 3); [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3); [@dianascharf](https://www.youtube.com/watch?v=50uRIFaUWqg&t=1200s) (Laracon speaker, 2)
+  - Why: slow secondary data otherwise delays displaying inexpensive, useful page content.
+  - Flag when: An initial dashboard response waits for slow secondary data before returning cheap content.
+- **Should** Build infinite scrolling on Laravel pagination and Inertia scroll or merged props. — score 6: [@jeffrey_way](https://laracasts.com/episodes/3444) (Tier 2, 3); [@lukedowning19](https://laracasts.com/episodes/2760) (Tier 2, 3)
+  - Why: server pagination and prop merging keep incremental results consistent.
+  - Flag when: Infinite scrolling hand-accumulates records without server pagination or Inertia merging.
+- **Should** Load below-the-fold or next-page data on visibility using Inertia WhenVisible or IntersectionObserver. — score 6: [@jeffrey_way](https://laracasts.com/episodes/3443) (Tier 2, 3); [@lukedowning19](https://laracasts.com/episodes/2762) (Tier 2, 3)
+  - Why: visibility-triggered requests avoid loading unseen data prematurely.
+  - Flag when: Below-the-fold data is loaded eagerly despite an available optional prop.
+- **Should** Make Inertia SSR code independent of browser globals and verify the server-rendering path when introducing SSR. — score 6: [@aarondfrancis](https://aaronfrancis.com/2022/using-ziggy-with-inertia-server-side-rendering-bd357d3e) (Tier 1, 3); [@jeffrey_way](https://x.com/jeffrey_way/status/2049476167908884825) (Tier 2, 3)
+  - Why: server rendering executes without browser-only objects such as window.
+  - Flag when: SSR code accesses window or document unconditionally.
+- **Should** Submit file-upload updates as multipart POST requests with Laravel method spoofing for PUT, PATCH, or DELETE semantics. — score 6: [@simonswiss](https://laracasts.com/episodes/3676) (Tier 2, 3); [Laravel (official)](https://github.com/inertiajs/docs/blob/387c5129df358a758432eabed053625f24e01f9b/v3/the-basics/file-uploads.mdx) (Official, 3)
+  - Why: method spoofing preserves route semantics while allowing reliable multipart parsing.
+  - Flag when: A file-upload form sends multipart data directly with PUT or PATCH.
+- **Should** Use Inertia’s polling helper for periodic page-prop refreshes. — score 6: [@jeffrey_way](https://laracasts.com/episodes/3437) (Tier 2, 3); [Laravel (official)](https://laravel-news.com/inertia-3-9-0) (Official, 3)
+  - Why: the helper manages refresh behavior and lifecycle cleanup.
+  - Flag when: A page uses a manual interval to reload Inertia props.
+- **Should** Use Precognition with backend form-request rules for live validation, keeping form data synchronized before validating fields on change or blur. — score 6: [@taylorotwell](https://www.youtube.com/watch?v=1P3wLy49t2c) (Laracon speaker (employee), 3); [Laravel (official)](https://laravel.com/docs/13.x/precognition#using-alpine) (Official, 3)
+  - Why: reusing backend rules prevents duplicate validation logic and stale field checks.
+  - Flag when: Live validation duplicates backend rules or validates before updating the submitted field data.
+- **Should** Use persistent and nested Inertia layouts for shared application, authentication, and settings shells. — score 6: [@aarondfrancis](https://x.com/aarondfrancis/status/1813937201291682134) (Tier 1, 3); [Laravel (official)](https://github.com/laravel/react-starter-kit/blob/717b8f55aefd82d25d4119eaebdc8e3a72b8d7e5/resources/js/app.tsx#L11-L24) (Official, 3)
+  - Why: persistent shells avoid unnecessary remounts and preserve layout state between visits.
+  - Flag when: A shared shell is recreated inside every page and remounts during navigation.
+- **Should** Share only truly common, small data via `HandleInertiaRequests`. — score 5: [Laravel (official)](https://github.com/inertiajs/docs/blob/387c5129df358a758432eabed053625f24e01f9b/v3/data-props/shared-data.mdx) (Official, 3); [@dianascharf](https://www.youtube.com/watch?v=50uRIFaUWqg&t=900s) (Laracon speaker, 2)
+  - Why: shared data accompanies page responses, so unnecessary sharing adds payload and request costs.
+  - Flag when: HandleInertiaRequests::share() loads large collections needed by only one page.
+- **Should** Use partial reloads and wrap expensive props in closures so omitted props aren't computed. — score 5: [Laravel (official)](https://github.com/inertiajs/docs/blob/387c5129df358a758432eabed053625f24e01f9b/v3/data-props/partial-reloads.mdx) (Official, 3); [@dianascharf](https://www.youtube.com/watch?v=50uRIFaUWqg&t=1080s) (Laracon speaker, 2)
+  - Why: omitted props save response bytes and database work only when expensive queries are evaluated lazily.
+  - Flag when: A partial reload omits a prop whose expensive query still executes eagerly.
+- **Should** Use Vite-managed imports or asset helpers for bundled assets; reserve public paths for assets actually served from the public directory. — score 4: [Laravel (official)](https://laravel.com/docs/13.x/vite#url-processing) (Official, 3); [@jwmcpeak](https://laracasts.com/episodes/3226) (Tier 3, 1)
+  - Why: correct asset paths survive development-server hosting and production builds.
+  - Flag when: An absolute asset path points to a file that exists only in the source tree.
+- **Should** Use consistent frontend import aliases and configure them in both Vite and TypeScript. — score 4: [Laravel (official)](https://github.com/laravel/react-starter-kit/blob/717b8f55aefd82d25d4119eaebdc8e3a72b8d7e5/resources/js/pages/settings/profile.tsx#L5-L10) (Official, 3); [@jwmcpeak](https://laracasts.com/episodes/3227) (Tier 3, 1)
+  - Why: matching aliases keep module paths readable and resolvable by the build and type checker.
+  - Flag when: A frontend alias resolves in Vite but not TypeScript, or imports use long relative paths despite an established alias.
+- **Consider** Build the Inertia SSR entry alongside the client bundle when SSR is enabled. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/vite#ssr) (Official, 3)
+  - Why: coordinated builds prevent missing or stale server-rendering artifacts.
+  - Flag when: The production build creates client assets but omits the configured SSR entry.
+- **Consider** Configure Vite development-server CORS with explicit allowed origins when the application needs additional origins. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/vite#cors) (Official, 3)
+  - Why: explicit origins support intended development clients without unnecessarily broad access.
+  - Flag when: Vite permits arbitrary origins to accommodate a small known set of development clients.
+- **Consider** Confirm destructive user actions before submitting them. — score 3: [@lukedowning19](https://laracasts.com/episodes/3077) (Tier 2, 3)
+  - Why: confirmation reduces accidental irreversible changes.
+  - Flag when: A destructive action submits immediately without confirmation.
+- **Consider** Consider Inertia instant visits for destinations that can render meaningful content before the server response arrives. — score 3: [@joetannenbaum](https://www.youtube.com/watch?v=YJmuKPk3d9M&t=2329s) (Laracon speaker (employee), 3)
+  - Why: early rendering can improve navigation feedback when pending data is handled.
+  - Flag when: An instant visit renders content that assumes unavailable server props.
+- **Consider** Derive displayed Svelte account state reactively from current Inertia page props. — score 3: [Laravel (official)](https://github.com/laravel/svelte-starter-kit/blob/76d6cf46b6cc7236121a75b9e4f1bea8809cb490/resources/js/pages/settings/Profile.svelte) (Official, 3)
+  - Why: keeps Svelte account state synchronized with page props.
+  - Flag when: Svelte account state is initialized once from Inertia props without reactive derivation.
+- **Consider** Encrypt sensitive Inertia history and clear its encryption key at logout or privilege changes. — score 3: [Laravel (official)](https://github.com/inertiajs/docs/blob/387c5129df358a758432eabed053625f24e01f9b/v3/security/history-encryption.mdx) (Official, 3)
+  - Why: protects sensitive browser history across access changes.
+  - Flag when: Sensitive pages lack history encryption or logout and privilege changes omit clearing the history key.
+- **Consider** Enforce authorization and route access on the Laravel server even when the frontend hides unavailable actions. — score 3: [Laravel (official)](https://github.com/inertiajs/docs/blob/387c5129df358a758432eabed053625f24e01f9b/v3/security/authorization.mdx) (Official, 3)
+  - Why: browser-visible UI conditions cannot enforce access control.
+  - Flag when: An Inertia action or route relies solely on frontend permission checks.
+- **Consider** Group deferred Inertia props according to which should share a request and which should load in parallel. — score 3: [Laravel (official)](https://github.com/inertiajs/docs/blob/d76a154d697f7af7ff9b17c85fe67044c3c36bd6/v3/data-props/deferred-props.mdx) (Official, 3)
+  - Why: controls request grouping for deferred props.
+  - Flag when: Deferred props needing independent parallel requests share a group or coordinated props use separate groups.
+- **Consider** Guard browser globals in shared theme utilities, allowlist persisted themes, and remove obsolete media-query listeners. — score 3: [Laravel (official)](https://github.com/laravel/svelte-starter-kit/blob/76d6cf46b6cc7236121a75b9e4f1bea8809cb490/resources/js/lib/theme.svelte.ts) (Official, 3)
+  - Why: makes shared theme code safe across rendering environments.
+  - Flag when: Shared theme code accesses window unguarded, accepts arbitrary stored themes, or leaves listeners attached.
+- **Consider** Keep imports flowing from pages to feature modules to shared code, avoiding shared-code dependencies on pages. — score 3: [@freekmurze](https://spatie.be/blog/locally-great-globally-drifting) (Tier 2, 3)
+  - Why: one-way dependencies prevent coupling and circular imports.
+  - Flag when: Shared frontend code imports a feature page or feature-specific module.
+- **Consider** Keep independently reusable components and hooks in separate files, reserving default exports for page components where that is the project convention. — score 3: [@freekmurze](https://spatie.be/blog/how-to-structure-the-frontend-of-a-laravel-inertia-react-application) (Tier 2, 3)
+  - Why: focused modules make reusable behavior easier to find and maintain.
+  - Flag when: A module contains multiple unrelated reusable components or hooks.
+- **Consider** Let Vite emit frontend assets and configure TypeScript and JSX checks for the selected React or Vue adapter. — score 3: [Laravel (official)](https://github.com/laravel/react-starter-kit/blob/717b8f55aefd82d25d4119eaebdc8e3a72b8d7e5/tsconfig.json#L59) (Official, 3)
+  - Why: adapter-compatible checking avoids duplicate output and JSX compilation errors.
+  - Flag when: TypeScript emits competing build artifacts or uses JSX settings incompatible with the adapter.
+- **Consider** Memoize expensive prop computations when both controller logic and lazy prop resolution may invoke them in the same request. — score 3: [@timacdonald87](https://x.com/timacdonald87/status/1850776003376730405) (Tier 1, 3)
+  - Why: request-scoped memoization prevents duplicate query or calculation work.
+  - Flag when: The same expensive prop closure runs in controller logic and again during serialization.
+- **Consider** Prefer supported native browser primitives for dialogs, popovers, and declarative UI interactions when they meet the interface requirements. — score 3: [@freekmurze](https://spatie.be/blog/rethinking-our-frontend-future-at-spatie) (Tier 2, 3)
+  - Why: native primitives reduce custom interaction and lifecycle code.
+  - Flag when: Custom modal or popover machinery duplicates a supported native primitive without a functional need.
+- **Consider** Prefetch likely next Inertia pages when the anticipated navigation justifies the extra requests. — score 3: [@jeffrey_way](https://laracasts.com/episodes/3438) (Tier 2, 3)
+  - Why: prefetching reduces navigation latency for likely destinations.
+  - Flag when: Likely next-page links lack prefetching despite a demonstrated latency problem.
+- **Consider** Preserve pagination context when redirecting after deleting an item, handling an emptied final page. — score 3: [@lukedowning19](https://laracasts.com/episodes/3056) (Tier 2, 3)
+  - Why: users return to a valid nearby list page after deletion.
+  - Flag when: A deletion redirect discards the current pagination query or leaves an empty invalid page.
+- **Consider** Provide rescue feedback and explicit retry for failed deferred Inertia props. — score 3: [Laravel (official)](https://github.com/inertiajs/docs/blob/d76a154d697f7af7ff9b17c85fe67044c3c36bd6/v3/data-props/deferred-props.mdx) (Official, 3)
+  - Why: provides recovery for failed deferred prop loading.
+  - Flag when: Deferred prop consumers omit rescue feedback or an explicit retry action.
+- **Consider** Reload volatile Inertia props on history navigation when restored data could mislead users. — score 3: [Laravel (official)](https://laravel-news.com/inertia-3-9-0) (Official, 3)
+  - Why: controls freshness of props restored from browser history.
+  - Flag when: Volatile props are restored on history navigation without a reload.
+- **Consider** Return null for authenticated-user once props on signed-out requests to prevent stale identity reuse. — score 3: [Laravel (official)](https://github.com/inertiajs/docs/blob/387c5129df358a758432eabed053625f24e01f9b/v3/data-props/once-props.mdx) (Official, 3)
+  - Why: prevents cached authenticated identity after sign-out.
+  - Flag when: Authenticated-user once props do not return null on signed-out requests.
+- **Consider** Track page views for Inertia visits in the analytics integration. — score 3: [@calebporzio](https://x.com/calebporzio/status/1737116718391271490) (Tier 2, 3)
+  - Why: client navigation does not trigger ordinary full-page analytics initialization.
+  - Flag when: Analytics tracks only the initial document load in an Inertia application.
+- **Consider** Use ES module imports in frontend modules built by Vite. — score 3: [@christophrumpel](https://christoph-rumpel.com/2022/6/moving-a-laravel-webpack-project-to-vite) (Tier 1, 3)
+  - Why: consistent module syntax supports Vite dependency analysis and bundling.
+  - Flag when: Frontend source introduces CommonJS require calls in the Vite module graph.
+- **Consider** Use Inertia flash data for one-time feedback that must not recur from browser history. — score 3: [Laravel (official)](https://github.com/inertiajs/docs/blob/387c5129df358a758432eabed053625f24e01f9b/v3/data-props/shared-data.mdx) (Official, 3)
+  - Why: prevents one-time feedback from replaying through history.
+  - Flag when: One-time feedback is stored in regular page props instead of Inertia flash data.
+- **Consider** Use Inertia once props for expensive stable data with explicit refresh or expiration behavior. — score 3: [Laravel (official)](https://github.com/inertiajs/docs/blob/387c5129df358a758432eabed053625f24e01f9b/v3/data-props/once-props.mdx) (Official, 3)
+  - Why: caches stable expensive props with controlled freshness.
+  - Flag when: Expensive stable props are recomputed on every visit or once props omit needed refresh and expiration behavior.
+- **Consider** Use Inertia optimistic updates for suitable reversible interactions, preserve unchanged nested state, and reconcile or roll back the result. — score 3: [@joetannenbaum](https://www.youtube.com/watch?v=YJmuKPk3d9M&t=2329s) (Laracon speaker (employee), 3)
+  - Why: optimistic feedback stays consistent with the server after success or failure.
+  - Flag when: An optimistic mutation overwrites nested values or lacks failure rollback.
+- **Consider** Use Inertia optional props for explicitly requested data and always props for data required during every partial reload. — score 3: [Laravel (official)](https://github.com/inertiajs/docs/blob/387c5129df358a758432eabed053625f24e01f9b/v3/data-props/partial-reloads.mdx) (Official, 3)
+  - Why: defines inclusion rules for partial reload props.
+  - Flag when: Request-only data uses ordinary props or universally required data lacks always semantics.
+- **Consider** Use a standalone request helper for data-only interactions that should not navigate to an Inertia page. — score 3: [@joetannenbaum](https://www.youtube.com/watch?v=YJmuKPk3d9M&t=2329s) (Laracon speaker (employee), 3)
+  - Why: data-only requests avoid unintended page visits and protocol mismatches.
+  - Flag when: Search suggestions use an Inertia visit against an endpoint returning ordinary JSON.
+
+### Frontend: Filament
+
+- **Must** Use standalone Filament forms, tables, or actions inside Livewire pages when a full panel isn't needed. — score 7: [@lucgiovanny](https://www.youtube.com/watch?v=33CIhvkAPEY&t=120s) (Laracon speaker, 3); [@povilaskorop](https://www.youtube.com/watch?v=olvqO33PBI0) (Laracon speaker, 3); [@iamkevinmckee](https://laracasts.com/episodes/4013) (Tier 3, 1)
+  - Why: existing Livewire pages can reuse Filament interfaces without adopting a full panel.
+- **Should** Customize Filament styling through theme CSS and fi-* hook classes; keep extensive overrides proportionate to the required appearance. — score 6: [@povilaskorop](https://www.youtube.com/watch?v=olvqO33PBI0) (Laracon speaker, 3); [@shrutibalasa](https://laracasts.com/episodes/4028) (Tier 2, 3)
+  - Why: theme CSS provides a supported styling surface while extensive overrides add maintenance cost.
+  - Flag when: A styling change overrides vendor views or adds extensive CSS overrides for a minor appearance change.
+- **Should** Use Filament render hooks to insert content at supported interface extension points instead of overriding vendor views. — score 6: [@povilaskorop](https://www.youtube.com/watch?v=olvqO33PBI0) (Laracon speaker, 3); [@shrutibalasa](https://laracasts.com/episodes/4030) (Tier 2, 3)
+  - Why: render hooks extend the interface without maintaining copies of vendor templates.
+  - Flag when: A vendor view is copied or overridden solely to insert content at an available render hook.
+- **Should** Use relationship selects and dot-notation columns instead of hand-assembling related data. — score 6: [@lucgiovanny](https://www.youtube.com/watch?v=33CIhvkAPEY&t=990s) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/eloquent-relationships) (Official, 3)
+  - Why: relationship bindings supply related choices and display values without manually assembling UI data.
+  - Flag when: A Filament select manually queries relationship options instead of using relationship().
+- **Should** Use separate Filament panels and panel providers for audiences needing distinct resources and interfaces, and restrict access with canAccessPanel(). — score 6: [@lucgiovanny](https://www.youtube.com/watch?v=33CIhvkAPEY) (Laracon speaker, 3); [@shrutibalasa](https://laracasts.com/episodes/4018) (Tier 2, 3)
+  - Why: separate panels organize audience-specific interfaces while access checks enforce entry restrictions.
+  - Flag when: Admin and customer interfaces share panel resources despite different needs, or panel access ignores the intended audience.
+- **Should** Generate a Filament resource per managed model, with fields and columns named after model attributes; rely on app validation and model policies. — score 4: [@lucgiovanny](https://www.youtube.com/watch?v=33CIhvkAPEY&t=420s) (Laracon speaker, 3); [@iamkevinmckee](https://laracasts.com/episodes/4005) (Tier 3, 1)
+  - Why: model resources provide create, edit, and list interfaces with minimal application plumbing.
+  - Flag when: A Filament resource field name mismatches the model attribute it edits.
+- **Should** Use Filament custom-data tables for API responses, arrays, or other non-Eloquent sources rather than fabricating models. — score 4: [@lucgiovanny](https://www.youtube.com/watch?v=33CIhvkAPEY) (Laracon speaker, 3); [@iamkevinmckee](https://laracasts.com/episodes/4015) (Tier 3, 1)
+  - Why: custom record providers let tables represent their actual data source.
+  - Flag when: A fake Eloquent model is introduced solely to display external or in-memory data in a table.
+- **Should** Use backed PHP enums with Filament label, color, and icon contracts as needed to share select options and badge presentation. — score 4: [@lucgiovanny](https://www.youtube.com/watch?v=33CIhvkAPEY) (Laracon speaker, 3); [@iamkevinmckee](https://laracasts.com/episodes/4002) (Tier 3, 1)
+  - Why: enum metadata keeps option labels and case presentation consistent across forms and tables.
+  - Flag when: Select options and badge labels or colors duplicate mappings for the same enum cases.
+- **Consider** Add select filters and `searchable()` columns instead of building custom search endpoints. — score 3: [@lucgiovanny](https://www.youtube.com/watch?v=33CIhvkAPEY&t=1230s) (Laracon speaker, 3)
+  - Why: declarative filters and searchable columns provide table search without bespoke endpoints.
+  - Flag when: A Filament table adds a custom endpoint for ordinary column search.
+- **Consider** Avoid lazy loading Filament pages that depend on page authorization hooks. — score 3: [Laravel (official)](https://github.com/filamentphp/filament/blob/7c5c222be3e92439357213f8274d1548c8cb769e/docs/09-advanced/06-security.md) (Official, 3)
+  - Why: preserves page authorization during loading.
+  - Flag when: Filament pages relying on page authorization hooks enable lazy loading.
+- **Consider** Define required Filament resource policy methods or enable strict authorization to detect missing authorization. — score 3: [Laravel (official)](https://github.com/filamentphp/filament/blob/7c5c222be3e92439357213f8274d1548c8cb769e/docs/09-advanced/06-security.md) (Official, 3)
+  - Why: detects missing resource authorization methods.
+  - Flag when: Filament resources lack required policy methods and strict authorization is disabled.
+- **Consider** Enable individual-record authorization for Filament bulk operations when each selected record needs a policy check. — score 3: [Laravel (official)](https://github.com/filamentphp/filament/blob/7c5c222be3e92439357213f8274d1548c8cb769e/docs/09-advanced/06-security.md) (Official, 3)
+  - Why: checks authorization for each selected bulk record.
+  - Flag when: Bulk actions requiring per-record checks omit individual-record authorization.
+- **Consider** Enforce Filament relation-manager owner access in canViewForRecord() on child component requests. — score 3: [Laravel (official)](https://github.com/filamentphp/filament/blob/7c5c222be3e92439357213f8274d1548c8cb769e/docs/09-advanced/06-security.md) (Official, 3)
+  - Why: protects relation-manager child requests through owner access checks.
+  - Flag when: Relation managers omit required owner access checks in canViewForRecord().
+- **Consider** Give embedded Filament actions stable, unique URL identifiers. — score 3: [Laravel (official)](https://github.com/filamentphp/filament/blob/aed39d0157/packages/actions/docs/01-overview.md) (Official, 3)
+  - Why: makes embedded action URL identities unambiguous.
+  - Flag when: Embedded actions omit stable unique URL identifiers or reuse one identifier.
+- **Consider** Give multiple Filament forms distinct names and state paths and bind their models for relationship handling. — score 3: [Laravel (official)](https://github.com/filamentphp/filament/blob/7c5c222be3e92439357213f8274d1548c8cb769e/docs/12-components/02-form.md) (Official, 3)
+  - Why: isolates multiple forms and binds relationship models.
+  - Flag when: Multiple forms share names or state paths or omit models needed for relationships.
+- **Consider** Group large Filament forms into sections, tabs, or wizard steps that follow the user's task. — score 3: [@povilaskorop](https://www.youtube.com/watch?v=olvqO33PBI0) (Laracon speaker, 3)
+  - Why: task-oriented grouping makes large forms easier to navigate and complete.
+  - Flag when: A large form presents distinct groups of inputs without sections, tabs, or steps.
+- **Consider** Keep Filament modal initialization free of mutations requiring user confirmation. — score 3: [Laravel (official)](https://github.com/filamentphp/filament/blob/aed39d0157/packages/actions/docs/01-overview.md) (Official, 3)
+  - Why: keeps modal preparation separate from confirmed mutations.
+  - Flag when: Filament modal initialization writes data or triggers side effects requiring confirmation.
+- **Consider** Key custom Filament table records by stable unique identifiers across filtering, sorting, and pagination. — score 3: [Laravel (official)](https://github.com/filamentphp/filament/blob/7c5c222be3e92439357213f8274d1548c8cb769e/packages/tables/docs/09-custom-data.md) (Official, 3)
+  - Why: preserves custom table record identity across views.
+  - Flag when: Custom table records use positional or nonunique keys across sorting, filtering, or pagination.
+- **Consider** Limit re-rendering in reactive forms to fields that actually depend on the change. — score 3: [@lucgiovanny](https://www.youtube.com/watch?v=33CIhvkAPEY&t=1590s) (Laracon speaker, 3)
+  - Why: targeted rendering avoids re-rendering unaffected form fields after a state update.
+  - Flag when: A reactive field re-renders the whole form when only one dependent field changes.
+- **Consider** Persist relationship repeater order in an explicit database column. — score 3: [Laravel (official)](https://github.com/filamentphp/filament/blob/7c5c222be3e92439357213f8274d1548c8cb769e/packages/forms/docs/12-repeater.md) (Official, 3)
+  - Why: persists relationship repeater ordering explicitly.
+  - Flag when: Relationship repeaters allow reordering without an explicit database order column.
+- **Consider** Preserve registered Filament relation-manager keys and assign stable unique tab URL keys. — score 3: [Laravel (official)](https://github.com/filamentphp/filament/blob/8dc19946f7/docs/03-resources/07-managing-relationships.md) (Official, 3)
+  - Why: preserves relation registration and stable tab navigation.
+  - Flag when: Relation-manager keys are replaced or tab URL keys are unstable or duplicated.
+- **Consider** Protect Filament upload and rich-editor attachment paths from tampering and authorize access to referenced files. — score 3: [Laravel (official)](https://github.com/filamentphp/filament/blob/7c5c222be3e92439357213f8274d1548c8cb769e/packages/forms/docs/09-file-upload.md) (Official, 3)
+  - Why: secures uploaded files and editor attachment references.
+  - Flag when: Upload or attachment paths are accepted without tamper protection or file access authorization.
+- **Consider** Read submitted Filament forms through getState() before persistence so validation and transformation run. — score 3: [Laravel (official)](https://github.com/filamentphp/filament/blob/7c5c222be3e92439357213f8274d1548c8cb769e/docs/12-components/02-form.md) (Official, 3)
+  - Why: runs form validation and transformation before saving.
+  - Flag when: Filament persistence reads raw form state instead of calling getState().
+- **Consider** Render Filament JSON rich content and private attachments through RichContentRenderer with matching disk and visibility settings. — score 3: [Laravel (official)](https://github.com/filamentphp/filament/blob/7c5c222be3e92439357213f8274d1548c8cb769e/packages/forms/docs/10-rich-editor.md) (Official, 3)
+  - Why: renders structured rich content with correct attachment access.
+  - Flag when: JSON rich content bypasses RichContentRenderer or uses mismatched attachment disk and visibility settings.
+- **Consider** Reset Filament tables after actions mutate custom data so records reload. — score 3: [Laravel (official)](https://github.com/filamentphp/filament/blob/7c5c222be3e92439357213f8274d1548c8cb769e/packages/tables/docs/09-custom-data.md) (Official, 3)
+  - Why: refreshes custom table data after mutations.
+  - Flag when: Actions mutate custom table data without resetting the table.
+- **Consider** Resolve custom Filament bulk selections using selected keys or select-all exclusions while preserving access restrictions. — score 3: [Laravel (official)](https://github.com/filamentphp/filament/blob/7c5c222be3e92439357213f8274d1548c8cb769e/packages/tables/docs/09-custom-data.md) (Official, 3)
+  - Why: resolves bulk selection while preserving access constraints.
+  - Flag when: Custom bulk actions ignore selected keys or select-all exclusions or bypass access filters.
+- **Consider** Restrict custom Filament uploads to explicitly declared upload components. — score 3: [Laravel (official)](https://github.com/filamentphp/filament/blob/7c5c222be3e92439357213f8274d1548c8cb769e/docs/09-advanced/06-security.md) (Official, 3)
+  - Why: limits custom upload endpoints to declared components.
+  - Flag when: Custom Filament upload handlers accept files for undeclared upload components.
+- **Consider** Set Filament upload visibility explicitly for custom storage disks. — score 3: [Laravel (official)](https://github.com/filamentphp/filament/blob/7c5c222be3e92439357213f8274d1548c8cb769e/packages/forms/docs/09-file-upload.md) (Official, 3)
+  - Why: defines storage visibility for custom upload disks.
+  - Flag when: Filament uploads use a custom disk without explicit visibility.
+- **Consider** Use Filament View pages for view-only users instead of read-only tabs on Edit pages. — score 3: [Laravel (official)](https://github.com/filamentphp/filament/blob/8dc19946f7/docs/03-resources/07-managing-relationships.md) (Official, 3)
+  - Why: uses page types appropriate for view-only access.
+  - Flag when: View-only users are routed to Edit pages with read-only tabs.
+- **Consider** Use Filament repeaters to edit collections of child items within a parent form. — score 3: [@povilaskorop](https://www.youtube.com/watch?v=olvqO33PBI0) (Laracon speaker, 3)
+  - Why: repeaters provide a coherent interface for adding, editing, and removing child items.
+  - Flag when: A parent form hand-builds repeated child-item inputs and their add or remove controls.
+- **Consider** Use Filament table layouts for card or grid presentations that still need table filtering and pagination. — score 3: [@povilaskorop](https://www.youtube.com/watch?v=olvqO33PBI0) (Laracon speaker, 3)
+  - Why: table layouts preserve built-in table behavior while changing record presentation.
+  - Flag when: A custom card or grid listing reimplements filtering or pagination already available in the table builder.
+- **Consider** Use custom Filament pages or widgets when a task needs a layout beyond ordinary CRUD tables. — score 3: [@povilaskorop](https://www.youtube.com/watch?v=olvqO33PBI0) (Laracon speaker, 3)
+  - Why: custom pages and widgets accommodate task-specific interfaces without forcing them into CRUD layouts.
+  - Flag when: An attendance, availability, or heat-map interface is forced into an unsuitable CRUD table.
+- **Consider** Use record actions for single-record operations and bulk actions for the same operation on selections. — score 3: [@lucgiovanny](https://www.youtube.com/watch?v=33CIhvkAPEY&t=1290s) (Laracon speaker, 3)
+  - Why: users can perform the same operation on one record or a selected group.
+  - Flag when: A record action updates an unscoped model query instead of its current record.
+
+### Frontend: CSS & Tailwind
+
+- **Should** Scope compiled Tailwind styles shipped by reusable components to their container, and avoid duplicating host-provided base styles. — score 6: [@jessarchercodes](https://x.com/jessarcher/status/1515139491794599939) (Tier 1, 3); [Laravel (official)](https://laravel.com/docs/13.x/pulse#custom-card-styling-tailwind) (Official, 3)
+  - Why: scoped styles and a single reset prevent conflicts with host applications.
+  - Flag when: Unscoped bundled utilities or duplicate Preflight imports.
+- **Consider** Distinguish inline code from code blocks when applying code-specific styles. — score 3: [@aarondfrancis](https://aaronfrancis.com/2023/targeting-only-inline-code-elements-with-tailwind-typography-3b5e8d43) (Tier 1, 3)
+  - Why: inline code styling should not unintentionally alter preformatted blocks.
+  - Flag when: Broad code selectors that also affect code inside pre elements.
+- **Consider** Document the rationale for non-obvious breakpoint choices. — score 3: [@freekmurze](https://spatie.be/blog/can-we-make-default-tailwind-a-more-accessible-choice) (Tier 2, 3)
+  - Why: recorded intent helps maintain consistent responsive behavior.
+  - Flag when: Custom breakpoint choices added without an explanation.
+- **Consider** Follow the project’s existing Tailwind styling conventions before introducing new patterns. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: consistent styling conventions make changes easier to maintain.
+  - Flag when: New styling approach that diverges from existing Tailwind usage.
+- **Consider** Give independently bundled Tailwind styles a dedicated CSS entrypoint. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/pulse#custom-card-styling-tailwind) (Official, 3)
+  - Why: a separate entrypoint makes the style bundle independently configurable.
+  - Flag when: Independent Tailwind bundle added without its own CSS entrypoint.
+- **Consider** Import Tailwind v4 with @import "tailwindcss" instead of legacy @tailwind directives. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: v4 uses the standard CSS import entrypoint.
+  - Flag when: @tailwind base, components, or utilities directives in a v4 stylesheet.
+- **Consider** Match the project’s existing dark-mode behavior in new and changed components. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: consistent variants preserve usability across supported color modes.
+  - Flag when: New light-only styles in a project with dark-mode support.
+- **Consider** Prefer native select controls when they meet the required styling, interaction, and browser-support needs. — score 3: [@freekmurze](https://spatie.be/blog/rethinking-our-frontend-future-at-spatie) (Tier 2, 3)
+  - Why: native controls can avoid unnecessary custom dropdown dependencies.
+  - Flag when: Custom dropdown dependency introduced for needs a native select can meet.
+- **Consider** Prefer rem-based breakpoints when layouts should respond to user font-size preferences. — score 3: [@freekmurze](https://spatie.be/blog/can-we-make-default-tailwind-a-more-accessible-choice) (Tier 2, 3)
+  - Why: relative breakpoints accommodate larger preferred font sizes.
+  - Flag when: New or changed breakpoints expressed in fixed pixel units.
+- **Consider** Preserve newlines in escaped text with white-space: pre-line when line breaks should remain visible. — score 3: [@valorin](https://securinglaravel.com/security-tip-dont-use-nl2br) (Tier 2, 3)
+  - Why: cSS preserves line breaks without requiring unescaped HTML.
+  - Flag when: Escaped multiline content converted to raw HTML solely to show newlines.
+- **Consider** Remove redundant Tailwind classes and place shared styles on the appropriate parent or child elements. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: intentional class placement reduces repetition and conflicting styles.
+  - Flag when: Duplicate utilities or repeated inheritable styles on sibling elements.
+- **Consider** Use CSS-first @theme configuration for Tailwind v4 theme customization. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: theme configuration belongs in the v4 CSS setup.
+  - Flag when: New tailwind.config.js used as the default v4 theme configuration.
+- **Consider** Use Tailwind Typography’s prose container styles for rich HTML content when the project uses that plugin. — score 3: [@aarondfrancis](https://aaronfrancis.com/2023/targeting-only-inline-code-elements-with-tailwind-typography-3b5e8d43) (Tier 1, 3)
+  - Why: typography styles give generated content consistent readable defaults.
+  - Flag when: Rich HTML rendered without the project’s prose styling.
+- **Consider** Use a shared class-composition helper that resolves conflicting Tailwind utilities for dynamically composed classes. — score 3: [Laravel (official)](https://github.com/laravel/react-starter-kit/blob/717b8f55aefd82d25d4119eaebdc8e3a72b8d7e5/resources/js/lib/utils.ts#L1-L8) (Official, 3)
+  - Why: consistent conflict handling makes conditional styles predictable.
+  - Flag when: Conditional class concatenation with potentially conflicting Tailwind utilities.
+- **Consider** Use gap utilities for spacing between siblings in flex and grid layouts. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: container spacing avoids per-child margin management.
+  - Flag when: Sibling margins used solely to establish flex or grid spacing.
+- **Consider** Use the project’s Tailwind breakpoints and theme values in custom responsive CSS. — score 3: [@shrutibalasa](https://x.com/shrutibalasa/status/1590607166582689795) (Tier 2, 3)
+  - Why: shared responsive tokens keep custom CSS aligned with utility styles.
+  - Flag when: Hard-coded media queries that duplicate or diverge from theme breakpoints.
+- **Consider** Use utilities supported by the installed Tailwind version and replace obsolete utility names when upgrading to v4. — score 3: [Laravel (official)](https://github.com/laravel/boost/tree/main/.ai) (Official, 3)
+  - Why: version-compatible utilities preserve the intended generated styles.
+  - Flag when: V3-only utilities such as bg-opacity-* or flex-shrink-* in v4 code.
+- **Consider** Verify responsive layouts with different browser default font sizes. — score 3: [@freekmurze](https://spatie.be/blog/can-we-make-default-tailwind-a-more-accessible-choice) (Tier 2, 3)
+  - Why: font-size changes can expose breakpoint and layout failures.
+  - Flag when: Responsive layout changes without checking larger default font sizes.
+
+## Package building
+
+### Packages
+
+- **Must** Document the install command, usage examples, and how to run tests and contribute. — score 9: [@enunomaduro](https://x.com/enunomaduro/status/1857805873017389324) (Tier 1, 3); [@freekmurze](https://freek.dev/2558-workbench-app-for-packages) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/packages) (Official, 3)
+  - Why: consumers and future maintainers need usable instructions without knowing the package internals.
+  - Flag when: Documented installation commands or usage examples contradict the changed package API.
+- **Must** Test framework-dependent packages with Orchestra Testbench, loading providers and migrations explicitly. — score 8: [@freekmurze](https://freek.dev/2558-workbench-app-for-packages) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/packages) (Official, 3); [Kath Young](https://www.youtube.com/watch?v=blUswpYpmIs&t=725s) (Laracon speaker, 2)
+  - Why: bare PHPUnit tests lack the Laravel services and database schema needed by framework-dependent package behavior.
+  - Flag when: Framework-dependent package tests extend bare PHPUnit TestCase without bootstrapping Laravel.
+- **Should** Build reusable components inside the app first, then extract mature ones into packages (Composer path repositories). — score 6: [@freekmurze](https://www.youtube.com/watch?v=Boqfw4ZCk7g) (Laracon speaker, 3); [@mattstauffer](https://www.youtube.com/watch?v=f4QShF42c6E&t=13999s) (Laracon speaker, 3)
+  - Why: mature, separable features can be reused and maintained independently while the application stays focused on its domain.
+- **Should** Expose focused extension points and configurable default classes for customizable package operations, models, and jobs; consistently use the configured implementations. — score 6: [@danjharrin](https://www.youtube.com/watch?v=cucIWpAenro&t=3257s) (Laracon speaker, 3); [@freekmurze](https://freek.dev/2442-strategies-for-making-laravel-packages-customizable) (Tier 2, 3)
+  - Why: consumers can customize individual steps and types without copying workflows or editing vendor code.
+  - Flag when: Customizable workflows are monolithic, narrow configuration switches multiply, or package code bypasses configured model, action, or job classes.
+- **Should** Register package resources through its service provider, using boot() for runtime components and centralized resource declarations when package tooling supports them. — score 6: [@freekmurze](https://github.com/spatie/laravel-package-tools) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/blade#manually-registering-package-components) (Official, 3)
+  - Why: consistent provider registration makes package resources available and avoids duplicated setup plumbing.
+  - Flag when: Package resources are unregistered, runtime components are registered before boot, or resource declarations bypass the package provider conventions.
+- **Should** Start packages from a current skeleton (e.g. Spatie's package skeleton) with clear src/tests namespaces. — score 6: [@freekmurze](https://freek.dev/2442-strategies-for-making-laravel-packages-customizable) (Tier 2, 3); [Laravel (official)](https://laravel.com/docs/13.x/packages) (Official, 3)
+  - Why: a skeleton supplies package namespaces, Composer metadata, providers, and test setup before feature work.
+- **Should** Use Spatie Laravel Data where it removes duplicated shapes, keeping validation explicit. — score 6: [@freekmurze](https://www.youtube.com/watch?v=CrO_7Df1cBc&t=210s) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/validation) (Official, 3)
+  - Why: one typed definition reduces repeated schemas across request validation, API responses, and frontend types.
+- **Should** Use scoped route discovery only for repetitive routes, keeping manual routes where control matters. — score 6: [@freekmurze](https://www.youtube.com/watch?v=0Rq-yHAwYjQ&t=28080s) (Laracon speaker, 3); [Laravel (official)](https://laravel.com/docs/13.x/routing) (Official, 3)
+  - Why: scoped discovery removes repetitive declarations while manual routes preserve deliberate control over important URLs.
+  - Flag when: Route discovery scans all controllers or views instead of a dedicated directory.
+- **Consider** Accept and handle nullable Pennant scopes when feature checks must work without authentication. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/pennant) (Official, 3)
+  - Why: supports feature checks without an authenticated scope.
+  - Flag when: Pennant feature resolvers reject null scopes where unauthenticated checks are required.
+- **Consider** Align role and permission guard names with the user's authentication guard. — score 3: [Laravel (official)](https://github.com/spatie/laravel-permission/blob/ca77ab3c9c3da231df0f6c6a8e5d44d8813cc9fe/docs/basic-usage/multiple-guards.md) (Official, 3)
+  - Why: aligns permission guard identities with authentication.
+  - Flag when: Role or permission guard names differ from the user's authentication guard.
+- **Consider** Assign stable aliases to persisted event types and maintain their class mappings through refactors. — score 3: [Laravel (official)](https://github.com/spatie/laravel-event-sourcing/blob/2964c03412d4378cc899e7eadbb1569f572a1133/docs/advanced-usage/using-aliases-for-stored-event-classes.md) (Official, 3)
+  - Why: preserves event identities through implementation refactors.
+  - Flag when: Persisted event types use class names without stable aliases or refactors remove required mappings.
+- **Consider** Attach every state read during Verbs event application to the event when exact historical reconstruction is required. — score 3: [Laravel (official)](https://github.com/hirethunk/verbs/blob/13ee038c0a/docs/upgrading.md) (Official, 3)
+  - Why: records every state dependency for historical reconstruction.
+  - Flag when: Verbs event application reads state that is not attached to the event.
+- **Consider** Avoid naming third-party packages or products "Laravel X" in a way that implies official Laravel ownership. — score 3: [@taylorotwell](https://x.com/taylorotwell/status/1620807927715217409) (Tier 1, 3)
+  - Why: the Laravel trademark and product identity should not imply endorsement of third-party offerings.
+  - Flag when: A third-party package or product adopts a Laravel-prefixed brand suggesting it is an official Laravel product.
+- **Consider** Capture reusable project defaults in a starter kit with an .env.example and automated Composer project-creation setup. — score 3: [@joshcirre](https://www.youtube.com/watch?v=RY6wrHaLeCo) (Laracon speaker (employee), 3)
+  - Why: repeatable project initialization keeps shared defaults and setup steps consistent.
+  - Flag when: A starter kit omits environment templates or requires manual setup that should run during project creation.
+- **Consider** Centralize missing-translation fallbacks instead of duplicating fallback logic at read sites. — score 3: [Laravel (official)](https://github.com/spatie/laravel-translatable/blob/b8f102492f816608d832cfe9e420da6a856312cf/docs/basic-usage/handling-missing-translations.md) (Official, 3)
+  - Why: centralizes translation fallback policy.
+  - Flag when: Missing-translation fallback logic is duplicated at individual read sites.
+- **Consider** Configure Scout searchable fields explicitly, import existing records, and keep the index in sync. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/scout#turbopuffer-configuration) (Official, 3)
+  - Why: irrelevant indexed attributes create noisy matches, while imports and synchronization keep searchable records current.
+  - Flag when: Searchable attributes include irrelevant fields, or indexed model updates bypass Scout lifecycle events.
+- **Consider** Declare translated model attributes explicitly and store per-locale values in supported JSON columns. — score 3: [Laravel (official)](https://github.com/spatie/laravel-translatable/blob/1ad5f0680ed31fcf0023ef81aa55e2af9debb62f/docs/installation-setup.md) (Official, 3)
+  - Why: declares translation fields and compatible persistence.
+  - Flag when: Translated attributes are undeclared or their storage columns cannot hold supported per-locale JSON.
+- **Consider** Define feature defaults for future scopes as well as updating existing persisted assignments. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/pennant) (Official, 3)
+  - Why: applies feature policy to existing and future scopes.
+  - Flag when: Feature changes update persisted assignments but leave future-scope resolver defaults unchanged.
+- **Consider** Dispatch contextual events at meaningful package lifecycle points so consumers can attach side effects through listeners. — score 3: [@freekmurze](https://www.youtube.com/watch?v=uZU1F_BWiXU) (Laracon speaker, 3)
+  - Why: application-specific side effects can extend package behavior without changing package internals.
+  - Flag when: Package lifecycle side effects require editing internal workflows or adding a separate configuration switch for each consumer hook.
+- **Consider** Distinguish omitted DTO update fields from explicit null, allowing null only when the field contract permits it. — score 3: [Laravel (official)](https://github.com/spatie/laravel-data/blob/a298eccc5d6d5a02cde5e8530e661d24fa90e385/docs/as-a-data-transfer-object/optional-properties.md) (Official, 3)
+  - Why: preserves omission and null semantics in DTO updates.
+  - Flag when: DTO updates collapse omitted fields into null or allow null for non-nullable fields.
+- **Consider** Enable Octane permission reset listeners when stale permission data requires flushing between execution cycles. — score 3: [Laravel (official)](https://github.com/spatie/laravel-permission/blob/e80d7b0527c90cc8d6a6e804677686abfe15cca9/docs/advanced-usage/cache.md) (Official, 3)
+  - Why: resets cached permissions during Octane execution cycles.
+  - Flag when: Permission reset listeners are disabled where Octane retains stale permission data.
+- **Consider** Explicitly preserve required validation and transformation when custom Data creation methods bypass the normal pipeline. — score 3: [Laravel (official)](https://github.com/spatie/laravel-data/blob/1af068ca8bfa81d0fc63bcae8b111709fedd8f9e/docs/advanced-usage/pipeline.md) (Official, 3)
+  - Why: preserves Data validation and transformation guarantees.
+  - Flag when: Custom Data creation methods bypass required validation or transformation without restoring it.
+- **Consider** Extend the parent laravel-data pipeline when adding preparation stages. — score 3: [Laravel (official)](https://github.com/spatie/laravel-data/blob/1af068ca8bfa81d0fc63bcae8b111709fedd8f9e/docs/advanced-usage/pipeline.md) (Official, 3)
+  - Why: retains inherited laravel-data processing stages.
+  - Flag when: Custom Data preparation pipelines replace the parent pipeline instead of extending it.
+- **Consider** Flush Pennant's in-memory cache when a workflow requires fresh feature checks. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/pennant) (Official, 3)
+  - Why: refreshes in-memory feature results when required.
+  - Flag when: Workflows requiring fresh Pennant checks omit flushing its in-memory cache.
+- **Consider** Follow semantic versioning and keep a changelog and upgrade guide. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/releases) (Official, 3)
+  - Why: predictable versions and migration instructions help consumers understand release changes and upgrade requirements.
+- **Consider** Give persisted Pennant feature names stable aliases that survive class refactoring. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/pennant) (Official, 3)
+  - Why: keeps stored feature identities stable across refactors.
+  - Flag when: Pennant feature names depend on class names without stable aliases.
+- **Consider** Guard manually invoked side effects explicitly; Verbs Once attributes protect only framework-invoked hooks. — score 3: [Laravel (official)](https://github.com/hirethunk/verbs/blob/13ee038c0a/docs/replaying-events.md) (Official, 3)
+  - Why: respects the invocation boundary of Verbs Once hooks.
+  - Flag when: Manually called side-effect methods rely solely on Verbs Once attributes.
+- **Consider** Implement package logic in plain services; register providers and optional facades via Composer auto-discovery. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/facades) (Official, 3)
+  - Why: an optional facade proxies an ordinary service that consumers can also instantiate directly.
+  - Flag when: Package business logic is implemented inside a facade instead of its underlying service.
+- **Consider** Keep API docs current: purpose, auth, parameters, validation, responses, and error examples. — score 3: [@jbrooksuk](https://www.youtube.com/watch?v=K-g-t99mKZU&t=480s) (Laracon speaker (employee), 3)
+  - Why: code-derived documentation and explicit examples help consumers understand endpoint contracts beyond successful responses.
+  - Flag when: Changed authentication, validation, or response behavior contradicts endpoint documentation or examples.
+- **Consider** Keep package changes compatible with the declared supported Laravel versions and verify that range with framework integration tests. — score 3: [@crynobone](https://x.com/crynobone/status/1767036099757846748) (Tier 1, 3)
+  - Why: consumers on supported framework versions should continue receiving working package releases.
+  - Flag when: New framework APIs exceed Composer constraints or integration tests cover only part of the declared supported Laravel range.
+- **Consider** Keep runtime deps in `require` and tools/tests in `require-dev`/`autoload-dev`. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/packages#service-providers) (Official, 3)
+  - Why: consumers receive runtime dependencies without inheriting package test tooling or test autoload mappings.
+  - Flag when: Composer.json puts test tools in require, test namespaces in autoload, or runtime dependencies in require-dev.
+- **Consider** Load Verbs states through canonical State loading APIs instead of constructing duplicate instances. — score 3: [Laravel (official)](https://github.com/hirethunk/verbs/blob/13ee038c0a/docs/state-hydration-snapshots.md) (Official, 3)
+  - Why: uses canonical Verbs state identity and loading.
+  - Flag when: Verbs state instances are created directly instead of using canonical State loading APIs.
+- **Consider** Mark constructor-derived Data properties as Computed and rebuild the DTO when their dependencies change. — score 3: [Laravel (official)](https://github.com/spatie/laravel-data/blob/1cd12ab90b46e38b82b7da3ff06fa46bf834b5a8/docs/as-a-data-transfer-object/computed.md) (Official, 3)
+  - Why: keeps derived Data properties consistent with dependencies.
+  - Flag when: Constructor-derived Data properties lack Computed or dependencies mutate without rebuilding the DTO.
+- **Consider** Protect package registry accounts with two-factor authentication and create release tags only from the protected release branch. — score 3: [@freekmurze](https://spatie.be/guidelines/secure-coding) (Tier 2, 3)
+  - Why: protected publishing credentials and reviewed release commits reduce unauthorized package releases.
+  - Flag when: Release workflows tag unprotected branches or documented registry account policies omit two-factor authentication.
+- **Consider** Provide an installation command when package setup requires multiple coordinated actions. — score 3: [@freekmurze](https://github.com/spatie/laravel-package-tools) (Tier 2, 3)
+  - Why: one repeatable entry point reduces incomplete or inconsistent consumer setup.
+  - Flag when: Package installation requires coordinated manual setup steps with no command to perform them.
+- **Consider** Purge persisted Pennant assignments when changed resolvers must run again for existing scopes. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/pennant) (Official, 3)
+  - Why: reruns changed feature resolvers for existing scopes.
+  - Flag when: Pennant resolvers change without purging existing persisted assignments that must be recomputed.
+- **Consider** Refresh or reset loaded Verbs state before reuse when newer committed events must be observed. — score 3: [Laravel (official)](https://github.com/hirethunk/verbs/blob/13ee038c0a/docs/state-hydration-snapshots.md) (Official, 3)
+  - Why: refreshes Verbs state before observing newer events.
+  - Flag when: Previously loaded Verbs state is reused after newer events commit without refresh or reset.
+- **Consider** Register retained Pennant features before purging unregistered feature assignments. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/pennant) (Official, 3)
+  - Why: protects retained assignments during feature cleanup.
+  - Flag when: Unregistered-feature purges run before retained Pennant features are registered.
+- **Consider** Reinitialize the permission registrar cache after changing its store or prefix during an in-process tenant switch. — score 3: [Laravel (official)](https://github.com/spatie/laravel-permission/blob/e80d7b0527c90cc8d6a6e804677686abfe15cca9/docs/advanced-usage/cache.md) (Official, 3)
+  - Why: refreshes permission cache bindings during tenant switches.
+  - Flag when: Tenant switches change cache store or prefix without reinitializing the permission registrar cache.
+- **Consider** Resolve Pennant feature scopes explicitly in jobs and commands without relying on authenticated HTTP context. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/pennant) (Official, 3)
+  - Why: supplies feature scopes outside HTTP authentication.
+  - Flag when: Pennant checks in jobs or commands implicitly rely on the authenticated user scope.
+- **Consider** Unset loaded user roles and permissions after switching permission teams before checking access. — score 3: [Laravel (official)](https://github.com/spatie/laravel-permission/blob/c0fba2df0376f8a7b84711da4e343d57dee0a0c0/docs/basic-usage/teams-permissions.md) (Official, 3)
+  - Why: clears loaded permissions when permission teams change.
+  - Flag when: Permission team switches leave loaded user roles and permissions intact before access checks.
+- **Consider** Use a maintained media package (e.g. Spatie Media Library) with purpose-specific collections and disks. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/filesystem) (Official, 3)
+  - Why: a media package handles repeated upload, model association, derivative, and storage workflows.
+- **Consider** Use package permission mutation methods or explicitly invalidate the permission cache after direct database changes. — score 3: [Laravel (official)](https://github.com/spatie/laravel-permission/blob/e80d7b0527c90cc8d6a6e804677686abfe15cca9/docs/advanced-usage/cache.md) (Official, 3)
+  - Why: keeps permission cache consistent with mutations.
+  - Flag when: Roles or permissions are modified directly in the database without permission cache invalidation.
+- **Consider** Use persistent Pennant storage when feature assignments must survive across requests. — score 3: [Laravel (official)](https://laravel.com/docs/13.x/pennant) (Official, 3)
+  - Why: persists Pennant assignments across requests.
+  - Flag when: Pennant uses an in-memory store despite requiring feature assignments to survive requests.
+- **Consider** Use stable model-state persistence names independent of implementation class names. — score 3: [Laravel (official)](https://github.com/spatie/laravel-model-states/blob/1090b9ac53f83246cc14be1ad40da86ac6791395/docs/working-with-states/02-serializing-states.md) (Official, 3)
+  - Why: decouples stored model states from class names.
+  - Flag when: Persisted model-state names use implementation class names that change during refactors.
+- **Consider** Verify Cashier webhook signatures, trust provider state for orders and subscriptions, and keep custom effects in listeners. — score 3: [Laravel (official)](https://laravel.com/framework/docs/13.x/billing#defining-webhook-event-handlers) (Official, 3)
+  - Why: authenticated provider callbacks establish billing state while asynchronous checkout completion may still be pending.
+  - Flag when: Checkout return handlers mark orders paid without provider confirmation, or webhook routes bypass signature verification.

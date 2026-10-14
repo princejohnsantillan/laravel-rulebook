@@ -1,6 +1,6 @@
 # Laravel Codebase Rules
 
-**Version:** 2026-10-13 18:19 (Asia/Manila)
+**Version:** 2026-10-14 12:13 (Asia/Manila)
 
 **Scope:** Application code for Laravel 13 and current first-party tools: architecture, routing, Eloquent, security, performance, testing, frontend stacks, and package building.
 
@@ -14,74 +14,83 @@
 
 ### Architecture & structure
 
-- **Must** Start simple, tolerate duplication until a stable shared responsibility emerges, and add abstractions only when they clearly pay off.
-  - Why: avoids coupling merely similar business rules through premature abstractions.
-  - Flag when: A shared abstraction gains feature-specific switches to accommodate unrelated business rules.
 - **Must** Inject typed dependencies and let the container autowire them; add bindings only where the implementation or construction must be chosen.
   - Why: makes collaborators explicit and substitutable in tests without requiring manual construction everywhere.
   - Flag when: A service constructs a replaceable collaborator internally instead of accepting a typed dependency.
-- **Must** Draw boundaries around business contexts, exposing small public interfaces named in domain language and hiding internals.
-  - Why: keeps business terms unambiguous within contexts and isolates changes behind explicit interfaces.
-  - Flag when: Code in one business context directly accesses another context’s internal implementation.
+- **Must** Start simple, tolerate duplication until a stable shared responsibility emerges, and add abstractions only when they clearly pay off.
+  - Why: avoids coupling merely similar business rules through premature abstractions.
+  - Flag when: A shared abstraction gains feature-specific switches to accommodate unrelated business rules.
 - **Must** Extract reusable or growing business operations into focused actions with explicit inputs and useful return values; compose them for larger workflows.
   - Why: keeps entry points thin and makes operations independently reusable and testable.
   - Flag when: Controllers, commands, or jobs duplicate a business operation or call another entry point to reuse its behavior.
+- **Must** Draw boundaries around business contexts, exposing small public interfaces named in domain language and hiding internals.
+  - Why: keeps business terms unambiguous within contexts and isolates changes behind explicit interfaces.
+  - Flag when: Code in one business context directly accesses another context’s internal implementation.
+- **Must** Keep reusable business logic independent of HTTP and UI concerns; accept plain inputs and leave transport-specific responses in entry points.
+  - Why: allows the same operation to run and be tested through HTTP, CLI, or other interfaces.
+  - Flag when: A reusable service or action accepts an HTTP Request, renders views, redirects, or manages session login.
 - **Must** Use Laravel and established packages where they fit; write custom code only when business needs justify maintaining it.
   - Why: frees development time for business features and reduces custom code maintenance.
   - Flag when: New custom infrastructure duplicates suitable Laravel facilities or an established package already in use.
 - **Must** Define feature-specific fallbacks for external dependency failures, keep unrelated features usable, and disclose stale or unavailable data.
   - Why: limits dependency outages to the capabilities that actually require them.
   - Flag when: An external service failure breaks unrelated features or silently presents cached data as current.
-- **Must** Keep reusable business logic independent of HTTP and UI concerns; accept plain inputs and leave transport-specific responses in entry points.
-  - Why: allows the same operation to run and be tested through HTTP, CLI, or other interfaces.
-  - Flag when: A reusable service or action accepts an HTTP Request, renders views, redirects, or manages session login.
-- **Must** Start from an official starter kit, then delete what the product doesn't need.
-  - Why: provides established application conventions and scaffolding matched to required features.
-- **Must** Use facades where their concise API clarifies service access and preserves testability, keeping hidden dependencies out of core business logic.
-  - Why: allows idiomatic framework service access without obscuring important business collaborators.
-  - Flag when: A facade-based call hides a central business dependency or bypasses available service fakes.
-- **Must** Encapsulate external API access in a dedicated client with centralized request settings and typed boundary data where it clarifies the contract.
-  - Why: isolates provider details and makes integrations easier to replace or fake.
-  - Flag when: Business callers repeat provider URLs, timeouts, parameter construction, or untyped response mapping.
 - **Must** Split classes with too many responsibilities into objects for each distinct domain concept.
   - Why: makes behavior easier to describe and test with less extensive mocking.
   - Flag when: A class gains behavior for distinct domain concepts alongside its existing unrelated responsibilities.
+- **Must** Start from an official starter kit, then delete what the product doesn't need.
+  - Why: provides established application conventions and scaffolding matched to required features.
+- **Must** Encapsulate external API access in a dedicated client with centralized request settings and typed boundary data where it clarifies the contract.
+  - Why: isolates provider details and makes integrations easier to replace or fake.
+  - Flag when: Business callers repeat provider URLs, timeouts, parameter construction, or untyped response mapping.
+- **Must** Use facades where their concise API clarifies service access and preserves testability, keeping hidden dependencies out of core business logic.
+  - Why: allows idiomatic framework service access without obscuring important business collaborators.
+  - Flag when: A facade-based call hides a central business dependency or bypasses available service fakes.
 - **Must** Use guard clauses and early returns to keep the main path flat and readable.
   - Why: keeps the primary operation visible at the outer indentation level.
   - Flag when: Failed prerequisite checks wrap the main operation in successive nested conditionals.
+- **Must** Refactor touched code in small, verified steps, proportionate to the change at hand.
+  - Why: makes the next feature easier to implement while preserving existing behavior.
+- **Must** Modernize legacy code in small reviewed batches using Pint, static analysis, and Rector.
+  - Why: reduces manual cleanup and exposes defects while progressively improving frequently changed legacy code.
 - **Must** Choose polling or broadcasting according to required freshness and operating cost; persist durable updates before broadcasting them.
   - Why: matches interface update complexity to user needs and keeps durable state authoritative.
   - Flag when: A feature introduces continuous realtime infrastructure without a freshness need or broadcasts durable changes before persistence.
-- **Must** Refactor touched code in small, verified steps, proportionate to the change at hand.
-  - Why: makes the next feature easier to implement while preserving existing behavior.
+- **Must** In streamlined Laravel applications, configure routing, middleware, and exceptions in bootstrap/app.php, providers in bootstrap/providers.php, and schedules in routes/console.php or withSchedule().
+  - Why: keeps framework configuration in the entry points used by the current application skeleton.
+  - Flag when: A streamlined application adds Kernel classes or a config/app.php providers array to register framework configuration.
+- **Must** Keep Laravel, PHP, and dependencies on supported versions and apply security fixes promptly.
+  - Why: reduces exposure to vulnerabilities in unsupported or unpatched software.
+  - Flag when: Dependency constraints or runtime images pin unsupported versions or releases with known security fixes.
 - **Must** Start with one deployable app; extract services only when concrete benefits outweigh coordination and ops costs.
   - Why: avoids extra operational and development overhead before measured constraints justify service extraction.
 - **Must** Use execution-scoped context or container-managed state for shared contextual data instead of mutable statics or unnecessary argument threading.
   - Why: keeps contextual state testable and prevents leakage between long-lived execution lifecycles.
   - Flag when: A static property stores request-specific data or a singleton retains context across requests or jobs.
-- **Must** In streamlined Laravel applications, configure routing, middleware, and exceptions in bootstrap/app.php, providers in bootstrap/providers.php, and schedules in routes/console.php or withSchedule().
-  - Why: keeps framework configuration in the entry points used by the current application skeleton.
-  - Flag when: A streamlined application adds Kernel classes or a config/app.php providers array to register framework configuration.
-- **Should** Keep Laravel, PHP, and dependencies on supported versions and apply security fixes promptly.
-  - Why: reduces exposure to vulnerabilities in unsupported or unpatched software.
-  - Flag when: Dependency constraints or runtime images pin unsupported versions or releases with known security fixes.
-- **Should** Modernize legacy code in small reviewed batches using Pint, static analysis, and Rector.
-  - Why: reduces manual cleanup and exposes defects while progressively improving frequently changed legacy code.
-- **Should** Register framework extensions and macros in service providers instead of editing vendor code or introducing unnecessary subclasses.
-  - Why: centralizes extension setup and preserves dependency upgrades.
-  - Flag when: A framework extension is installed ad hoc in business code or implemented by modifying vendor files.
-- **Should** Use event sourcing selectively when durable domain history, auditability, or reconstruction is required; retain the events needed to derive state.
+- **Must** Separate replayable state and projection updates from one-time side effects, and suppress those effects during replay.
+  - Why: prevents reconstruction from sending duplicate messages or invoking external services again.
+  - Flag when: Event replay can resend emails, payments, downstream events, or third-party requests.
+- **Must** Use event sourcing selectively when durable domain history, auditability, or reconstruction is required; retain the events needed to derive state.
   - Why: preserves business changes and their context where current rows alone are insufficient.
   - Flag when: A workflow requiring historical reconstruction overwrites state without retaining the meaningful domain changes.
+- **Must** Validate event-sourced workflow transitions against aggregate or domain state before accepting and applying events.
+  - Why: prevents invalid operations from becoming part of the authoritative event history.
+  - Flag when: An event is accepted without checking the current workflow state or domain invariants.
 - **Should** Consolidate numerous simple container mappings in a dedicated provider’s bindings and singletons properties.
   - Why: keeps implementation selection easy to inspect without repetitive registration code.
   - Flag when: A provider accumulates many equivalent bind() or singleton() calls with no custom construction logic.
-- **Should** Give each domain module a service provider that registers its bindings and loads its routes, configuration, and other resources.
-  - Why: makes module integration explicit and keeps registration with the owning module.
-  - Flag when: Module resources or bindings are scattered across unrelated application registration files.
 - **Should** Provide documented, repeatable commands for setup, dev, tests, formatting, and deploy, plus useful seed data.
   - Why: lets new developers get a fresh checkout running quickly with working tests and representative data.
   - Flag when: New setup requirements or required services lack corresponding setup commands or documentation.
+- **Should** Register framework extensions and macros in service providers instead of editing vendor code or introducing unnecessary subclasses.
+  - Why: centralizes extension setup and preserves dependency upgrades.
+  - Flag when: A framework extension is installed ad hoc in business code or implemented by modifying vendor files.
+- **Should** Use an ordered pipeline of focused stages for complex sequential workflows; keep short straightforward flows direct.
+  - Why: makes significant workflow steps independently understandable without adding unnecessary machinery.
+  - Flag when: A growing workflow mixes many separable steps in one method or introduces a pipeline for a trivial sequence.
+- **Should** Give each domain module a service provider that registers its bindings and loads its routes, configuration, and other resources.
+  - Why: makes module integration explicit and keeps registration with the owning module.
+  - Flag when: Module resources or bindings are scattered across unrelated application registration files.
 - **Should** Replace legacy request paths incrementally behind a defined bridge while preserving existing user workflows.
   - Why: reduces migration risk and permits old and new behavior to coexist until replacement is verified.
   - Flag when: A replacement removes working legacy paths or changes required user behavior before equivalent routes are ready.
@@ -90,62 +99,65 @@
 - **Should** Separate event-derived domain state from read projections and make projections safely rebuildable from retained events.
   - Why: allows projection corrections and schema changes without guessing lost history.
   - Flag when: Projection handlers depend on unrecoverable mutable data or replay duplicates rows without reset or idempotency.
-- **Should** Separate replayable state and projection updates from one-time side effects, and suppress those effects during replay.
-  - Why: prevents reconstruction from sending duplicate messages or invoking external services again.
-  - Flag when: Event replay can resend emails, payments, downstream events, or third-party requests.
 - **Should** Use Laravel’s scheduler for periodic cleanup and time-based state updates instead of defining a separate cron entry for each task.
   - Why: keeps recurring application work centrally configured and maintained.
   - Flag when: A periodic application task adds its own cron entry or relies on page visits to refresh time-based state.
-- **Should** Validate event-sourced workflow transitions against aggregate or domain state before accepting and applying events.
-  - Why: prevents invalid operations from becoming part of the authoritative event history.
-  - Flag when: An event is accepted without checking the current workflow state or domain invariants.
 - **Consider** Centralize a recipient’s notification and mail locale preference on the notifiable model when recipient-specific localization is required.
   - Why: makes localized delivery consistent across notification paths.
   - Flag when: Notification callers repeatedly select a recipient locale instead of using a shared preference.
 - **Consider** Choose Livewire or an Inertia-backed JavaScript stack for interactive pages according to the application and team’s needs.
   - Why: provides an established interactive UI approach that fits how the team builds pages.
   - Flag when: A new interactive page invents custom client-server plumbing where the chosen application stack already provides it.
+- **Consider** Configure service-specific clients explicitly when global credentials or endpoints could affect unrelated services.
+  - Why: isolates client configuration for unrelated services.
+  - Flag when: Service clients inherit global credentials or endpoints that belong to another service.
+- **Consider** Define compensation for completed external effects in multi-step workflows and invoke the appropriate recovery actions when later steps fail.
+  - Why: addresses partial success that a local database rollback cannot undo.
+  - Flag when: A workflow performs several external effects but has no recovery path after a later failure.
 - **Consider** Document team conventions (naming, structure, branching, review) and enforce formatting with Pint.
   - Why: makes recurring implementations predictable and applies shared conventions consistently.
 - **Consider** Handle request-wide presentation concerns in middleware and share their resolved values with views.
   - Why: avoids repeating cookie or preference resolution in each controller or template.
   - Flag when: Multiple entry points independently resolve the same request-wide presentation preference.
+- **Consider** Keep authorization decisions separate from reusable business operations.
+  - Why: makes permission rules explicit and keeps business behavior reusable across authorized entry points.
+  - Flag when: A business calculation or workflow embeds unrelated user permission checks instead of delegating authorization.
 - **Consider** Limit service-provider register() methods to container bindings; register routes, listeners, and other functionality in boot().
   - Why: avoids using functionality before all providers have registered their dependencies.
   - Flag when: A register() method registers routes or listeners or relies on another provider’s booted functionality.
+- **Consider** Model only consumed external API fields in application DTOs and broaden package DTOs for consumer needs.
+  - Why: sets the boundary and scope of external API data models.
+  - Flag when: Application DTOs include unused external fields or shared package DTOs omit supported consumer fields.
+- **Consider** Resolve and activate the tenant before tenant-dependent work, centralizing database, cache, and filesystem preparation in the tenancy layer.
+  - Why: keeps ordinary business services operating against the correct tenant resources.
+  - Flag when: Application queries run before tenant activation or business methods manually switch tenant resource configuration.
 - **Consider** Send notifications to arbitrary recipients through on-demand routing rather than creating dummy persisted models.
   - Why: avoids artificial records solely to supply a notification destination.
   - Flag when: A notification flow creates a dummy user or model just to send to an address.
+- **Consider** Treat Octane service-provider registration and booting as worker initialization; perform per-request work in request lifecycle hooks.
+  - Why: places per-request work in the proper Octane lifecycle.
+  - Flag when: Service-provider register() or boot() performs request-specific work under Octane.
 - **Consider** Use Laravel listener discovery for conventional listeners and configure discovery paths when their location changes.
   - Why: avoids redundant listener wiring while keeping listeners in custom layouts discoverable.
   - Flag when: A listener moves outside discovery paths without corresponding discovery configuration.
+- **Consider** Use a circuit breaker for unreliable external calls when repeated failures warrant it, with a cooldown and explicit recovery probes.
+  - Why: avoids continually calling a failing dependency while allowing recovery.
+  - Flag when: Repeated dependency failures trigger unlimited new attempts with no open state or recovery policy.
 - **Consider** Use the agreed business vocabulary consistently across operations, events, code, and docs.
   - Why: preserves shared understanding between developers and domain experts as terminology evolves.
   - Flag when: A renamed business concept retains conflicting names in related operations, events, or documentation.
+- **Consider** When organizing by application area, keep admin and public entry points distinct and place genuinely shared code in a common area.
+  - Why: makes area-specific behavior discoverable while avoiding duplication of shared responsibilities.
+  - Flag when: Area-specific entry points are mixed together or equivalent shared behavior is copied into each area.
 - **Consider** Centralize configurable construction of interchangeable implementations in a factory or manager and select providers through configuration.
   - Why: prevents consumers from duplicating implementation selection and construction.
   - Flag when: Several consumers repeat switches over provider or storage types and construct implementations themselves.
-- **Consider** Define compensation for completed external effects in multi-step workflows and invoke the appropriate recovery actions when later steps fail.
-  - Why: addresses partial success that a local database rollback cannot undo.
-  - Flag when: A workflow performs several external effects but has no recovery path after a later failure.
 - **Consider** Deliver early deployable increments that exercise critical assumptions and the hardest unavoidable dependencies.
   - Why: reveals integration constraints before the project commits to a prolonged speculative design.
   - Flag when: A large change defers its critical external integration while building substantial dependent functionality.
 - **Consider** Depend on narrow domain contracts for calculations that need only a subset of a persistence model’s data.
   - Why: keeps calculations independent of irrelevant persistence and framework behavior.
   - Flag when: A calculation requires a concrete Eloquent model despite using only a small stable set of domain values.
-- **Consider** Resolve and activate the tenant before tenant-dependent work, centralizing database, cache, and filesystem preparation in the tenancy layer.
-  - Why: keeps ordinary business services operating against the correct tenant resources.
-  - Flag when: Application queries run before tenant activation or business methods manually switch tenant resource configuration.
-- **Consider** Use a circuit breaker for unreliable external calls when repeated failures warrant it, with a cooldown and explicit recovery probes.
-  - Why: avoids continually calling a failing dependency while allowing recovery.
-  - Flag when: Repeated dependency failures trigger unlimited new attempts with no open state or recovery policy.
-- **Consider** Use an ordered pipeline of focused stages for complex sequential workflows; keep short straightforward flows direct.
-  - Why: makes significant workflow steps independently understandable without adding unnecessary machinery.
-  - Flag when: A growing workflow mixes many separable steps in one method or introduces a pipeline for a trivial sequence.
-- **Consider** When organizing by application area, keep admin and public entry points distinct and place genuinely shared code in a common area.
-  - Why: makes area-specific behavior discoverable while avoiding duplication of shared responsibilities.
-  - Flag when: Area-specific entry points are mixed together or equivalent shared behavior is copied into each area.
 - **Consider** When strict module independence is required, avoid foreign-key constraints across module-owned tables while retaining internal integrity constraints.
   - Why: avoids database coupling that would prevent independent module evolution or extraction.
   - Flag when: An independently isolated module adds a foreign key to another module’s owned table.
@@ -158,56 +170,71 @@
 - **Must** Put cross-cutting request/response concerns in scoped middleware registered in `bootstrap/app.php`.
   - Why: scoped middleware reuses shared request checks and response processing across the endpoints that need them.
   - Flag when: Multiple controllers repeat the same request check or response processing.
-- **Must** Scope nested route-model binding to the parent (`scopeBindings()`) so a child ID can't resolve under an unrelated parent.
-  - Why: parent-scoped lookup prevents unrelated child records from resolving under another parent URL.
-  - Flag when: A nested route resolves its child globally without scoped binding or a parent relationship lookup.
 - **Must** Use direct view or page routes for simple rendering endpoints, and limit file-based route discovery to explicitly selected page or controller directories.
   - Why: simple page routing avoids empty controllers while deliberate discovery keeps route boundaries clear.
   - Flag when: A controller only renders a static page, or route discovery scans unrelated directories.
+- **Must** Scope nested route-model binding to the parent (`scopeBindings()`) so a child ID can't resolve under an unrelated parent.
+  - Why: parent-scoped lookup prevents unrelated child records from resolving under another parent URL.
+  - Flag when: A nested route resolves its child globally without scoped binding or a parent relationship lookup.
+- **Must** Never add custom controller actions; when you need one, model the concept as a new resource with its own controller (e.g. `PodcastSubscriptionController@store` instead of `PodcastController@subscribe`).
+  - Why: custom verbs can hide domain concepts with their own identity and lifecycle.
+  - Flag when: A parent controller gains subscribe, unsubscribe, publish, or another custom resource operation.
 - **Must** Use implicit route-model binding with matching segment names so missing models 404 before the action runs.
   - Why: implicit binding retrieves records and handles missing models before controller logic runs.
   - Flag when: A model parameter name differs from its route segment, or an action manually repeats a standard lookup.
 - **Must** Agree API contracts with consumers and keep a versioned OpenAPI spec in the repo, validated in CI.
   - Why: a shared, versioned specification lets clients develop in parallel against a consistent, testable contract.
   - Flag when: CI removes API specification validation, or an endpoint changes without updating its checked-in contract.
-- **Must** Never add custom controller actions; when you need one, model the concept as a new resource with its own controller (e.g. `PodcastSubscriptionController@store` instead of `PodcastController@subscribe`).
-  - Why: custom verbs can hide domain concepts with their own identity and lifecycle.
-  - Flag when: A parent controller gains subscribe, unsubscribe, publish, or another custom resource operation.
+- **Must** Group related routes by shared middleware, URI prefixes, and name prefixes, keeping public exceptions explicit.
+  - Why: route groups apply shared access rules and naming consistently.
+  - Flag when: Related routes duplicate shared middleware or prefixes, or a protected endpoint falls outside its group.
 - **Must** Shape public API output with API Resources for consistent fields, types, dates, and pagination.
   - Why: reusable resource mappings preserve predictable public response shapes when internal model attributes change.
   - Flag when: A public API returns raw models or duplicates field mappings across controllers.
-- **Should** Evolve APIs backward-compatibly with announced deprecations; introduce a new major version only for breaking changes.
-  - Why: compatible changes avoid integrator migration costs while versions let incompatible contracts coexist.
-  - Flag when: An existing API response removes or renames a public field without preserving the previous contract.
-- **Should** Group related routes by shared middleware, URI prefixes, and name prefixes, keeping public exceptions explicit.
-  - Why: route groups apply shared access rules and naming consistently.
-  - Flag when: Related routes duplicate shared middleware or prefixes, or a protected endpoint falls outside its group.
-- **Should** Use a single-action invokable controller for a named business operation that has no natural resource.
-  - Why: a dedicated controller keeps a named business operation separate from general CRUD responsibilities.
 - **Should** Declare specific and supplemental routes before broad parameterized routes and resource registrations that could match them.
   - Why: route ordering prevents general routes from capturing requests intended for specific endpoints.
   - Flag when: A fixed endpoint is declared after a parameterized or resource route that matches the same URL.
-- **Should** Use `Route::resource()` / `apiResource()` with `only()` to declare routes; treat a controller that outgrows the 7 actions as a sign a resource is missing.
-  - Why: conventional resource routes reduce repetitive API plumbing while custom actions reveal missing resource boundaries.
-  - Flag when: A resource route registers unimplemented actions, or its controller gains custom resource operations.
-- **Should** Use nested resources (and nested controllers) for actions on a child concept of a parent, e.g. `episodes.publish` → `EpisodePublicationController`.
-  - Why: dedicated child controllers separate operations with different loading, authorization, views, and response data.
-  - Flag when: One action branches between global and parent-specific child operations using an optional parent parameter.
+- **Should** Evolve APIs backward-compatibly with announced deprecations; introduce a new major version only for breaking changes.
+  - Why: compatible changes avoid integrator migration costs while versions let incompatible contracts coexist.
+  - Flag when: An existing API response removes or renames a public field without preserving the previous contract.
 - **Should** For slug-plus-ID URLs, resolve records by the stable identifier and redirect stale or incorrect slugs to the canonical URL.
   - Why: stable identifiers preserve lookup while canonical redirects keep public URLs consistent.
   - Flag when: A slug-plus-ID route fails after a slug changes or serves multiple noncanonical URLs without redirecting.
 - **Should** Make retryable mutations idempotent; use idempotency keys and replay stored responses when repeated execution could duplicate effects.
   - Why: retries must not duplicate charges, creations, or other state changes.
   - Flag when: A retryable mutation blindly repeats effects or a toggle reverses state on repeated requests.
-- **Should** Map domain and validation exceptions to consistent responses centrally, returning JSON for APIs and redirects for browsers.
-  - Why: central error rendering gives failures consistent responses without repeated controller-level catch branches.
-  - Flag when: Controllers duplicate validation or domain exception catches to construct error responses.
 - **Should** Stream incremental responses when users need live progress; run work asynchronously and notify later when they do not need to wait.
   - Why: the response strategy should match whether the user needs immediate incremental feedback.
   - Flag when: An interactive progress endpoint buffers all output, or a request waits for work whose result can be delivered later.
+- **Should** Use `Route::resource()` / `apiResource()` with `only()` to declare routes; treat a controller that outgrows the 7 actions as a sign a resource is missing.
+  - Why: conventional resource routes reduce repetitive API plumbing while custom actions reveal missing resource boundaries.
+  - Flag when: A resource route registers unimplemented actions, or its controller gains custom resource operations.
+- **Should** Use a single-action invokable controller for a named business operation that has no natural resource.
+  - Why: a dedicated controller keeps a named business operation separate from general CRUD responsibilities.
+- **Should** Use nested resources (and nested controllers) for actions on a child concept of a parent, e.g. `episodes.publish` → `EpisodePublicationController`.
+  - Why: dedicated child controllers separate operations with different loading, authorization, views, and response data.
+  - Flag when: One action branches between global and parent-specific child operations using an optional parent parameter.
+- **Should** Map domain and validation exceptions to consistent responses centrally, returning JSON for APIs and redirects for browsers.
+  - Why: central error rendering gives failures consistent responses without repeated controller-level catch branches.
+  - Flag when: Controllers duplicate validation or domain exception catches to construct error responses.
+- **Should** Use HTTP methods that match endpoint semantics: POST for creation, PUT for full replacement, PATCH for partial updates, and DELETE for removal.
+  - Why: method semantics make mutation behavior predictable for clients.
+  - Flag when: An endpoint uses a mismatched method or requires omitted fields for a partial update.
+- **Should** Use consistent plural resource names in resource URLs and corresponding controller names ending in Controller.
+  - Why: consistent resource naming makes endpoints and their handlers predictable.
+  - Flag when: A resource URL or controller introduces inconsistent singular/plural naming.
+- **Consider** Accept related resource identifiers in the request body when creating a derived resource whose URL does not identify those related resources.
+  - Why: creation inputs identify the source entities without overloading route parameters.
+  - Flag when: A derived-resource creation endpoint lacks an explicit related identifier or uses an unrelated route parameter for creation input.
 - **Consider** Authenticate APIs with distinct per-client credentials (Sanctum tokens) and use cookie sessions for first-party SPAs; authorize each resource separately.
   - Why: distinct credentials identify clients, while ownership checks restrict access to protected resources.
   - Flag when: An API shares one credential across clients or accesses protected records without resource authorization.
+- **Consider** Choose endpoint-specific relationship filtering and eager loading at the application boundary, such as the controller.
+  - Why: endpoint-specific query choices should reflect the data that the response actually needs.
+  - Flag when: A model imposes endpoint-specific relationship filtering or loading globally.
+- **Consider** Expose /.well-known/change-password with a successful response or redirect to the application password-change page.
+  - Why: the standard endpoint lets password managers discover the password-change flow.
+  - Flag when: The password-change flow lacks the well-known endpoint or that endpoint returns an error status.
 - **Consider** For first-party APIs needing client-specific compatibility handling, send platform and application-version metadata with requests.
   - Why: client metadata lets compatibility handling target the affected client versions.
   - Flag when: Client-specific API workarounds cannot identify the platform or application version they apply to.
@@ -220,9 +247,15 @@
 - **Consider** Guard feature-dependent routes with middleware that checks feature availability and rejects requests when the feature is inactive.
   - Why: route guards consistently enforce feature availability before endpoint execution.
   - Flag when: A feature-dependent endpoint executes without checking whether its feature is enabled.
+- **Consider** Inspect route:list after adding or changing route discovery to verify URLs, names, methods, actions, and middleware.
+  - Why: generated routes can differ from the intended route contract.
+  - Flag when: Route discovery or its conventions change without checking the resulting route registrations.
 - **Consider** Keep controllers focused on coordinating HTTP input, authorization, validation, an application operation, and the response.
   - Why: focused HTTP coordination keeps application behavior reusable and controller actions easy to review.
   - Flag when: A route closure or controller action accumulates business logic or duplicates form-request validation.
+- **Consider** Keep route declarations, names, parameters, and middleware easy to locate through familiar Laravel routing conventions.
+  - Why: visible route declarations let reviewers understand endpoint behavior without searching every controller.
+  - Flag when: A routing abstraction obscures where URLs, names, parameters, or access middleware are declared.
 - **Consider** Keep stateless API routes free of sessions and cookies; keep session and CSRF for browser and Sanctum SPA routes.
   - Why: stateless requests otherwise create unnecessary persistent session records and session cookies.
   - Flag when: A stateless token API adds session middleware, or a browser authentication flow removes session or CSRF middleware.
@@ -235,42 +268,27 @@
 - **Consider** Retain the password.reset named route when providing a custom password-reset page.
   - Why: password-reset notifications need the conventional named route to generate reset links.
   - Flag when: Custom authentication views remove or rename the password.reset route while password reset remains enabled.
+- **Consider** Return explicit delegation signals from exception reporting and rendering hooks when default handling must continue.
+  - Why: preserves default exception handling through hook signals.
+  - Flag when: Exception hooks omit an explicit delegation result when default reporting or rendering must continue.
+- **Consider** Return the created resource from an API store action when clients need its representation.
+  - Why: the creation response gives clients the resulting resource and its server-generated values.
+  - Flag when: A resource-creation API returns an empty response despite clients needing the created representation.
 - **Consider** Set request-wide URL parameter defaults when shared parameters are required, and run middleware that sets them before SubstituteBindings.
   - Why: defaults simplify URL generation and must be established before dependent binding runs.
   - Flag when: Shared required URL parameters are repeatedly supplied, or URL-default middleware runs after SubstituteBindings.
-- **Consider** Use HTTP methods that match endpoint semantics: POST for creation, PUT for full replacement, PATCH for partial updates, and DELETE for removal.
-  - Why: method semantics make mutation behavior predictable for clients.
-  - Flag when: An endpoint uses a mismatched method or requires omitted fields for a partial update.
-- **Consider** Use consistent plural resource names in resource URLs and corresponding controller names ending in Controller.
-  - Why: consistent resource naming makes endpoints and their handlers predictable.
-  - Flag when: A resource URL or controller introduces inconsistent singular/plural naming.
+- **Consider** Use kebab-case for public-facing URL path words.
+  - Why: consistent URL spelling makes public routes predictable.
+  - Flag when: A public URL introduces camelCase or underscore-separated path words.
 - **Consider** When exposing encoded public identifiers, keep URL generation and route-model binding consistent with the encoding.
   - Why: consistent encoding and resolution lets public identifiers retrieve the intended records.
   - Flag when: A URL exposes an encoded identifier but route binding expects a raw database key, or encoding differs between generation and lookup.
-- **Consider** Accept related resource identifiers in the request body when creating a derived resource whose URL does not identify those related resources.
-  - Why: creation inputs identify the source entities without overloading route parameters.
-  - Flag when: A derived-resource creation endpoint lacks an explicit related identifier or uses an unrelated route parameter for creation input.
-- **Consider** Choose endpoint-specific relationship filtering and eager loading at the application boundary, such as the controller.
-  - Why: endpoint-specific query choices should reflect the data that the response actually needs.
-  - Flag when: A model imposes endpoint-specific relationship filtering or loading globally.
 - **Consider** Choose the API response format to match the consumer contract, adding linked-data metadata when consumers benefit from it.
   - Why: response format should serve client interoperability requirements.
   - Flag when: An endpoint changes serialization formats or adds linked-data metadata without matching the consumer contract.
 - **Consider** Encapsulate a legacy HTTP entry point behind a dedicated controller that returns Laravel responses and translates legacy redirects.
   - Why: a response boundary lets legacy code participate in Laravel routing and middleware during migration.
   - Flag when: A legacy entry point prints output or sends redirect headers directly instead of returning a Laravel response.
-- **Consider** Inspect route:list after adding or changing route discovery to verify URLs, names, methods, actions, and middleware.
-  - Why: generated routes can differ from the intended route contract.
-  - Flag when: Route discovery or its conventions change without checking the resulting route registrations.
-- **Consider** Keep route declarations, names, parameters, and middleware easy to locate through familiar Laravel routing conventions.
-  - Why: visible route declarations let reviewers understand endpoint behavior without searching every controller.
-  - Flag when: A routing abstraction obscures where URLs, names, parameters, or access middleware are declared.
-- **Consider** Return the created resource from an API store action when clients need its representation.
-  - Why: the creation response gives clients the resulting resource and its server-generated values.
-  - Flag when: A resource-creation API returns an empty response despite clients needing the created representation.
-- **Consider** Use kebab-case for public-facing URL path words.
-  - Why: consistent URL spelling makes public routes predictable.
-  - Flag when: A public URL introduces camelCase or underscore-separated path words.
 
 ### Eloquent & database
 
@@ -283,146 +301,161 @@
 - **Must** Put reusable filters, visibility rules, selects, and required eager loads in named query scopes, passing user context explicitly.
   - Why: named scopes let callers reuse and compose domain constraints without repeating query details.
   - Flag when: Recurring visibility predicates or related-value selections are duplicated across controllers.
-- **Must** Denormalize or add read models only when measured cost justifies the freshness and maintenance tradeoff.
-  - Why: efficient related-record queries can avoid cached derived state and its real-time freshness problems.
+- **Must** Use indexed full-text queries or a suitable search engine for full-text search instead of broad substring scans.
+  - Why: search indexes support relevance and avoid scanning text columns.
+  - Flag when: A full-text search feature runs leading-wildcard LIKE queries over large tables.
 - **Must** Declare attribute casts, preferably in casts(), so stored booleans, dates, enums, and structured values have the application types callers expect.
   - Why: centralized conversion prevents inconsistent attribute interpretation.
   - Flag when: Application code repeatedly parses a date or decodes a structured model attribute.
+- **Must** Wrap related writes that must succeed together in a database transaction.
+  - Why: atomic writes prevent partially completed business operations.
+  - Flag when: Multiple dependent records are written without a transaction.
 - **Must** Enforce every business uniqueness invariant with a database unique constraint.
   - Why: database constraints reject duplicate business keys that error-prone application checks can miss.
   - Flag when: Business uniqueness is checked only in application code without a matching database unique constraint.
-- **Must** Reserve global scopes for constraints required on every query and use local scopes for optional filters.
-  - Why: hidden universal constraints otherwise alter unrelated queries unexpectedly.
-  - Flag when: An optional screen-specific filter is installed as a global scope.
-- **Must** Explicitly bind models and migrations to the correct named database connection, separating tenant data from landlord metadata when databases differ.
-  - Why: explicit connections prevent reads and writes reaching the wrong database.
-  - Flag when: A tenant model or non-default migration relies on the default connection.
-- **Must** Keep executed migrations immutable and independent of evolving application models; use explicit tables and new migrations for changes.
-  - Why: historical migrations must remain reproducible as application code changes.
-  - Flag when: A migration imports an application model or edits a migration already applied in a shared environment.
+- **Must** Denormalize or add read models only when measured cost justifies the freshness and maintenance tradeoff.
+  - Why: efficient related-record queries can avoid cached derived state and its real-time freshness problems.
+- **Must** Maintain realistic factories and seeders with meaningful relations and states; never distribute production data.
+  - Why: synthetic data supports development and testing without exposing sensitive production records.
+  - Flag when: A committed fixture or seeder contains identifiable production records.
 - **Must** Match model key type and incrementing configuration, identifier generation, and referencing column types to the chosen primary key.
   - Why: consistent identifier types prevent incorrect casting and broken associations.
   - Flag when: A string primary key uses integer key configuration or incompatible foreign-key columns.
-- **Must** Protect concurrent read-modify-write operations with transactions and row locks or atomic updates; acquire locks consistently and keep external work outside locks.
-  - Why: concurrency control prevents lost updates while short consistent locking reduces contention.
-  - Flag when: Stock or balances are checked and changed without concurrency protection.
-- **Must** Separate required settings seeders from demo/fixture seeders, and never truncate live data when seeding production.
-  - Why: purpose-specific seeders install required settings without inserting demo records or destroying live data.
-  - Flag when: A production seeder calls demo seeders or truncates live tables.
-- **Must** Use Eloquent models and relationships for ordinary model-backed application queries, with explicit query intent.
-  - Why: model-aware queries preserve relationship semantics and model conventions.
-  - Flag when: Raw application queries duplicate an existing model relationship.
-- **Must** Decide relationship loading at the query, and use `whenLoaded()`/conditional resource fields so rendering never triggers hidden N+1s.
-  - Why: queries during rendering create hidden repeated retrievals and counts that lazy-loading detection can miss.
-  - Flag when: A Blade loop or resource serializer executes relationship queries or counts.
+- **Must** Order by related or pivot data in SQL using joins or correlated subqueries, with a stable secondary sort, before paginating.
+  - Why: sQL ordering sorts the full result set before pagination without loading everything into PHP.
+  - Flag when: Related values are sorted in a fetched collection after pagination.
+- **Must** Reserve global scopes for constraints required on every query and use local scopes for optional filters.
+  - Why: hidden universal constraints otherwise alter unrelated queries unexpectedly.
+  - Flag when: An optional screen-specific filter is installed as a global scope.
+- **Must** Use custom casts for domain value objects and provide array and JSON serialization when those objects appear in serialized models.
+  - Why: typed values centralize storage conversion and preserve domain semantics.
+  - Flag when: A structured domain attribute is passed as loosely shaped arrays across callers.
+- **Must** Create and associate related records through relationship methods, wrapping repeated linking in named domain methods.
+  - Why: relationship methods assign linking keys while domain methods hide repeated association details.
+  - Flag when: Child creation manually assigns the parent foreign key instead of using the existing relationship.
+- **Must** Keep model lifecycle reactions focused and group substantial related handlers in registered observers, using ObservedBy or explicit observe registration.
+  - Why: focused observers keep lifecycle behavior discoverable and models readable.
+  - Flag when: Unrelated workflows or numerous lifecycle callbacks accumulate inside a model.
+- **Must** Model associations with behavior or independent domain identity as explicit models; use custom Pivot models for behavior confined to the association.
+  - Why: explicit association models give state and lifecycle behavior a clear owner.
+  - Flag when: An association with domain behavior is manipulated only through anonymous pivot attachment.
 - **Must** Enforce relationships with compatible foreign keys and deliberate delete actions; enable foreign-key enforcement on SQLite.
   - Why: database referential integrity prevents orphaned relationships.
   - Flag when: A relationship migration lacks a foreign key or uses an inappropriate cascade action.
 - **Must** Explicitly allowlist serialized model fields with API Resources or visibility controls, and hide sensitive attributes when fields are added.
   - Why: unrestricted model serialization can expose private or newly added fields.
   - Flag when: A response serializes an entire model containing sensitive attributes.
-- **Must** Keep model lifecycle reactions focused and group substantial related handlers in registered observers, using ObservedBy or explicit observe registration.
-  - Why: focused observers keep lifecycle behavior discoverable and models readable.
-  - Flag when: Unrelated workflows or numerous lifecycle callbacks accumulate inside a model.
-- **Must** Maintain realistic factories and seeders with meaningful relations and states; never distribute production data.
-  - Why: synthetic data supports development and testing without exposing sensitive production records.
-  - Flag when: A committed fixture or seeder contains identifiable production records.
-- **Must** Model associations with behavior or independent domain identity as explicit models; use custom Pivot models for behavior confined to the association.
-  - Why: explicit association models give state and lifecycle behavior a clear owner.
-  - Flag when: An association with domain behavior is manipulated only through anonymous pivot attachment.
+- **Must** Explicitly bind models and migrations to the correct named database connection, separating tenant data from landlord metadata when databases differ.
+  - Why: explicit connections prevent reads and writes reaching the wrong database.
+  - Flag when: A tenant model or non-default migration relies on the default connection.
+- **Must** Group OR predicates in nested query closures, including conditions combined with scopes or ID-based iteration.
+  - Why: parentheses keep alternative predicates from escaping ownership or iteration constraints.
+  - Flag when: An ungrouped orWhere follows a scope, relationship constraint, or chunkById predicate.
+- **Must** Keep executed migrations immutable and independent of evolving application models; use explicit tables and new migrations for changes.
+  - Why: historical migrations must remain reproducible as application code changes.
+  - Flag when: A migration imports an application model or edits a migration already applied in a shared environment.
+- **Must** Separate required settings seeders from demo/fixture seeders, and never truncate live data when seeding production.
+  - Why: purpose-specific seeders install required settings without inserting demo records or destroying live data.
+  - Flag when: A production seeder calls demo seeders or truncates live tables.
+- **Must** Use Eloquent models and relationships for ordinary model-backed application queries, with explicit query intent.
+  - Why: model-aware queries preserve relationship semantics and model conventions.
+  - Flag when: Raw application queries duplicate an existing model relationship.
+- **Must** Use chunkById or lazyById when writes can change the result set being processed; keep the iteration key stable.
+  - Why: offset iteration can skip or repeat records as rows move out of the filtered set.
+  - Flag when: A chunk or lazy loop updates the column used to filter its own query.
 - **Must** Use one-of-many relationships (`latestOfMany`) or subquery-selected IDs with eager loading when you need several attributes from one related row.
   - Why: fetching one related model avoids duplicating scalar subqueries for each of its attributes.
   - Flag when: Multiple subqueries independently select attributes from the same latest related row.
-- **Should** Create and associate related records through relationship methods, wrapping repeated linking in named domain methods.
-  - Why: relationship methods assign linking keys while domain methods hide repeated association details.
-  - Flag when: Child creation manually assigns the parent foreign key instead of using the existing relationship.
-- **Should** Defer external side effects and transaction-dependent event dispatch until after commit.
-  - Why: effects must not escape a transaction that later rolls back.
-  - Flag when: An email, file write, or external event is triggered before its database transaction commits.
-- **Should** Design composite indexes with equality columns before range columns, and verify with `EXPLAIN`.
-  - Why: leading equality constraints narrow the index scan before a range limits usable subsequent columns.
-  - Flag when: A composite index puts a range-filter column before equality-filter columns used by the same query.
-- **Should** Give a recurring subset its own relationship (e.g. `recentComments()`) so it can be eager loaded directly.
-  - Why: naming the subset keeps relationship meaning clear and removes repeated filtering closures.
-  - Flag when: Multiple callers redefine the same recurring subset with constrained eager-loading closures.
-- **Should** Group OR predicates in nested query closures, including conditions combined with scopes or ID-based iteration.
-  - Why: parentheses keep alternative predicates from escaping ownership or iteration constraints.
-  - Flag when: An ungrouped orWhere follows a scope, relationship constraint, or chunkById predicate.
-- **Should** Keep migrations focused enough to deploy, understand, and reverse as a coherent change.
-  - Why: focused changes reduce deployment and rollback complexity.
-  - Flag when: A migration mixes unrelated schema operations.
-- **Should** Order by related or pivot data in SQL using joins or correlated subqueries, with a stable secondary sort, before paginating.
-  - Why: sQL ordering sorts the full result set before pagination without loading everything into PHP.
-  - Flag when: Related values are sorted in a fetched collection after pagination.
-- **Should** Put recurring operations on sets of models in a custom Eloquent collection class.
-  - Why: domain-named collection methods make dense model-set pipelines understandable and reusable.
-  - Flag when: The same model-set pipeline is duplicated across callers.
-- **Should** Use chunkById or lazyById when writes can change the result set being processed; keep the iteration key stable.
-  - Why: offset iteration can skip or repeat records as rows move out of the filtered set.
-  - Flag when: A chunk or lazy loop updates the column used to filter its own query.
-- **Should** Use custom casts for domain value objects and provide array and JSON serialization when those objects appear in serialized models.
-  - Why: typed values centralize storage conversion and preserve domain semantics.
-  - Flag when: A structured domain attribute is passed as loosely shaped arrays across callers.
-- **Should** Use model broadcasting and conventional model channels when broadcasting model lifecycle changes.
-  - Why: framework lifecycle broadcasting avoids duplicated event and channel wiring.
-  - Flag when: Custom broadcasts duplicate model lifecycle event handling.
+- **Must** Decide relationship loading at the query, and use `whenLoaded()`/conditional resource fields so rendering never triggers hidden N+1s.
+  - Why: queries during rendering create hidden repeated retrievals and counts that lazy-loading detection can miss.
+  - Flag when: A Blade loop or resource serializer executes relationship queries or counts.
+- **Must** Protect concurrent read-modify-write operations with transactions and row locks or atomic updates; acquire locks consistently and keep external work outside locks.
+  - Why: concurrency control prevents lost updates while short consistent locking reduces contention.
+  - Flag when: Stock or balances are checked and changed without concurrency protection.
+- **Must** Encapsulate important model state transitions in expressive domain methods.
+  - Why: named transitions centralize state invariants.
+  - Flag when: Callers duplicate the attribute mutations needed for a domain transition.
+- **Must** Validate and allowlist request filters and sort columns, using exact comparisons for identifiers and literal values.
+  - Why: controlled inputs prevent unintended queries and incorrect partial identifier matches.
+  - Flag when: User-supplied sort columns are applied without an allowlist.
 - **Should** Annotate collection and relationship generics in PHPDoc so model types survive iteration and chaining.
   - Why: generic annotations preserve concrete model types through iteration and query chaining for static analysis.
   - Flag when: A collection or relationship declaration omits model generic types where inference loses them.
 - **Should** Apply visibility and filter constraints in SQL before pagination, never by filtering fetched collections.
   - Why: sQL visibility constraints avoid hydrating unauthorized records and allow database pagination.
   - Flag when: Visibility or search filters run on a fetched collection instead of the query before pagination.
-- **Should** Encrypt sensitive attributes with the `encrypted` casts, size columns for ciphertext, and don't bulk-write or search them in plaintext.
-  - Why: model encryption protects sensitive database fields only when writes pass through the encryption layer.
-  - Flag when: Bulk insert or update writes plaintext directly to an attribute configured with an encrypted cast.
-- **Should** Fetch a single related value (e.g. last login date) with a subquery select (`addSelect`) under a clear alias, plus query-time casts.
-  - Why: a scalar subquery avoids loading entire histories while casting enables normal date formatting.
-  - Flag when: A full relationship history is loaded solely to display one date.
-- **Should** In shared-database multi-tenancy, apply a global tenant scope and set the tenant key automatically; bypass it only deliberately.
-  - Why: automatic scoping and ownership keep ordinary reads and writes confined to the active tenant.
-  - Flag when: A tenant-owned model lacks the tenant scope or automatic tenant-key assignment.
-- **Should** Use SoftDeletes and a deleted_at column for models whose deletion must be recoverable.
-  - Why: retained rows allow restoring accidentally deleted domain records.
-  - Flag when: A recoverable-delete requirement is implemented with permanent deletion.
-- **Should** Use indexed full-text queries or a suitable search engine for full-text search instead of broad substring scans.
-  - Why: search indexes support relevance and avoid scanning text columns.
-  - Flag when: A full-text search feature runs leading-wildcard LIKE queries over large tables.
-- **Should** Wrap related writes that must succeed together in a database transaction.
-  - Why: atomic writes prevent partially completed business operations.
-  - Flag when: Multiple dependent records are written without a transaction.
 - **Should** Declare relationships that match the association, use polymorphic relations for shared associations across model types, and give relationship methods concrete Eloquent return types.
   - Why: precise relationship types document semantics and improve tooling.
   - Flag when: A relationship method omits its concrete relation return type.
+- **Should** Defer external side effects and transaction-dependent event dispatch until after commit.
+  - Why: effects must not escape a transaction that later rolls back.
+  - Flag when: An email, file write, or external event is triggered before its database transaction commits.
 - **Should** Define search document fields, types, and ranking explicitly, indexing only fields used for search, filtering, or faceting.
   - Why: explicit search schemas keep engine behavior consistent with stored data.
   - Flag when: A search document exposes every model attribute or gives numeric fields string types.
+- **Should** Design composite indexes with equality columns before range columns, and verify with `EXPLAIN`.
+  - Why: leading equality constraints narrow the index scan before a range limits usable subsequent columns.
+  - Flag when: A composite index puts a range-filter column before equality-filter columns used by the same query.
+- **Should** Fetch a single related value (e.g. last login date) with a subquery select (`addSelect`) under a clear alias, plus query-time casts.
+  - Why: a scalar subquery avoids loading entire histories while casting enables normal date formatting.
+  - Flag when: A full relationship history is loaded solely to display one date.
 - **Should** Follow Jonathan Reinink's Eloquent Performance Patterns: fetch only the columns, counts, aggregates, or single related row you need; never hydrate whole histories to read one value.
   - Why: hydrating entire histories wastes memory and request time when only one value is needed.
   - Flag when: A related collection is loaded and sorted solely to read its latest value.
+- **Should** Give a recurring subset its own relationship (e.g. `recentComments()`) so it can be eager loaded directly.
+  - Why: naming the subset keeps relationship meaning clear and removes repeated filtering closures.
+  - Flag when: Multiple callers redefine the same recurring subset with constrained eager-loading closures.
+- **Should** In shared-database multi-tenancy, apply a global tenant scope and set the tenant key automatically; bypass it only deliberately.
+  - Why: automatic scoping and ownership keep ordinary reads and writes confined to the active tenant.
+  - Flag when: A tenant-owned model lacks the tenant scope or automatic tenant-key assignment.
+- **Should** Keep migrations focused enough to deploy, understand, and reverse as a coherent change.
+  - Why: focused changes reduce deployment and rollback complexity.
+  - Flag when: A migration mixes unrelated schema operations.
 - **Should** Preserve existing projections when scopes add computed columns; use addSelect and initialize the base table selection when needed.
   - Why: composable selects avoid silently discarding caller-selected model attributes.
   - Flag when: A scope replaces the caller projection with select instead of addSelect.
-- **Should** Store application timestamps in UTC and use consistent UTC ISO-8601 serialization; convert timezones at presentation boundaries.
-  - Why: a common time basis prevents timezone-dependent storage and interpretation.
-  - Flag when: A timestamp is persisted in a user-specific timezone.
-- **Should** Use an enforced morph map for persistent polymorphic types instead of model class names.
-  - Why: stable aliases decouple stored relationships from PHP class renames.
-  - Flag when: A new polymorphic association persists fully qualified model class names.
+- **Should** Put recurring operations on sets of models in a custom Eloquent collection class.
+  - Why: domain-named collection methods make dense model-set pipelines understandable and reusable.
+  - Flag when: The same model-set pipeline is duplicated across callers.
+- **Should** Rebuild event projections by replaying stored events into reset state or an idempotent projector.
+  - Why: uncontrolled replay can duplicate previously applied effects.
+  - Flag when: Events are replayed into populated projection state without reset or deduplication.
+- **Should** Use model broadcasting and conventional model channels when broadcasting model lifecycle changes.
+  - Why: framework lifecycle broadcasting avoids duplicated event and channel wiring.
+  - Flag when: Custom broadcasts duplicate model lifecycle event handling.
 - **Should** Use pivot attributes for simple association metadata and `syncWithoutDetaching()` to add links without dropping existing ones.
   - Why: pivot attributes keep simple assignment metadata on the association it describes.
   - Flag when: `sync()` is used to add links while existing associations must be preserved.
 - **Should** Use supported generated or spatial columns with appropriate indexes for recurring computed-value or geographic lookups.
   - Why: indexed stored representations avoid repeated full-table computation.
   - Flag when: A frequent geographic or computed lookup calculates every row without an appropriate index.
-- **Should** Validate and allowlist request filters and sort columns, using exact comparisons for identifiers and literal values.
-  - Why: controlled inputs prevent unintended queries and incorrect partial identifier matches.
-  - Flag when: User-supplied sort columns are applied without an allowlist.
+- **Should** Encrypt sensitive attributes with the `encrypted` casts, size columns for ciphertext, and don't bulk-write or search them in plaintext.
+  - Why: model encryption protects sensitive database fields only when writes pass through the encryption layer.
+  - Flag when: Bulk insert or update writes plaintext directly to an attribute configured with an encrypted cast.
+- **Should** Extract genuinely shared model or factory behavior into focused traits or base classes.
+  - Why: shared behavior should have one maintainable implementation.
+  - Flag when: Several model factories duplicate the same behavior.
+- **Should** Use SoftDeletes and a deleted_at column for models whose deletion must be recoverable.
+  - Why: retained rows allow restoring accidentally deleted domain records.
+  - Flag when: A recoverable-delete requirement is implemented with permanent deletion.
+- **Should** Store application timestamps in UTC and use consistent UTC ISO-8601 serialization; convert timezones at presentation boundaries.
+  - Why: a common time basis prevents timezone-dependent storage and interpretation.
+  - Flag when: A timestamp is persisted in a user-specific timezone.
+- **Should** Use an enforced morph map for persistent polymorphic types instead of model class names.
+  - Why: stable aliases decouple stored relationships from PHP class renames.
+  - Flag when: A new polymorphic association persists fully qualified model class names.
 - **Consider** Apply authorization and tenant constraints in the search engine before pagination rather than relying on Eloquent global scopes alone.
   - Why: external search engines do not apply Eloquent scopes to their result set.
   - Flag when: Scout pagination relies solely on an Eloquent tenant scope.
 - **Consider** Avoid statements that implicitly commit the database transaction when atomicity is required.
   - Why: implicit commits break the transaction boundary tracked by Laravel.
   - Flag when: DDL or another implicit-commit statement runs inside a business transaction.
+- **Consider** Batch database writes in bounded transactions and tune size for memory, lock duration, and recovery.
+  - Why: bounds database write transactions for operational safety.
+  - Flag when: Bulk writes use one unbounded transaction or lack configurable batch sizing.
+- **Consider** Build request-driven queries from an already constrained Eloquent builder and preserve its scopes and ownership predicates.
+  - Why: restarting the query can discard authorization or tenant constraints.
+  - Flag when: A filtering layer replaces the supplied constrained builder with a fresh model query.
 - **Consider** Check foreign-key constraint names before renaming tables and explicitly preserve names that depend on the old table name.
   - Why: convention-derived names can make later constraint changes reference the wrong name.
   - Flag when: A table rename leaves later migrations relying on newly inferred foreign-key names.
@@ -435,12 +468,12 @@
 - **Consider** Declare model table names explicitly when pluralization or naming differs from Eloquent conventions.
   - Why: explicit names keep model queries aligned with the schema.
   - Flag when: A changed pluralizer language leaves model table names inferred incorrectly.
+- **Consider** Enable sticky read connections when reads in the same request must observe preceding writes.
+  - Why: replica lag can otherwise return stale data after a successful write.
+  - Flag when: A write is immediately followed by a replica read requiring the updated value.
 - **Consider** Enforce required stored data types and JSON shape with supported database constraints or strict table definitions.
   - Why: storage constraints reject malformed values even outside application validation.
   - Flag when: A fixed-shape JSON column has no database validation where supported.
-- **Consider** Extract genuinely shared model or factory behavior into focused traits or base classes.
-  - Why: shared behavior should have one maintainable implementation.
-  - Flag when: Several model factories duplicate the same behavior.
 - **Consider** Give recursive database queries an explicit termination condition.
   - Why: bounded recursion prevents runaway traversal.
   - Flag when: A recursive CTE lacks a stopping predicate or a guaranteed finite traversal.
@@ -456,15 +489,30 @@
 - **Consider** Keep local scopes composable by returning the same builder instance or void.
   - Why: scope chaining relies on preserving the active query.
   - Flag when: A local scope returns results or an unrelated builder.
+- **Consider** Keep persisted enum values stable and separate from changeable or translated labels.
+  - Why: keeps persisted enum identities stable.
+  - Flag when: Enum backing values change with labels or translations.
+- **Consider** Make Scout database semantic-search vector columns nullable until embeddings are saved.
+  - Why: permits records awaiting semantic search embeddings.
+  - Flag when: Scout semantic-search vector columns are non-nullable before embeddings are generated.
+- **Consider** Match vector-column dimensions to embedding output and use an appropriate vector cast.
+  - Why: aligns vector schema and casts with embeddings.
+  - Flag when: Vector column dimensions differ from embedding output or the model lacks an appropriate vector cast.
 - **Consider** Mirror database defaults on models only when unsaved instances need those values.
   - Why: database defaults apply on insertion rather than model construction.
   - Flag when: An unsaved model is read as though a database default has already been applied.
 - **Consider** Model shared-resource ownership through teams or organizations when resources must outlive or be shared beyond individual users.
   - Why: group ownership separates resource lifetime from individual membership.
   - Flag when: A shared workspace resource belongs directly to one user without representing its owning team.
+- **Consider** Opt into dynamic model defaults explicitly and supply raw storage values that bypass casts and mutators.
+  - Why: initializes dynamic model defaults in raw storage form.
+  - Flag when: Dynamic defaults are applied implicitly or assign casted values directly to raw attributes.
 - **Consider** Prefer integer internal primary keys when distributed identifier generation is unnecessary; encode public identifiers at application boundaries.
   - Why: compact sequential keys reduce index storage and insertion cost.
   - Flag when: A public identifier encoding is stored in place of an internal numeric key.
+- **Consider** Preserve validated filter and sort parameters in pagination links.
+  - Why: subsequent pages must use the same query criteria.
+  - Flag when: Pagination links drop active query filters.
 - **Consider** Profile query count, latency, memory, and hydrated models against realistic data volumes; extra bounded queries are fine if total work drops.
   - Why: fewer queries can still make requests slower by hydrating thousands of unnecessary models.
 - **Consider** Provide authentication storage columns compatible with password hashes and remember tokens.
@@ -479,6 +527,12 @@
 - **Consider** Retain primary and relationship linking keys when selecting a subset of columns for eager loading.
   - Why: relationship matching requires both model identities and linking keys.
   - Flag when: An eager-loaded select omits a key needed to match related models.
+- **Consider** Return true from custom cast comparisons only when the compared values are semantically equal.
+  - Why: aligns cast comparison with semantic equality.
+  - Flag when: Custom cast comparison returns true for values with different meanings.
+- **Consider** Scope Vitess analytical workloads with the connection OLAP callback so transactional mode is restored afterward.
+  - Why: scopes analytical database mode to its workload.
+  - Flag when: Vitess OLAP mode is switched manually without a callback that restores transactional mode.
 - **Consider** Slice in-memory results to the requested page before constructing a manual paginator.
   - Why: a paginator does not automatically limit the supplied items.
   - Flag when: A manual paginator receives an unsliced complete result array.
@@ -488,6 +542,9 @@
 - **Consider** Start Eloquent query chains with Model::query().
   - Why: an explicit builder entry point makes query construction recognizable.
   - Flag when: A new model query chain uses magic static forwarding instead of query().
+- **Consider** Store money in integer minor units or an exact decimal representation instead of floating point.
+  - Why: exact storage avoids binary floating-point rounding errors.
+  - Flag when: A monetary database column uses float or double.
 - **Consider** Use COUNT(*) for all rows and COUNT(column) only when excluding null values is intended.
   - Why: column counts omit nulls and can change the meaning of an aggregate.
   - Flag when: A nullable column is counted where all matching rows are required.
@@ -503,158 +560,170 @@
 - **Consider** Use insertOrIgnore only when its database-specific suppression of errors is acceptable.
   - Why: ignored errors can hide failures beyond duplicate records.
   - Flag when: InsertOrIgnore is used where non-duplicate insertion errors must be reported.
-- **Consider** Build request-driven queries from an already constrained Eloquent builder and preserve its scopes and ownership predicates.
-  - Why: restarting the query can discard authorization or tenant constraints.
-  - Flag when: A filtering layer replaces the supplied constrained builder with a fresh model query.
-- **Consider** Enable automatic relationship loading deliberately when collection-wide loading on access is the intended query policy.
-  - Why: automatic loading can batch access while changing when queries execute.
-  - Flag when: Relationship autoloading is enabled without considering which collections it will affect.
-- **Consider** Enable sticky read connections when reads in the same request must observe preceding writes.
-  - Why: replica lag can otherwise return stale data after a successful write.
-  - Flag when: A write is immediately followed by a replica read requiring the updated value.
-- **Consider** Rebuild event projections by replaying stored events into reset state or an idempotent projector.
-  - Why: uncontrolled replay can duplicate previously applied effects.
-  - Flag when: Events are replayed into populated projection state without reset or deduplication.
+- **Consider** Use nullable collection or array-object casts when null assignments must persist SQL NULL instead of JSON null.
+  - Why: distinguishes SQL null from JSON null in casts.
+  - Flag when: Collection or array-object casts persist JSON null where assignments require SQL NULL.
+- **Consider** Use publication timestamps and visibility queries for timed publication when no transition side effects are required.
+  - Why: models publication visibility through persisted timestamps and queries.
+  - Flag when: Timed publication without transition effects uses scheduled status changes instead of timestamp visibility queries.
 - **Consider** Use standard relationships when possible; implement custom relations only for associations conventions cannot express, including batched retrieval and parent matching.
   - Why: custom relations must preserve eager-loading behavior without per-parent queries.
   - Flag when: A custom relation queries separately for every parent during eager loading.
 - **Consider** Version persistent settings structure changes and required defaults in migrations.
   - Why: versioned defaults keep existing installations compatible with new settings.
   - Flag when: A new required persisted setting has no upgrade path or default.
+- **Consider** Choose relationships, joins, and subquery forms according to the derived value, filter, or table the query needs.
+  - Why: selects query forms according to the required database result.
+  - Flag when: A relationship, join, or subquery returns the wrong result shape or changes filter cardinality.
+- **Consider** Enable automatic relationship loading deliberately when collection-wide loading on access is the intended query policy.
+  - Why: automatic loading can batch access while changing when queries execute.
+  - Flag when: Relationship autoloading is enabled without considering which collections it will affect.
+- **Consider** Use whereColumn() to compare correlated query columns rather than binding a column name as a value.
+  - Why: requires column-aware correlated query comparisons.
+  - Flag when: A correlated column name is passed as the value argument to where() instead of whereColumn().
 
 ### Validation & security
 
 - **Must** Authorize every protected read and write on the server, regardless of authentication, route binding, hidden URLs, or frontend flags.
   - Why: clients can alter frontend permissions, and authentication alone does not grant access to protected resources.
   - Flag when: A protected endpoint relies on authentication or frontend flags without enforcing server authorization.
-- **Must** Hash passwords with Laravel's `Hash`; never store plaintext, encrypted, or MD5 passwords.
-  - Why: slow password hashing limits exposure of reusable credentials when the database is stolen.
-  - Flag when: Password persistence uses plaintext, reversible encryption, or MD5 instead of Laravel password hashing.
-- **Must** Use Laravel's validator and put reusable constraints in `ValidationRule` objects.
-  - Why: reuse Laravel’s validation engine and avoid repeating domain checks across controllers.
-  - Flag when: The same custom validation checks are duplicated across controllers instead of shared rule objects.
 - **Must** Centralize authorization in gates and policies and check abilities, not role names.
   - Why: shared abilities reuse authorization decisions without coupling callers to role names.
   - Flag when: Controllers or templates compare role names to decide access instead of checking abilities.
-- **Must** Rate-limit logins, APIs, and expensive endpoints per caller with `RateLimiter`, watching for abuse.
-  - Why: prevent one caller’s traffic bursts from consuming resources shared by other users.
-  - Flag when: Login or expensive API routes omit throttling, or limiter keys fail to distinguish callers.
-- **Must** Always use parameter bindings; only allow application-controlled identifiers (columns, tables) in raw SQL.
-  - Why: interpolated input lets attackers alter queries and extract database records through SQL injection.
-  - Flag when: Request data is interpolated into raw SQL or used as an unrestricted SQL identifier.
-- **Must** Allowlist client-selectable query filters, sorts, fields and relationship includes before building a query.
-  - Why: prevent clients from querying unintended data or constructing unrestricted query options.
-  - Flag when: Request parameters choose filters, selected columns or relationship includes without an explicit allowlist.
+- **Must** Use Laravel's validator and put reusable constraints in `ValidationRule` objects.
+  - Why: reuse Laravel’s validation engine and avoid repeating domain checks across controllers.
+  - Flag when: The same custom validation checks are duplicated across controllers instead of shared rule objects.
+- **Must** Hash passwords with Laravel's `Hash`; never store plaintext, encrypted, or MD5 passwords.
+  - Why: slow password hashing limits exposure of reusable credentials when the database is stolen.
+  - Flag when: Password persistence uses plaintext, reversible encryption, or MD5 instead of Laravel password hashing.
 - **Must** Encrypt recoverable authentication secrets and sensitive queued payloads at rest.
   - Why: reduce exposure of recoverable credentials and private payloads in storage.
   - Flag when: A TOTP secret or sensitive queued job payload is stored unencrypted.
-- **Must** Return safe, useful error responses for expected failures and report full diagnostics internally without leaking sensitive details.
-  - Why: useful responses help users handle failures while internal diagnostics support debugging without exposing sensitive information.
-  - Flag when: An error response includes exception traces, SQL, secrets, or other sensitive diagnostic details.
-- **Must** Use established authentication integrations for OAuth login and enterprise SSO rather than implementing the protocols yourself.
-  - Why: reduce protocol and credential-handling errors in authentication integrations.
-  - Flag when: A custom OAuth or SAML implementation replaces an established authentication integration.
-- **Must** Apply CSRF protection to browser-authenticated state changes; exempt webhooks only when an independent signature check authenticates them.
-  - Why: prevent forged browser requests while authenticating external callbacks.
-  - Flag when: A session-authenticated state-changing form lacks a CSRF token, or an exempt webhook lacks signature verification.
-- **Must** Define shared password validation defaults that meet the application policy and favor adequate length over unnecessary composition rules.
-  - Why: keep password requirements consistent and compatible with strong memorable passwords.
-  - Flag when: Password creation and update paths use inconsistent rules or accept passwords below the intended minimum length.
-- **Must** Enforce every required authentication factor before granting a full session or sensitive operation; keep reset and recovery flows from bypassing MFA.
-  - Why: preserve the protection of multiple factors across alternate authentication paths.
-  - Flag when: A session or recovery endpoint grants protected access after only one required factor succeeds.
-- **Must** Treat client-editable component properties as untrusted; lock immutable identifiers and authorize actions against server-resolved records.
-  - Why: prevent client property tampering from changing the target of a protected operation.
-  - Flag when: A sensitive component identifier is client-editable and trusted without server-side checks.
-- **Must** Escape untrusted output for its rendering context; sanitize permitted HTML and render user Markdown with raw HTML and unsafe links disabled.
-  - Why: prevent user content from executing scripts in the browser.
-  - Flag when: Untrusted data reaches raw Blade output, HtmlString, HTML attributes, or a Markdown converter without appropriate escaping or sanitization.
-- **Must** Hide sensitive attributes from API responses and expose privileged fields only after a permission check.
-  - Why: prevent API responses from exposing credentials or private fields to unauthorized callers.
-  - Flag when: API resources include credentials or privileged fields without checking the caller’s permission.
-- **Must** Normalize accepted input representations consistently before applying validation.
-  - Why: make validation accept intended user input without inconsistent downstream formats.
-  - Flag when: Equivalent supported inputs are rejected or normalized only after validation.
-- **Must** Scope resource collection queries to the caller’s authorized tenant and records, keeping query constraints consistent with policies.
-  - Why: prevent unauthorized records from entering query results before presentation filtering.
-  - Flag when: A collection query omits tenant or ownership predicates and relies on per-record filtering afterward.
-- **Must** Validate and cast security-relevant input types explicitly, and use strict comparisons for typed values.
-  - Why: prevent PHP type juggling or database coercion from changing validation and access decisions.
-  - Flag when: Untyped JSON input is loosely compared or used in a query where type coercion changes matching.
-- **Must** Audit security-relevant events (auth, authorization, notifications) with filtered context.
-  - Why: make allowed and denied access traceable for investigating policy or role mistakes.
-  - Flag when: Audit listeners persist passwords or unfiltered request, mail, or notification payloads.
-- **Must** Protect mass assignment with explicit model guards and pass only validated, authorized fields to persistence.
-  - Why: prevent client input from modifying privileged or unintended attributes.
-  - Flag when: Request all() or a broad exclusion list reaches fill/create/update, or a model is unguarded without hand-built input arrays.
+- **Must** Rate-limit logins, APIs, and expensive endpoints per caller with `RateLimiter`, watching for abuse.
+  - Why: prevent one caller’s traffic bursts from consuming resources shared by other users.
+  - Flag when: Login or expensive API routes omit throttling, or limiter keys fail to distinguish callers.
 - **Must** Require authentication middleware on protected routes and enforce account-status and email-verification requirements across access paths; dispatch Registered after custom registration.
   - Why: prevent guests or unverified accounts from reaching protected application functions.
   - Flag when: Protected route groups, API endpoints or broadcast subscriptions omit the required authentication or verification check.
-- **Must** Validate uploaded content type and size on the server, use generated storage names, and store files through a configured disk.
-  - Why: prevent malicious uploads and unsafe client-controlled file names.
-  - Flag when: Uploads are saved without type or size checks or use a client-provided original name as the storage path.
-- **Must** Protect `.env` and `APP_KEY`; never reuse the app key for unrelated encryption.
-  - Why: an encryption service sharing `APP_KEY` can produce attacker-chosen ciphertext trusted by other application components.
-  - Flag when: An arbitrary-content encryption endpoint uses the application key.
+- **Must** Apply CSRF protection to browser-authenticated state changes; exempt webhooks only when an independent signature check authenticates them.
+  - Why: prevent forged browser requests while authenticating external callbacks.
+  - Flag when: A session-authenticated state-changing form lacks a CSRF token, or an exempt webhook lacks signature verification.
+- **Must** Escape untrusted output for its rendering context; sanitize permitted HTML and render user Markdown with raw HTML and unsafe links disabled.
+  - Why: prevent user content from executing scripts in the browser.
+  - Flag when: Untrusted data reaches raw Blade output, HtmlString, HTML attributes, or a Markdown converter without appropriate escaping or sanitization.
 - **Must** Protect sensitive resource existence with consistent authorization responses, using a not-found denial where disclosure is inappropriate.
   - Why: avoid revealing protected records to unauthorized callers.
   - Flag when: Protected resource denials expose existence when the access policy requires concealment.
-- **Must** Read `env()` only inside config files; use `config()` everywhere else.
-  - Why: cached configuration stops loading `.env`, leaving direct `env()` reads without those values.
-  - Flag when: An `env()` call is added outside configuration files.
-- **Must** Review dynamic code execution and shell calls, and prevent untrusted input from controlling executed code or commands.
-  - Why: prevent attacker-controlled input from becoming server-side code execution.
-  - Flag when: User data reaches eval, dynamic execution, or shell commands without safe argument handling and a constrained operation.
-- **Must** Set up exception tracking and searchable logs early, fix recurring errors, and add regression tests for them.
-  - Why: make failures traceable to their originating code so recurring causes can be fixed.
+- **Must** Return safe, useful error responses for expected failures and report full diagnostics internally without leaking sensitive details.
+  - Why: useful responses help users handle failures while internal diagnostics support debugging without exposing sensitive information.
+  - Flag when: An error response includes exception traces, SQL, secrets, or other sensitive diagnostic details.
+- **Must** Scope resource collection queries to the caller’s authorized tenant and records, keeping query constraints consistent with policies.
+  - Why: prevent unauthorized records from entering query results before presentation filtering.
+  - Flag when: A collection query omits tenant or ownership predicates and relies on per-record filtering afterward.
+- **Must** Validate uploaded content type and size on the server, use generated storage names, and store files through a configured disk.
+  - Why: prevent malicious uploads and unsafe client-controlled file names.
+  - Flag when: Uploads are saved without type or size checks or use a client-provided original name as the storage path.
+- **Must** Allowlist client-selectable query filters, sorts, fields and relationship includes before building a query.
+  - Why: prevent clients from querying unintended data or constructing unrestricted query options.
+  - Flag when: Request parameters choose filters, selected columns or relationship includes without an explicit allowlist.
+- **Must** Always use parameter bindings; only allow application-controlled identifiers (columns, tables) in raw SQL.
+  - Why: interpolated input lets attackers alter queries and extract database records through SQL injection.
+  - Flag when: Request data is interpolated into raw SQL or used as an unrestricted SQL identifier.
+- **Must** Hide sensitive attributes from API responses and expose privileged fields only after a permission check.
+  - Why: prevent API responses from exposing credentials or private fields to unauthorized callers.
+  - Flag when: API resources include credentials or privileged fields without checking the caller’s permission.
+- **Must** Use established authentication integrations for OAuth login and enterprise SSO rather than implementing the protocols yourself.
+  - Why: reduce protocol and credential-handling errors in authentication integrations.
+  - Flag when: A custom OAuth or SAML implementation replaces an established authentication integration.
+- **Must** Treat client-editable component properties as untrusted; lock immutable identifiers and authorize actions against server-resolved records.
+  - Why: prevent client property tampering from changing the target of a protected operation.
+  - Flag when: A sensitive component identifier is client-editable and trusted without server-side checks.
+- **Must** Audit security-relevant events (auth, authorization, notifications) with filtered context.
+  - Why: make allowed and denied access traceable for investigating policy or role mistakes.
+  - Flag when: Audit listeners persist passwords or unfiltered request, mail, or notification payloads.
+- **Must** Define shared password validation defaults that meet the application policy and favor adequate length over unnecessary composition rules.
+  - Why: keep password requirements consistent and compatible with strong memorable passwords.
+  - Flag when: Password creation and update paths use inconsistent rules or accept passwords below the intended minimum length.
+- **Must** Deploy a restrictive CSP with explicit source directives, nonces or hashes for scripts, and a frame-ancestors policy; verify violations before enforcement.
+  - Why: limit script execution and framing to intended sources.
+  - Flag when: Responses omit CSP, permit unrestricted script sources or unsafe-inline, or generate scripts without the required nonce.
+- **Must** Enforce every required authentication factor before granting a full session or sensitive operation; keep reset and recovery flows from bypassing MFA.
+  - Why: preserve the protection of multiple factors across alternate authentication paths.
+  - Flag when: A session or recovery endpoint grants protected access after only one required factor succeeds.
+- **Must** Normalize accepted input representations consistently before applying validation.
+  - Why: make validation accept intended user input without inconsistent downstream formats.
+  - Flag when: Equivalent supported inputs are rejected or normalized only after validation.
+- **Must** Protect mass assignment with explicit model guards and pass only validated, authorized fields to persistence.
+  - Why: prevent client input from modifying privileged or unintended attributes.
+  - Flag when: Request all() or a broad exclusion list reaches fill/create/update, or a model is unguarded without hand-built input arrays.
+- **Must** Store private files on non-public disks and serve them through authorized endpoints or appropriately scoped temporary signed URLs.
+  - Why: keep sensitive files from being downloaded outside their intended access policy.
+  - Flag when: Private uploads use a public disk or download links omit authorization or signature validation.
 - **Must** Use Laravel authentication services and maintained starter kits for standard login flows rather than implementing credential verification yourself.
   - Why: preserve established password verification and session protections.
   - Flag when: A custom login compares password hashes manually or bypasses Laravel authentication services.
+- **Must** Validate and cast security-relevant input types explicitly, and use strict comparisons for typed values.
+  - Why: prevent PHP type juggling or database coercion from changing validation and access decisions.
+  - Flag when: Untyped JSON input is loosely compared or used in a query where type coercion changes matching.
+- **Must** Keep application secrets out of source control, distributed client code and frontend environment variables.
+  - Why: prevent credentials from being exposed to code recipients or browser users.
+  - Flag when: A secret is embedded in committed source, distributed code, or a VITE_-prefixed variable.
+- **Must** Read `env()` only inside config files; use `config()` everywhere else.
+  - Why: cached configuration stops loading `.env`, leaving direct `env()` reads without those values.
+  - Flag when: An `env()` call is added outside configuration files.
+- **Must** Invalidate the session and regenerate the CSRF token on logout; regenerate the session after authentication.
+  - Why: prevent session fixation and continued use of logged-out sessions.
+  - Flag when: Custom authentication or logout flows omit session regeneration or invalidation.
+- **Must** Keep GET requests free of application state changes and use CSRF-protected write methods for browser actions.
+  - Why: prevent links, crawlers and cross-site navigation from triggering writes.
+  - Flag when: A GET route deletes records, changes account settings or performs another application write.
+- **Must** Map user-selected sort keys to predefined orderings; never pass raw input as a column or SQL expression.
+  - Why: user-controlled ordering identifiers can introduce SQL injection even when query values are bound.
+  - Flag when: Request sort input reaches `orderBy` or `orderByRaw` without a fixed allowlist mapping.
+- **Must** Protect `.env` and `APP_KEY`; never reuse the app key for unrelated encryption.
+  - Why: an encryption service sharing `APP_KEY` can produce attacker-chosen ciphertext trusted by other application components.
+  - Flag when: An arbitrary-content encryption endpoint uses the application key.
+- **Must** Review dynamic code execution and shell calls, and prevent untrusted input from controlling executed code or commands.
+  - Why: prevent attacker-controlled input from becoming server-side code execution.
+  - Flag when: User data reaches eval, dynamic execution, or shell commands without safe argument handling and a constrained operation.
+- **Must** Revoke affected sessions, remember tokens and access tokens after credential resets, compromise or access changes.
+  - Why: end access that remains valid after the underlying credentials or permissions change.
+  - Flag when: A password reset or access-revocation flow leaves existing credentials valid.
+- **Must** Set up exception tracking and searchable logs early, fix recurring errors, and add regression tests for them.
+  - Why: make failures traceable to their originating code so recurring causes can be fixed.
 - **Must** Use Secure, HttpOnly cookies with Sanctum's stateful CSRF flow for first-party SPAs; never store bearer tokens in JavaScript-accessible storage.
   - Why: reduce authentication-token exposure to JavaScript when browser code is compromised.
   - Flag when: Bearer tokens are written to localStorage or sessionStorage, or session cookies disable Secure or HttpOnly.
-- **Should** Map user-selected sort keys to predefined orderings; never pass raw input as a column or SQL expression.
-  - Why: user-controlled ordering identifiers can introduce SQL injection even when query values are bound.
-  - Flag when: Request sort input reaches `orderBy` or `orderByRaw` without a fixed allowlist mapping.
-- **Should** Revoke affected sessions, remember tokens and access tokens after credential resets, compromise or access changes.
-  - Why: end access that remains valid after the underlying credentials or permissions change.
-  - Flag when: A password reset or access-revocation flow leaves existing credentials valid.
-- **Should** Store private files on non-public disks and serve them through authorized endpoints or appropriately scoped temporary signed URLs.
-  - Why: keep sensitive files from being downloaded outside their intended access policy.
-  - Flag when: Private uploads use a public disk or download links omit authorization or signature validation.
-- **Should** Use conditional validation and exclusion rules to make field dependencies explicit and omit inapplicable fields from validated data.
-  - Why: keep accepted fields consistent with the requested operation.
-  - Flag when: Dependent fields use unconditional rules or inapplicable fields remain in validated data.
-- **Should** Validate array shapes with explicit allowed keys, required fields and rules for every nested item.
+- **Must** Validate user URLs against allowed schemes; for server-side fetching, reject internal and metadata destinations after DNS resolution and on redirects.
+  - Why: prevent unsafe links and server-side requests into private services.
+  - Flag when: A user URL is fetched without scheme, resolved-address, or redirect-target restrictions.
+- **Must** Validate array shapes with explicit allowed keys, required fields and rules for every nested item.
   - Why: prevent unexpected or unchecked nested data from reaching application logic.
   - Flag when: An input array accepts unspecified keys or nested items without validation.
-- **Should** Invalidate the session and regenerate the CSRF token on logout; regenerate the session after authentication.
-  - Why: prevent session fixation and continued use of logged-out sessions.
-  - Flag when: Custom authentication or logout flows omit session regeneration or invalidation.
-- **Should** Restrict user-supplied file paths to intended storage locations and never `unserialize()` untrusted data.
-  - Why: prevent secret-file disclosure and attacker-controlled object execution.
-  - Flag when: User input reaches file reads without containment checks, or reaches unserialize().
-- **Should** Sign and verify sensitive action links, and bind their parameters to the intended user or session where required.
-  - Why: prevent link tampering and use in an unintended authentication context.
-  - Flag when: A sensitive action URL lacks signature verification or accepts a user identity that differs from the expected session.
-- **Should** Use array notation for multi-rule validation definitions.
-  - Why: keep rule lists explicit and accommodate rule objects without delimiter ambiguity.
-  - Flag when: A form request declares multiple rules using a pipe-delimited string.
-- **Should** Deploy a restrictive CSP with explicit source directives, nonces or hashes for scripts, and a frame-ancestors policy; verify violations before enforcement.
-  - Why: limit script execution and framing to intended sources.
-  - Flag when: Responses omit CSP, permit unrestricted script sources or unsafe-inline, or generate scripts without the required nonce.
+- **Must** Give access tokens only required abilities and bounded lifetimes; enforce expiration and verify JWT signatures with approved algorithms.
+  - Why: limit the authority and duration of stolen or tampered tokens.
+  - Flag when: Tokens have unrestricted abilities, no enforced expiration, or accept unsigned JWTs.
+- **Should** Bound input lengths and collection sizes according to the operation before processing them.
+  - Why: avoid oversized input and unbounded work while enforcing the operation contract.
+  - Flag when: Strings or submitted collections lack an appropriate maximum length or item count.
+- **Should** Enforce HTTPS for deployed authentication flows and configure trusted hosts and proxies so generated URLs use the intended origin and scheme.
+  - Why: protect credentials in transit and prevent spoofed origin or proxy headers from affecting generated links.
+  - Flag when: Deployment accepts credential-bearing HTTP traffic or trusts unrestricted host or forwarded headers.
 - **Should** Fulfil payment-dependent operations only after a verified provider event or trusted server-side payment confirmation.
   - Why: prevent client redirects from fabricating completed payments.
   - Flag when: An order is fulfilled solely because a browser reaches a payment success URL.
-- **Should** Give access tokens only required abilities and bounded lifetimes; enforce expiration and verify JWT signatures with approved algorithms.
-  - Why: limit the authority and duration of stolen or tampered tokens.
-  - Flag when: Tokens have unrestricted abilities, no enforced expiration, or accept unsigned JWTs.
 - **Should** Keep authentication challenges server-generated and bound to the session, and consume them after verification.
   - Why: prevent clients from substituting challenges or replaying completed authentication ceremonies.
   - Flag when: Authentication options are client-generated, unbound to the session, or left reusable after verification.
 - **Should** Keep cookie encryption enabled for cookies that contain private or trusted application state.
   - Why: prevent client disclosure or tampering of trusted cookie values.
   - Flag when: A sensitive application cookie is excluded from encryption without another integrity and confidentiality mechanism.
+- **Should** Keep development login shortcuts restricted to local environments.
+  - Why: prevent test-user access mechanisms from exposing deployed accounts.
+  - Flag when: A test-user login route is available outside the local environment.
+- **Should** Notify account owners through a trusted channel about sensitive account changes, suspicious recovery attempts and security-driven token revocation.
+  - Why: help account owners detect and respond to compromise.
+  - Flag when: Sensitive email changes or security-driven credential revocation omit a notification to the account owner.
 - **Should** Provide persistent field guidance and accessible, field-associated validation errors with clear corrective messages.
   - Why: help users understand requirements and correct invalid input.
   - Flag when: Important requirements appear only in placeholders, or validation errors lack field association or accessible status.
@@ -664,78 +733,186 @@
 - **Should** Require recent credential confirmation for sensitive account changes and throttle repeated attempts.
   - Why: reduce unauthorized changes through unattended sessions and repeated guessing.
   - Flag when: Sensitive account settings can be changed without recent authentication confirmation.
+- **Should** Restrict CORS origins to approved clients and configure credentialed requests explicitly; retain CSRF protection for browser sessions.
+  - Why: limit cross-origin access to authenticated application responses.
+  - Flag when: Credentialed CORS trusts arbitrary origins or CORS is treated as a substitute for CSRF protection.
+- **Should** Restrict user-supplied file paths to intended storage locations and never `unserialize()` untrusted data.
+  - Why: prevent secret-file disclosure and attacker-controlled object execution.
+  - Flag when: User input reaches file reads without containment checks, or reaches unserialize().
+- **Should** Review password hashing costs and rehash on successful authentication when the configured algorithm or cost changes.
+  - Why: keep stored password hashes aligned with current security settings.
+  - Flag when: Password hashing uses an inadequate work factor or custom authentication omits needed rehashing.
+- **Should** Sanitize SVG content with an appropriate sanitizer before rendering it, or reject SVG uploads.
+  - Why: prevent scripts and active content in vector images from executing.
+  - Flag when: User-supplied SVG is rendered without sanitization or accepted without a safe rendering policy.
 - **Should** Serve only `public/` and disable debug mode in production and any public environment.
   - Why: public debug output can disclose private records, sharing keys, and sensitive configuration.
   - Flag when: Public deployment config enables debug mode or serves the project root instead of `public/`.
-- **Should** Use Sanctum for simple API token authentication and Passport when a full OAuth2 authorization server is required.
-  - Why: match API authentication to the required protocol and avoid unnecessary OAuth complexity.
-  - Flag when: A simple token API adds OAuth infrastructure without a requirement, or an OAuth2 server is implemented without a maintained integration.
+- **Should** Sign and verify sensitive action links, and bind their parameters to the intended user or session where required.
+  - Why: prevent link tampering and use in an unintended authentication context.
+  - Flag when: A sensitive action URL lacks signature verification or accepts a user identity that differs from the expected session.
+- **Should** Use array notation for multi-rule validation definitions.
+  - Why: keep rule lists explicit and accommodate rule objects without delimiter ambiguity.
+  - Flag when: A form request declares multiple rules using a pipe-delimited string.
+- **Should** Use conditional validation and exclusion rules to make field dependencies explicit and omit inapplicable fields from validated data.
+  - Why: keep accepted fields consistent with the requested operation.
+  - Flag when: Dependent fields use unconditional rules or inapplicable fields remain in validated data.
 - **Should** Validate passkey registration and authentication server-side with a maintained WebAuthn library and deployment-derived relying-party settings.
   - Why: bind credentials to the correct relying party and verify authentic ceremonies.
   - Flag when: Passkey credentials are stored without server-side verification or relying-party hosts are hardcoded across deployments.
-- **Consider** Authorize access before running validation that could disclose protected data or application state.
-  - Why: prevent unauthorized callers from learning information through validation errors.
-  - Flag when: A protected operation runs revealing validation before checking access.
-- **Consider** Bound input lengths and collection sizes according to the operation before processing them.
-  - Why: avoid oversized input and unbounded work while enforcing the operation contract.
-  - Flag when: Strings or submitted collections lack an appropriate maximum length or item count.
-- **Consider** Confirm a newly enrolled MFA factor with a valid challenge response before marking it active.
-  - Why: ensure the user can use the enrolled factor before access depends on it.
-  - Flag when: MFA is enabled immediately after displaying a secret or QR code without verifying a code.
-- **Consider** Keep GET requests free of application state changes and use CSRF-protected write methods for browser actions.
-  - Why: prevent links, crawlers and cross-site navigation from triggering writes.
-  - Flag when: A GET route deletes records, changes account settings or performs another application write.
-- **Consider** Keep application secrets out of source control, distributed client code and frontend environment variables.
-  - Why: prevent credentials from being exposed to code recipients or browser users.
-  - Flag when: A secret is embedded in committed source, distributed code, or a VITE_-prefixed variable.
-- **Consider** Keep development login shortcuts restricted to local environments.
-  - Why: prevent test-user access mechanisms from exposing deployed accounts.
-  - Flag when: A test-user login route is available outside the local environment.
-- **Consider** Reset email verification when an account changes its email address and verify ownership of the new address.
-  - Why: keep verified status bound to the address that was actually confirmed.
-  - Flag when: An email update preserves email_verified_at for the new address.
-- **Consider** Return null from Gate::before when the hook should defer; place mandatory denials in the authorization decision path.
-  - Why: preserve normal policy evaluation and prevent grants from bypassing mandatory constraints.
-  - Flag when: Gate::before returns false for ordinary users, or a mandatory denial depends on overriding a non-null decision in Gate::after.
-- **Consider** Run cross-field and application-state validation after base field rules, and enforce concurrent data invariants in the database.
-  - Why: avoid evaluating malformed fields and prevent races from violating persistent invariants.
-  - Flag when: Cross-field checks run before base validation or uniqueness and inventory rely only on request validation.
-- **Consider** Sanitize SVG content with an appropriate sanitizer before rendering it, or reject SVG uploads.
-  - Why: prevent scripts and active content in vector images from executing.
-  - Flag when: User-supplied SVG is rendered without sanitization or accepted without a safe rendering policy.
-- **Consider** Skip middleware side effects during precognitive validation requests.
-  - Why: keep live validation from performing the real operation or triggering incidental writes.
-  - Flag when: Middleware performs writes, notifications or other operation side effects on a precognitive request.
-- **Consider** Throw `ValidationException::withMessages()` for rejected operations and make sure the UI shows those errors.
+- **Should** Route writes to encrypted records through paths that preserve encryption processing and per-record key assignment.
+  - Why: prevent bulk writes from bypassing encryption or corrupting key associations.
+  - Flag when: Bulk insert/update writes encrypted fields while bypassing model encryption hooks.
+- **Should** Throw `ValidationException::withMessages()` for rejected operations and make sure the UI shows those errors.
   - Why: give users visible, contextual feedback when a business operation is rejected.
   - Flag when: Backend emits a synthetic validation error key that the frontend never displays.
-- **Consider** Use currently supported OAuth2 grant flows appropriate to the client type.
-  - Why: avoid obsolete or unsuitable authorization flows.
-  - Flag when: An OAuth2 client uses an obsolete grant or a flow unsuitable for its ability to keep secrets.
-- **Consider** Use only trusted server-resolved identifiers in validation rules that exclude an existing database record.
-  - Why: prevent attacker-controlled exclusion values from altering database validation queries.
-  - Flag when: Request input is passed directly to Rule::unique()->ignore() rather than a trusted model identifier.
-- **Consider** Validate user URLs against allowed schemes; for server-side fetching, reject internal and metadata destinations after DNS resolution and on redirects.
-  - Why: prevent unsafe links and server-side requests into private services.
-  - Flag when: A user URL is fetched without scheme, resolved-address, or redirect-target restrictions.
+- **Should** Use Sanctum for simple API token authentication and Passport when a full OAuth2 authorization server is required.
+  - Why: match API authentication to the required protocol and avoid unnecessary OAuth complexity.
+  - Flag when: A simple token API adds OAuth infrastructure without a requirement, or an OAuth2 server is implemented without a maintained integration.
+- **Should** Disable cached-object deserialization unless needed, and allowlist only required classes.
+  - Why: restricts object deserialization to necessary classes.
+  - Flag when: Cached objects are deserialized by default or allowed_classes permits all classes.
+- **Should** Return null from Gate::before when the hook should defer; place mandatory denials in the authorization decision path.
+  - Why: preserve normal policy evaluation and prevent grants from bypassing mandatory constraints.
+  - Flag when: Gate::before returns false for ordinary users, or a mandatory denial depends on overriding a non-null decision in Gate::after.
+- **Should** Use scoped model validation when eligibility depends on Eloquent constraints bypassed by database exists or unique rules.
+  - Why: validates eligibility through model query constraints.
+  - Flag when: Exists or unique rules check a table without required Eloquent eligibility scopes.
+- **Should** When using bcrypt, reject passwords exceeding its 72-byte input limit consistently across password entry paths.
+  - Why: prevent silently truncated passwords from authenticating as the same credential.
+  - Flag when: Bcrypt password forms accept more than 72 bytes or omit corresponding server-side length enforcement.
+- **Consider** Allow password managers to generate and fill credentials and provide appropriate password autocomplete attributes.
+  - Why: help users maintain strong unique passwords without obstructing credential tools.
+  - Flag when: Credential fields block paste, disable useful autocomplete, or interfere with password-manager filling.
+- **Consider** Assess timing and alternate endpoints when hiding resource existence with not-found authorization denials.
+  - Why: protects resource existence across authorization paths.
+  - Flag when: One endpoint hides a resource with 404 while an alternate endpoint exposes its existence.
 - **Consider** Assign permissions through roles by default and reserve direct user permissions for deliberate exceptions.
   - Why: keep permission administration consistent and auditable.
   - Flag when: Routine user provisioning assigns many direct permissions instead of an appropriate role.
-- **Consider** Limit sensitive-data blind indexes to necessary lookups and assess equality, frequency and chosen-input leakage.
-  - Why: avoid exposing sensitive low-diversity values through searchable encryption metadata.
-  - Flag when: A blind index is added to a sensitive low-diversity field without a lookup need or leakage assessment.
+- **Consider** Authorize access before running validation that could disclose protected data or application state.
+  - Why: prevent unauthorized callers from learning information through validation errors.
+  - Flag when: A protected operation runs revealing validation before checking access.
+- **Consider** Clear sensitive password fields after successful updates and validation failures.
+  - Why: limits persistence of sensitive password inputs.
+  - Flag when: Password update forms retain password values after success or validation errors.
+- **Consider** Clear stale MFA setup secrets and recovery codes when loading fails, and display an actionable error.
+  - Why: clears stale MFA secrets after setup failures.
+  - Flag when: MFA loading failures retain old secrets or recovery codes and provide no actionable error.
+- **Consider** Clear unfinished unconfirmed MFA enrollment before presenting account security state.
+  - Why: presents accurate MFA enrollment status.
+  - Flag when: Security-state loading leaves unconfirmed MFA enrollment intact.
+- **Consider** Compare secrets with a constant-time comparison such as hash_equals rather than ordinary equality.
+  - Why: reduce timing disclosure of secret comparison results.
+  - Flag when: A secret key or authentication tag is compared with == or ===.
+- **Consider** Configure appropriate security response headers, including HSTS, Referrer-Policy and Permissions-Policy, for deployed environments.
+  - Why: reduce transport downgrade, referrer leakage and unnecessary browser capabilities.
+  - Flag when: Deployment responses omit required transport, referrer or browser capability restrictions.
+- **Consider** Confirm a newly enrolled MFA factor with a valid challenge response before marking it active.
+  - Why: ensure the user can use the enrolled factor before access depends on it.
+  - Flag when: MFA is enabled immediately after displaying a secret or QR code without verifying a code.
+- **Consider** Disable unused authentication and registration features in deployed applications.
+  - Why: reduce exposed account workflows to those the application needs.
+  - Flag when: Unused starter-kit account routes remain enabled.
+- **Consider** Keep PHP-serialized Eloquent models out of public payloads because hidden attributes and private state remain serialized.
+  - Why: prevents serialized models from exposing hidden state.
+  - Flag when: Public responses contain serialize() output for Eloquent models.
+- **Consider** Keep authentication and recovery responses uniform when account existence is private.
+  - Why: prevent attackers from enumerating registered accounts.
+  - Flag when: Login, reset, or registration responses reveal whether a private account exists.
+- **Consider** Keep temporary user execution contexts from persisting an authentication session or leaking into subsequent work.
+  - Why: avoid retaining impersonated identity beyond its intended operation.
+  - Flag when: A one-off user context uses persistent login or fails to clear scoped identity.
 - **Consider** Limit session lifetimes and persistent login for internal applications whose identity-provider suspension does not revoke active application sessions.
   - Why: bound continued access after an external identity is disabled.
   - Flag when: An internal federated application offers long-lived sessions or remember-me without handling identity-provider revocation.
-- **Consider** Notify account owners through a trusted channel about sensitive account changes, suspicious recovery attempts and security-driven token revocation.
-  - Why: help account owners detect and respond to compromise.
-  - Flag when: Sensitive email changes or security-driven credential revocation omit a notification to the account owner.
-- **Consider** Route writes to encrypted records through paths that preserve encryption processing and per-record key assignment.
-  - Why: prevent bulk writes from bypassing encryption or corrupting key associations.
-  - Flag when: Bulk insert/update writes encrypted fields while bypassing model encryption hooks.
+- **Consider** Manage administrator membership through explicit application-controlled configuration, roles or persisted flags rather than scattered hardcoded email comparisons.
+  - Why: make administrator access reviewable and consistently managed.
+  - Flag when: Administrator membership is determined by hardcoded email comparisons scattered through access checks.
+- **Consider** Match authorization domains exactly or at an explicit domain boundary; never accept a substring match.
+  - Why: prevent attacker-controlled domains from matching a trusted domain name.
+  - Flag when: Domain authorization uses contains() or an unbounded suffix check.
+- **Consider** Mitigate account-enumeration timing differences in authentication and recovery flows, using Laravel Timebox where appropriate.
+  - Why: keep response timing from disclosing private account or credential state.
+  - Flag when: Authentication or recovery paths return early for missing accounts without timing mitigation.
+- **Consider** Offer strong MFA methods such as authenticator apps or passkeys alongside any SMS option.
+  - Why: provide authentication factors with stronger protection than SMS.
+  - Flag when: MFA offers only SMS when stronger supported factors could be offered.
+- **Consider** Plan encryption-key rotation to retain legitimate sessions when continuity is required, while using the current key for new ciphertext.
+  - Why: avoid unintended session loss during routine encryption-key rotation.
+  - Flag when: A planned key rotation drops required previous-key decryption support or continues creating ciphertext with an old key.
+- **Consider** Provide an explicit account-entry fallback for passkey login when automatic credential discovery is unavailable.
+  - Why: keep passkey authentication usable when conditional discovery does not work.
+  - Flag when: Passkey login relies entirely on automatic discovery with no manual account-entry fallback.
+- **Consider** Provide the standard /.well-known/change-password redirect to the application password-change page.
+  - Why: help password managers and users locate the credential update flow.
+  - Flag when: An application with password login has no standard change-password discovery endpoint.
+- **Consider** Reject insecure transport for credential-bearing APIs and provide a safe response that directs clients to HTTPS.
+  - Why: prevent continued use of credentials sent over an unencrypted connection.
+  - Flag when: A credential-bearing API accepts HTTP or redirects a credential-bearing request without rejecting it.
+- **Consider** Require advertised S256 PKCE support before linking an MCP OAuth authorization server.
+  - Why: requires secure OAuth proof-key capabilities.
+  - Flag when: MCP OAuth linking proceeds without verifying advertised S256 PKCE support.
+- **Consider** Require every specified token scope unless the operation deliberately permits any one matching scope.
+  - Why: enforces the complete required token scope set.
+  - Flag when: Multi-scope authorization uses any-match checks where every scope is required.
+- **Consider** Reset email verification when an account changes its email address and verify ownership of the new address.
+  - Why: keep verified status bound to the address that was actually confirmed.
+  - Flag when: An email update preserves email_verified_at for the new address.
+- **Consider** Restrict redirects to approved destinations and validate user-controlled URLs and Referer-derived targets before redirecting.
+  - Why: prevent trusted application URLs from redirecting users to attacker-controlled sites.
+  - Flag when: Request or Referer input reaches a redirect without an approved destination check.
+- **Consider** Retry remote mutations only with duplicate protection and reuse the same idempotency key across attempts.
+  - Why: prevents duplicate remote writes during retries.
+  - Flag when: Remote mutation retries lack duplicate protection or generate a new idempotency key on each attempt.
+- **Consider** Run cross-field and application-state validation after base field rules, and enforce concurrent data invariants in the database.
+  - Why: avoid evaluating malformed fields and prevent races from violating persistent invariants.
+  - Flag when: Cross-field checks run before base validation or uniqueness and inventory rely only on request validation.
+- **Consider** Scope validation errors to separate forms or error bags when forms share field names.
+  - Why: isolates validation errors between independent forms.
+  - Flag when: Forms sharing field names use the same unscoped validation error bag.
+- **Consider** Set an explicit SameSite policy for authentication cookies; use Lax or Strict where compatible and require Secure when cross-site use needs None.
+  - Why: reduce cross-site cookie exposure while supporting required browser flows.
+  - Flag when: Authentication cookies omit SameSite or use SameSite=None without Secure or a cross-site requirement.
 - **Consider** Set the active tenant or team context before scoped permission checks and permission administration.
   - Why: prevent authorization from using permissions belonging to another tenant or team.
   - Flag when: Team-scoped authorization runs before the team context is established.
+- **Consider** Skip middleware side effects during precognitive validation requests.
+  - Why: keep live validation from performing the real operation or triggering incidental writes.
+  - Flag when: Middleware performs writes, notifications or other operation side effects on a precognitive request.
+- **Consider** Store credentials and access tokens in platform secure storage when distributing a native client.
+  - Why: protect client credentials from disclosure in bundled configuration and ordinary local storage.
+  - Flag when: A native client bundles credentials or stores access tokens outside the platform secure storage.
+- **Consider** Store password-reset tokens as one-way hashes and enforce expiration and single use.
+  - Why: limit token exposure and replay after recovery.
+  - Flag when: Password-reset tokens are stored in plaintext or remain reusable after a successful reset.
+- **Consider** Use Subresource Integrity for stable third-party scripts and styles, with hashes updated alongside the referenced assets.
+  - Why: detect unexpected changes to externally hosted executable resources.
+  - Flag when: A stable third-party script or stylesheet is loaded without an integrity hash or with a stale hash.
+- **Consider** Use cryptographically secure generators for security tokens, passwords and challenges; avoid predictable random and shuffle helpers.
+  - Why: keep security credentials and challenges unguessable.
+  - Flag when: Security-sensitive values use rand, mt_rand, uniqid, array_rand, or non-cryptographic shuffle methods.
+- **Consider** Use currently supported OAuth2 grant flows appropriate to the client type.
+  - Why: avoid obsolete or unsuitable authorization flows.
+  - Flag when: An OAuth2 client uses an obsolete grant or a flow unsuitable for its ability to keep secrets.
+- **Consider** Use established authenticated encryption and modern cryptographic primitives; avoid custom cryptography and obsolete hashes for security decisions.
+  - Why: avoid weaknesses in unauthenticated encryption and obsolete cryptographic algorithms.
+  - Flag when: Custom encryption or MD5/SHA-1 is used to protect secrets or make security decisions.
+- **Consider** Use hidden Context for queue-propagated metadata excluded from logs, and propagate secrets only when deliberately required.
+  - Why: separates sensitive propagated metadata from logged context.
+  - Flag when: Queue-propagated secrets use visible Context entries instead of hidden context.
+- **Consider** Use only trusted server-resolved identifiers in validation rules that exclude an existing database record.
+  - Why: prevent attacker-controlled exclusion values from altering database validation queries.
+  - Flag when: Request input is passed directly to Rule::unique()->ignore() rather than a trusted model identifier.
+- **Consider** Use opaque identifiers when resource identifiers should be difficult to enumerate, while enforcing authorization independently.
+  - Why: reduce enumeration without treating identifier secrecy as access control.
+  - Flag when: Sensitive resource URLs expose sequential identifiers or use obfuscated identifiers as their only access control.
+- **Consider** Use provider-hosted payment collection when the application does not need to handle card details directly.
+  - Why: reduce exposure of payment credentials in application code and storage.
+  - Flag when: Application endpoints receive raw card details despite a suitable hosted payment flow.
+- **Consider** Limit sensitive-data blind indexes to necessary lookups and assess equality, frequency and chosen-input leakage.
+  - Why: avoid exposing sensitive low-diversity values through searchable encryption metadata.
+  - Flag when: A blind index is added to a sensitive low-diversity field without a lookup need or leakage assessment.
 - **Consider** Use envelope encryption when access must be restricted to recipients, and scope unlocked private keys to authenticated sessions.
   - Why: keep recipient-restricted data from being decryptable through an unrestricted shared server key.
   - Flag when: Recipient-restricted data uses one global key, or unlocked private keys survive session invalidation.
@@ -745,15 +922,15 @@
 - **Must** Use typed DTOs with explicit mapping for complex inputs, results, and API contracts instead of loose arrays.
   - Why: explicit data types expose misspelled fields and incompatible assignments to static analysis.
   - Flag when: Complex input or response contracts use loose arrays with repeated string-key access.
+- **Must** Add PHPDoc generics, array shapes, and element types where native types cannot express the contract.
+  - Why: precise static types preserve input and result relationships.
+  - Flag when: Untyped collection elements, factory model types, or structured arrays cross a typed boundary.
 - **Must** Follow documented project naming, folder, and formatting conventions, using Laravel defaults where no convention exists.
   - Why: consistent conventions make code easier to locate and review.
   - Flag when: New names or layouts conflict with established project conventions.
 - **Must** Use readable collection operations for collection transformations and convert to arrays only at required boundaries.
   - Why: collection operations express transformations without repetitive traversal and conversion.
   - Flag when: Collection processing adds custom traversal or repeated intermediate array conversions.
-- **Must** Add PHPDoc generics, array shapes, and element types where native types cannot express the contract.
-  - Why: precise static types preserve input and result relationships.
-  - Flag when: Untyped collection elements, factory model types, or structured arrays cross a typed boundary.
 - **Must** Dispatch domain events for meaningful business moments with independent listeners; queue slow listeners and dispatch commit-dependent work after commit.
   - Why: independent reactions keep notifications, mail, and logging separate from the core business operation.
   - Flag when: Business operation directly performs multiple independent notification, mail, and logging side effects.
@@ -763,49 +940,58 @@
 - **Must** Use descriptive names and small methods; reserve comments for intent, constraints, and nonobvious reasoning.
   - Why: expressive code and purposeful comments explain behavior without redundant narration.
   - Flag when: Comments restate operations or long methods obscure their intent.
-- **Must** Use immutable date objects or explicit copies when date calculations must not mutate shared values.
-  - Why: mutable dates can silently change values retained by other callers.
-  - Flag when: Date operation mutates an object still referenced by other code.
-- **Must** If you adopt `declare(strict_types=1)`, apply it consistently across all calling files.
-  - Why: scalar argument checking follows the calling file, so inconsistent declarations allow unintended coercion.
-  - Flag when: Calling application file omits `declare(strict_types=1)` within a namespace adopting strict typing.
 - **Must** Use immutable value objects for recurring related primitives (money, ranges), validated on construction.
   - Why: related values share validation and calculations instead of duplicating them across callers.
   - Flag when: Recurring amount/currency or date pairs repeat validation and calculations across callers.
-- **Must** Check external API failures explicitly and preserve typed error codes and response context for diagnosis and recovery.
-  - Why: distinct failures require recognizable diagnostics and appropriate handling.
-  - Flag when: Response payload is consumed before checking failure or exception text is treated as a stable error code.
-- **Must** Let Laravel report exceptions and throttle or deduplicate reports when repeated failures would flood diagnostics.
-  - Why: centralized reporting avoids duplicate noise while preserving recoverable error handling.
-  - Flag when: Catch block only logs and rethrows, or repeated identical failures generate unbounded reports.
 - **Must** Prefer suitable PHP or Laravel facilities before adding dependencies, and check new dependencies for active maintenance.
   - Why: fewer well-maintained dependencies reduce avoidable upkeep.
   - Flag when: New package duplicates existing facilities or has no evidence of ongoing maintenance.
-- **Must** Remove temporary debugging calls from shipped application and package code.
-  - Why: debug output can interrupt execution and expose internal data.
-  - Flag when: Changed production code contains dd(), dump(), var_dump(), ray(), or other temporary debugging calls.
+- **Must** Use immutable date objects or explicit copies when date calculations must not mutate shared values.
+  - Why: mutable dates can silently change values retained by other callers.
+  - Flag when: Date operation mutates an object still referenced by other code.
 - **Must** Represent closed status or version sets explicitly with enums and define an initial lifecycle state.
   - Why: explicit states prevent inconsistent strings and ambiguous combinations of flags.
   - Flag when: Lifecycle state is inferred from scattered flags or closed-set strings are repeated throughout the code.
+- **Must** Prefer immutable data objects and transformations when callers should retain their original values.
+  - Why: immutable data prevents accidental changes across consumers.
+  - Flag when: Shared DTO exposes mutable state or collection transform() changes data that callers expect to retain.
+- **Must** Replace growing type-based conditionals with polymorphic implementations behind a shared interface.
+  - Why: new behaviors can be added without duplicating orchestration or modifying every consumer.
+  - Flag when: Growing `switch` or `instanceof` branches select behavior by concrete type.
+- **Must** If you adopt `declare(strict_types=1)`, apply it consistently across all calling files.
+  - Why: scalar argument checking follows the calling file, so inconsistent declarations allow unintended coercion.
+  - Flag when: Calling application file omits `declare(strict_types=1)` within a namespace adopting strict typing.
+- **Must** Prefer composition for independently varying behavior instead of expanding inheritance hierarchies.
+  - Why: composed collaborators can change independently.
+  - Flag when: New subclasses exist only to combine independently varying behaviors.
+- **Must** Remove temporary debugging calls from shipped application and package code.
+  - Why: debug output can interrupt execution and expose internal data.
+  - Flag when: Changed production code contains dd(), dump(), var_dump(), ray(), or other temporary debugging calls.
+- **Must** Define workflow states, triggering events, and permitted transitions explicitly before implementing transition logic.
+  - Why: an explicit transition model exposes missing and invalid paths.
+  - Flag when: Workflow adds transitions without a defined state and event model.
+- **Must** Document application setup, dependencies, contribution conventions, and significant new behavior.
+  - Why: maintained documentation makes the application easier to operate and change.
+  - Flag when: New required configuration or significant behavior has no corresponding documentation.
+- **Must** Keep interfaces small and specific to what each consumer needs.
+  - Why: consumers avoid depending on capabilities they never use.
+  - Flag when: Interface adds unrelated capabilities that existing consumers do not need.
 - **Must** Use constructor property promotion for straightforward initialization and remove empty public constructors.
   - Why: promotion eliminates repetitive property assignment boilerplate.
   - Flag when: Constructor only assigns arguments to properties or has an empty zero-argument body.
 - **Must** Attach execution context to searchable workflow progress and failure logs.
   - Why: structured context connects related events for diagnosis.
   - Flag when: Workflow logs lack searchable operation identifiers or meaningful progress and failure information.
-- **Must** Document application setup, dependencies, contribution conventions, and significant new behavior.
-  - Why: maintained documentation makes the application easier to operate and change.
-  - Flag when: New required configuration or significant behavior has no corresponding documentation.
-- **Should** Put multilingual user-facing text in translation files, use translation helpers, and avoid keys that conflict with translation filenames.
+- **Must** Check external API failures explicitly and preserve typed error codes and response context for diagnosis and recovery.
+  - Why: distinct failures require recognizable diagnostics and appropriate handling.
+  - Flag when: Response payload is consumed before checking failure or exception text is treated as a stable error code.
+- **Must** Let Laravel report exceptions and throttle or deduplicate reports when repeated failures would flood diagnostics.
+  - Why: centralized reporting avoids duplicate noise while preserving recoverable error handling.
+  - Flag when: Catch block only logs and rethrows, or repeated identical failures generate unbounded reports.
+- **Must** Put multilingual user-facing text in translation files, use translation helpers, and avoid keys that conflict with translation filenames.
   - Why: centralized translations keep localization reliable.
   - Flag when: Multilingual UI hard-codes text or defines a key conflicting with a translation filename.
-- **Should** Replace growing type-based conditionals with polymorphic implementations behind a shared interface.
-  - Why: new behaviors can be added without duplicating orchestration or modifying every consumer.
-  - Flag when: Growing `switch` or `instanceof` branches select behavior by concrete type.
-- **Should** Use multibyte-aware Laravel helpers or mb_* functions for UTF-8 text operations.
-  - Why: byte-oriented operations can corrupt or miscount multibyte text.
-  - Flag when: UTF-8 text is sliced, counted, or case-converted with byte-oriented functions.
-- **Should** Use named arguments only when they clarify a call and the target parameter names form a stable contract.
+- **Must** Use named arguments only when they clarify a call and the target parameter names form a stable contract.
   - Why: named calls couple consumers to parameter names that may vary between implementations.
   - Flag when: Named arguments target an interface whose implementations use different parameter names.
 - **Should** Attach structured diagnostic context to application exceptions.
@@ -817,18 +1003,36 @@
 - **Should** Collect and validate console input through command arguments or interactive prompts before invoking the application action.
   - Why: input gathering stays separate from the business operation.
   - Flag when: Console action gathers terminal input inside domain processing.
+- **Should** Enable debugging only for local development and use production defaults in distributable environment templates.
+  - Why: environment-appropriate defaults allow local diagnosis without exposing production internals.
+  - Flag when: Production environment template enables APP_DEBUG or defaults APP_ENV to development.
+- **Should** Enforce domain invariants in models or value objects at the point their state is created or changed.
+  - Why: domain rules must hold outside request validation as well.
+  - Flag when: A business invariant exists only in request validation or lifecycle callbacks.
+- **Should** Ensure subclasses and implementations honor the behavior their contract promises.
+  - Why: consumers rely on promised behavior when implementations are substituted.
+  - Flag when: Implementation leaves required behavior empty or throws an unsupported-operation exception.
 - **Should** Exclude expected domain exceptions from automatic error reporting when they require no operational alert.
   - Why: expected failures should not flood diagnostic logs.
   - Flag when: Expected domain exception is repeatedly reported as an operational error without an explicit reporting policy.
 - **Should** Group closely related domain errors in one exception class with descriptive named constructors.
   - Why: named constructors keep related failures discoverable without proliferating exception classes.
   - Flag when: Closely related failures create many otherwise identical exception classes.
-- **Should** Group third-party credentials and client defaults by provider in config/services.php.
-  - Why: centralized integration settings keep clients consistently configured.
-  - Flag when: Integration embeds credentials or duplicates provider URLs and client settings.
-- **Should** Keep interfaces small and specific to what each consumer needs.
-  - Why: consumers avoid depending on capabilities they never use.
-  - Flag when: Interface adds unrelated capabilities that existing consumers do not need.
+- **Should** Keep environment-specific configuration separate and exclude real .env files from source control.
+  - Why: deployment settings and secrets vary between environments.
+  - Flag when: Real .env file is committed or local configuration is reused unchanged in production.
+- **Should** Keep resource acquisition and its cleanup together and ensure cleanup runs after processing.
+  - Why: paired cleanup prevents temporary resources from accumulating.
+  - Flag when: Temporary files or reversible setup have no reliably executed cleanup.
+- **Should** Keep reusable workflow execution separate from caller-supplied data and constraints, and reuse steps with compatible payload contracts.
+  - Why: shared execution can serve related workflows without duplicating orchestration.
+  - Flag when: Related workflows duplicate execution steps or reuse steps with incompatible payload shapes.
+- **Should** Preserve user input when submission fails and provide a way to retry.
+  - Why: recoverable failures should not force users to recreate their work.
+  - Flag when: Failed submission clears entered form data or offers no recovery path.
+- **Should** Publish only configuration files that the application needs to customize.
+  - Why: retaining framework defaults avoids unnecessary configuration copies.
+  - Flag when: Unmodified framework configuration files are added without a customization need.
 - **Should** Remove PHPDoc type tags that merely duplicate native declarations; retain descriptions and richer static types.
   - Why: redundant annotations add maintenance without describing more information.
   - Flag when: PHPDoc repeats a native type without a description or additional type information.
@@ -838,57 +1042,84 @@
 - **Should** Use braces around conditional and loop bodies, including single statements.
   - Why: explicit blocks make later edits unambiguous.
   - Flag when: Conditional or loop body omits braces.
-- **Should** Use supported Laravel attributes for declarative framework metadata where the project has adopted them.
-  - Why: declarative metadata keeps framework configuration close to the class it describes.
-  - Flag when: New metadata configuration bypasses an established attribute convention.
-- **Should** Enable debugging only for local development and use production defaults in distributable environment templates.
-  - Why: environment-appropriate defaults allow local diagnosis without exposing production internals.
-  - Flag when: Production environment template enables APP_DEBUG or defaults APP_ENV to development.
-- **Should** Ensure subclasses and implementations honor the behavior their contract promises.
-  - Why: consumers rely on promised behavior when implementations are substituted.
-  - Flag when: Implementation leaves required behavior empty or throws an unsupported-operation exception.
-- **Should** Keep environment-specific configuration separate and exclude real .env files from source control.
-  - Why: deployment settings and secrets vary between environments.
-  - Flag when: Real .env file is committed or local configuration is reused unchanged in production.
-- **Should** Keep reusable workflow execution separate from caller-supplied data and constraints, and reuse steps with compatible payload contracts.
-  - Why: shared execution can serve related workflows without duplicating orchestration.
-  - Flag when: Related workflows duplicate execution steps or reuse steps with incompatible payload shapes.
-- **Should** Prefer immutable data objects and transformations when callers should retain their original values.
-  - Why: immutable data prevents accidental changes across consumers.
-  - Flag when: Shared DTO exposes mutable state or collection transform() changes data that callers expect to retain.
-- **Should** Publish only configuration files that the application needs to customize.
-  - Why: retaining framework defaults avoids unnecessary configuration copies.
-  - Flag when: Unmodified framework configuration files are added without a customization need.
-- **Should** Remove commented-out, unreachable, and abandoned code.
-  - Why: dead code obscures the active implementation.
-  - Flag when: Diff retains commented-out code, unreachable statements, or abandoned feature toggles.
+- **Should** Use multibyte-aware Laravel helpers or mb_* functions for UTF-8 text operations.
+  - Why: byte-oriented operations can corrupt or miscount multibyte text.
+  - Flag when: UTF-8 text is sliced, counted, or case-converted with byte-oriented functions.
 - **Should** Use strict equality and inequality comparisons when comparing PHP values.
   - Why: strict comparisons avoid unintended type coercion.
   - Flag when: New value comparison uses == or != instead of === or !==.
 - **Should** Validate required application configuration during provider boot and fail clearly for missing critical values.
   - Why: early validation prevents obscure failures when features are later invoked.
   - Flag when: Critical config is checked only at first use or silently accepts missing values.
+- **Should** Group third-party credentials and client defaults by provider in config/services.php.
+  - Why: centralized integration settings keep clients consistently configured.
+  - Flag when: Integration embeds credentials or duplicates provider URLs and client settings.
+- **Should** Remove commented-out, unreachable, and abandoned code.
+  - Why: dead code obscures the active implementation.
+  - Flag when: Diff retains commented-out code, unreachable statements, or abandoned feature toggles.
+- **Should** Store uploads through Laravel filesystem disks and generate URLs through the filesystem API.
+  - Why: disk abstractions keep storage paths and public URLs portable.
+  - Flag when: Upload code writes directly to public/ or manually builds filesystem URLs.
+- **Should** Use supported Laravel attributes for declarative framework metadata where the project has adopted them.
+  - Why: declarative metadata keeps framework configuration close to the class it describes.
+  - Flag when: New metadata configuration bypasses an established attribute convention.
 - **Should** When using invokable actions, give each action a descriptive command name and its contract a descriptive capability name.
   - Why: clear action names expose the operation at call sites.
   - Flag when: Invokable action or action contract has a vague name inconsistent with the project action convention.
+- **Should** Log only deliberate, minimal context and keep secrets and sensitive payloads out of ordinary logs.
+  - Why: limited log context avoids exposing sensitive or unrelated data.
+  - Flag when: Logger receives entire models, secrets, or unfiltered sensitive payloads.
+- **Consider** Avoid mutating Context-held objects inside a temporary scope when those mutations must be rolled back.
+  - Why: respects temporary Context scope rollback semantics.
+  - Flag when: Objects stored in Context are mutated inside a temporary scope and reused afterward.
 - **Consider** Catch specific anticipated failures in domain services and let programming errors propagate.
   - Why: broad catches can disguise defects as recoverable business failures.
   - Flag when: Domain service catches Throwable and suppresses programming errors.
 - **Consider** Centralize reusable HTTP client configuration in provider-registered macros or client factories.
   - Why: shared configuration prevents inconsistent headers and client defaults.
   - Flag when: Multiple integrations repeat the same HTTP client configuration.
+- **Consider** Check asynchronous subprocess timeouts while polling their progress.
+  - Why: enforces timeouts during asynchronous process polling.
+  - Flag when: Asynchronous process polling omits timeout checks.
+- **Consider** Commit dependency lockfiles for application dependencies.
+  - Why: lockfiles make dependency resolution reproducible.
+  - Flag when: Application dependency changes omit the corresponding Composer or package-manager lockfile.
+- **Consider** Configure circuit-breaker failure thresholds, sampling windows, and recovery delays per external service.
+  - Why: service-specific recovery policies account for different traffic and failure behavior.
+  - Flag when: Multiple external services share unsuitable hard-coded breaker thresholds or recovery delays.
 - **Consider** Create a fresh mailable for each recipient when sending individual messages.
   - Why: reusing a mailable can accumulate recipients across sends.
   - Flag when: Recipient loop reuses the same mutable mailable instance.
+- **Consider** Define audit logs around meaningful actor actions and relevant changed attributes.
+  - Why: a deliberate audit contract records who changed what without irrelevant noise.
+  - Flag when: Audit logging captures every saved attribute or omits the responsible actor and meaningful changes.
 - **Consider** Define separate notification payload methods when database and broadcast representations differ.
   - Why: channel-specific payloads prevent one output contract from constraining another.
   - Flag when: Notification toArray() serves incompatible database and broadcast payload requirements.
+- **Consider** Design strategy contracts so accepted input types are explicit to callers and static analyzers.
+  - Why: makes strategy input contracts statically explicit.
+  - Flag when: Strategy interfaces use mixed inputs while implementations require incompatible narrower types.
 - **Consider** Disambiguate encoded resource identifiers across model types when they share a public identifier namespace.
   - Why: type prefixes prevent different resources from producing ambiguous identifiers.
   - Flag when: Encoded identifiers from multiple model types collide in a shared public namespace.
-- **Consider** Enforce domain invariants in models or value objects at the point their state is created or changed.
-  - Why: domain rules must hold outside request validation as well.
-  - Flag when: A business invariant exists only in request validation or lifecycle callbacks.
+- **Consider** Dispatch finite handler sets explicitly rather than assembling method names from strings.
+  - Why: makes dispatch over a finite handler set explicit.
+  - Flag when: Handler method names are concatenated from strings and invoked dynamically.
+- **Consider** Document why values exposed as trusted HTML are safe before wrapping or casting them as HtmlString.
+  - Why: trusted HTML bypasses normal escaping and needs an explicit safety contract.
+  - Flag when: HtmlString cast or wrapper accepts data without a documented trust or sanitization boundary.
+- **Consider** Encapsulate internal object state and expose operations through methods.
+  - Why: controlled operations preserve invariants and hide representation details.
+  - Flag when: Domain object exposes mutable internal state that callers change directly.
+- **Consider** Follow the project policy on final classes and use final only where that policy calls for it.
+  - Why: consistent extensibility policy avoids arbitrary inheritance restrictions.
+  - Flag when: New class introduces final contrary to established project conventions.
+- **Consider** Format nontrivial ternary expressions with each part on its own line.
+  - Why: line breaks make conditional branches easier to scan.
+  - Flag when: Long ternary expressions keep the condition and both branches on one line.
+- **Consider** Group related components in descriptive subdirectories as their number grows.
+  - Why: grouping keeps component locations understandable.
+  - Flag when: Growing component directory mixes unrelated features without grouping.
 - **Consider** Group scheduled tasks that share configuration instead of repeating the same settings.
   - Why: shared task configuration remains consistent as schedules change.
   - Flag when: Several scheduled tasks repeat the same configuration chain.
@@ -901,9 +1132,9 @@
 - **Consider** Keep mailable properties private or protected when they should not automatically become template data.
   - Why: explicit template data prevents accidental exposure of internal values.
   - Flag when: Public mailable property exposes internal data the template does not need.
-- **Consider** Keep resource acquisition and its cleanup together and ensure cleanup runs after processing.
-  - Why: paired cleanup prevents temporary resources from accumulating.
-  - Flag when: Temporary files or reversible setup have no reliably executed cleanup.
+- **Consider** Mark sensitive parameters with SensitiveParameter where their values must be hidden from stack traces.
+  - Why: redacted arguments reduce accidental disclosure in diagnostics.
+  - Flag when: Password, token, or other sensitive argument lacks redaction at a traced method boundary.
 - **Consider** Measure terminal layout using visible text width and current terminal dimensions.
   - Why: escape sequences and multibyte characters do not occupy their byte length in terminal columns.
   - Flag when: Terminal layout counts ANSI bytes as visible width or uses stale dimensions when rendering.
@@ -913,21 +1144,45 @@
 - **Consider** Override vendor translations in application-owned lang/vendor files and include only the strings being changed.
   - Why: targeted overrides survive package upgrades and avoid unnecessary copies.
   - Flag when: Vendor translation source is edited directly or entire unchanged dictionaries are copied.
+- **Consider** Parenthesize comparisons when negation or mixed boolean operators would otherwise change the intended evaluation.
+  - Why: explicit grouping prevents precedence from changing the comparison.
+  - Flag when: Negation or mixed boolean operators apply to the wrong operand because a comparison lacks grouping.
 - **Consider** Place a space after the negation operator when following the Laravel Pint preset.
   - Why: consistent operator spacing matches the Laravel formatter.
   - Flag when: Negation is written as !$value instead of ! $value.
-- **Consider** Prefer composition for independently varying behavior instead of expanding inheritance hierarchies.
-  - Why: composed collaborators can change independently.
-  - Flag when: New subclasses exist only to combine independently varying behaviors.
+- **Consider** Place each applied trait on its own use statement.
+  - Why: separate statements make trait usage easy to scan.
+  - Flag when: Class combines multiple traits in a single use statement.
+- **Consider** Place method braces consistently with the configured formatter.
+  - Why: consistent brace placement removes arbitrary formatting differences.
+  - Flag when: Method brace placement conflicts with project formatter settings.
+- **Consider** Prefer ?T over T|null for a single nullable native type.
+  - Why: a consistent nullable notation keeps type declarations concise.
+  - Flag when: Single nullable type uses a union with null despite the project short-notation convention.
+- **Consider** Prefer simple string interpolation when it expresses the result more clearly than concatenation or formatting.
+  - Why: interpolation keeps ordinary string construction readable.
+  - Flag when: Simple variable substitution uses an unnecessarily complex concatenation or sprintf call.
 - **Consider** Publish structured event payloads with explicit event names and intended channels.
   - Why: explicit event contracts let listeners consume the intended fields and deliveries.
   - Flag when: Broadcast publishes unstructured external telemetry or uses an ambiguous event name or destination.
+- **Consider** Put each subsequent chained call on a new line once a method chain spans multiple lines.
+  - Why: consistent wrapping makes chained steps easy to scan.
+  - Flag when: Wrapped method chain places multiple later calls on one line.
 - **Consider** Reindex filtered arrays or collections when the output contract requires a list.
   - Why: preserved sparse keys can serialize as objects rather than lists.
   - Flag when: Filtered list is returned or serialized with sparse numeric keys without values() or array_values().
+- **Consider** Represent mutable application settings with typed contracts and preserve those types across persistence.
+  - Why: typed settings prevent inconsistent values after serialization.
+  - Flag when: Persisted settings lose their declared types or mutable settings are scattered through unrelated configuration.
+- **Consider** Separate distinct guard checks when that makes their conditions and failure paths clearer.
+  - Why: individual checks can expose the reason for each early exit.
+  - Flag when: Compound guard mixes independent failure cases that need distinct handling.
 - **Consider** Store files using URL-safe names when they will be addressed through URLs.
   - Why: valid names avoid broken generated file URLs.
   - Flag when: Stored filename contains characters that invalidate its public URL.
+- **Consider** Treat deprecation suppressions as temporary and fix the underlying code before the breaking release.
+  - Why: keeps deprecation handling temporary.
+  - Flag when: New deprecation suppressions lack a removal plan or replace fixing deprecated calls.
 - **Consider** Use Collection::all() when only the underlying array is needed; use toArray() when recursive conversion is intended.
   - Why: the methods have different effects on nested Arrayable objects.
   - Flag when: ToArray() is used where callers need original contained objects.
@@ -946,183 +1201,168 @@
 - **Consider** Use `scoped()` bindings for request/job state and `singleton()` only for truly shared state in long-lived workers.
   - Why: singleton resolutions reuse the same object and its accumulated state.
   - Flag when: Singleton binding stores mutable request-specific or job-specific state.
+- **Consider** Use a consistent handle() entry method for action classes that compose with Laravel workflows.
+  - Why: standardizes the entry point of action classes.
+  - Flag when: Action classes expose inconsistent execution method names instead of handle().
 - **Consider** Use application environment helpers for environment checks instead of reading APP_ENV directly.
   - Why: framework environment checks use the resolved application environment.
   - Flag when: Environment branch reads env('APP_ENV') directly.
+- **Consider** Use backed enums for scalar serialization and unbacked enums for purely internal concepts.
+  - Why: chooses enum forms by their serialization role.
+  - Flag when: A serialized enum has no backing value or an internal-only enum adds unnecessary scalar backing.
 - **Consider** Use contextual or factory bindings when values or implementations can't be inferred.
   - Why: autowiring cannot infer required configuration values or consumer-specific implementations.
   - Flag when: Container-resolved constructor adds a required scalar or unbound interface without a resolution strategy.
 - **Consider** Use decorators to layer caching, logging, or eligibility checks around an operation without changing its contract.
   - Why: independently varying behaviors can be composed without multiplying subclasses.
-- **Consider** Use separate logging channels for distinct operational purposes.
-  - Why: separate channels allow appropriate routing and retention.
-  - Flag when: Audit, workflow, and diagnostic logs with different requirements share an undifferentiated channel.
-- **Consider** Use the existing asset pipeline and reusable presentation components for substantial JavaScript and CSS.
-  - Why: established presentation tooling keeps assets maintainable.
-  - Flag when: Substantial inline scripts or styles bypass the project asset pipeline.
-- **Consider** Write comparisons in natural operand order rather than Yoda style when using Laravel formatting conventions.
-  - Why: natural order matches the Laravel formatter and normal reading order.
-  - Flag when: Comparison puts a constant first contrary to the configured Laravel style.
-- **Consider** Commit dependency lockfiles for application dependencies.
-  - Why: lockfiles make dependency resolution reproducible.
-  - Flag when: Application dependency changes omit the corresponding Composer or package-manager lockfile.
-- **Consider** Configure circuit-breaker failure thresholds, sampling windows, and recovery delays per external service.
-  - Why: service-specific recovery policies account for different traffic and failure behavior.
-  - Flag when: Multiple external services share unsuitable hard-coded breaker thresholds or recovery delays.
-- **Consider** Define audit logs around meaningful actor actions and relevant changed attributes.
-  - Why: a deliberate audit contract records who changed what without irrelevant noise.
-  - Flag when: Audit logging captures every saved attribute or omits the responsible actor and meaningful changes.
-- **Consider** Define workflow states, triggering events, and permitted transitions explicitly before implementing transition logic.
-  - Why: an explicit transition model exposes missing and invalid paths.
-  - Flag when: Workflow adds transitions without a defined state and event model.
-- **Consider** Follow the project policy on final classes and use final only where that policy calls for it.
-  - Why: consistent extensibility policy avoids arbitrary inheritance restrictions.
-  - Flag when: New class introduces final contrary to established project conventions.
-- **Consider** Format nontrivial ternary expressions with each part on its own line.
-  - Why: line breaks make conditional branches easier to scan.
-  - Flag when: Long ternary expressions keep the condition and both branches on one line.
-- **Consider** Group related components in descriptive subdirectories as their number grows.
-  - Why: grouping keeps component locations understandable.
-  - Flag when: Growing component directory mixes unrelated features without grouping.
-- **Consider** Log only deliberate, minimal context and keep secrets and sensitive payloads out of ordinary logs.
-  - Why: limited log context avoids exposing sensitive or unrelated data.
-  - Flag when: Logger receives entire models, secrets, or unfiltered sensitive payloads.
-- **Consider** Place each applied trait on its own use statement.
-  - Why: separate statements make trait usage easy to scan.
-  - Flag when: Class combines multiple traits in a single use statement.
-- **Consider** Prefer ?T over T|null for a single nullable native type.
-  - Why: a consistent nullable notation keeps type declarations concise.
-  - Flag when: Single nullable type uses a union with null despite the project short-notation convention.
-- **Consider** Prefer simple string interpolation when it expresses the result more clearly than concatenation or formatting.
-  - Why: interpolation keeps ordinary string construction readable.
-  - Flag when: Simple variable substitution uses an unnecessarily complex concatenation or sprintf call.
-- **Consider** Preserve user input when submission fails and provide a way to retry.
-  - Why: recoverable failures should not force users to recreate their work.
-  - Flag when: Failed submission clears entered form data or offers no recovery path.
-- **Consider** Put each subsequent chained call on a new line once a method chain spans multiple lines.
-  - Why: consistent wrapping makes chained steps easy to scan.
-  - Flag when: Wrapped method chain places multiple later calls on one line.
-- **Consider** Represent mutable application settings with typed contracts and preserve those types across persistence.
-  - Why: typed settings prevent inconsistent values after serialization.
-  - Flag when: Persisted settings lose their declared types or mutable settings are scattered through unrelated configuration.
-- **Consider** Separate distinct guard checks when that makes their conditions and failure paths clearer.
-  - Why: individual checks can expose the reason for each early exit.
-  - Flag when: Compound guard mixes independent failure cases that need distinct handling.
-- **Consider** Store uploads through Laravel filesystem disks and generate URLs through the filesystem API.
-  - Why: disk abstractions keep storage paths and public URLs portable.
-  - Flag when: Upload code writes directly to public/ or manually builds filesystem URLs.
-- **Consider** Use an explicit Collection construction when doing so makes the intended collection type clearer.
-  - Why: explicit construction can preserve a visible concrete type contract.
-  - Flag when: A collection helper obscures a concrete collection type needed by the consumer.
 - **Consider** Use distinct exception classes for domain errors that require distinct handling.
   - Why: separate types allow consumers to select domain-specific recovery.
   - Flag when: Different domain failures requiring different handling share an indistinguishable exception type.
-- **Consider** Use exceptions and framework responses instead of request-time die or exit calls.
-  - Why: normal response handling allows framework cleanup and tests to complete.
-  - Flag when: Request handling terminates the process directly with die or exit.
+- **Consider** Use separate logging channels for distinct operational purposes.
+  - Why: separate channels allow appropriate routing and retention.
+  - Flag when: Audit, workflow, and diagnostic logs with different requirements share an undifferentiated channel.
+- **Consider** Use supported PHP property hooks or asymmetric visibility when they clearly replace accessor boilerplate.
+  - Why: property-level contracts can express simple access and mutation rules directly.
+  - Flag when: Boilerplate getters and setters duplicate straightforward property access rules.
+- **Consider** Use the existing asset pipeline and reusable presentation components for substantial JavaScript and CSS.
+  - Why: established presentation tooling keeps assets maintainable.
+  - Flag when: Substantial inline scripts or styles bypass the project asset pipeline.
 - **Consider** Use values directly unless the API must evaluate a closure or accept both a value and a closure.
   - Why: unnecessary helper calls obscure simple values.
   - Flag when: Value() wraps an expression that cannot be a closure.
+- **Consider** Write comparisons in natural operand order rather than Yoda style when using Laravel formatting conventions.
+  - Why: natural order matches the Laravel formatter and normal reading order.
+  - Flag when: Comparison puts a constant first contrary to the configured Laravel style.
+- **Consider** Use an explicit Collection construction when doing so makes the intended collection type clearer.
+  - Why: explicit construction can preserve a visible concrete type contract.
+  - Flag when: A collection helper obscures a concrete collection type needed by the consumer.
+- **Consider** Use exceptions and framework responses instead of request-time die or exit calls.
+  - Why: normal response handling allows framework cleanup and tests to complete.
+  - Flag when: Request handling terminates the process directly with die or exit.
 
 ### Performance
 
 - **Must** Measure before optimizing: profile app logic, queries, rendering, and blocking calls before adding capacity or blaming the framework.
   - Why: target the actual bottleneck before spending money on capacity that may not solve it.
-- **Must** Bound interactive listings and search results; use pagination suited to the dataset, avoiding full counts or deep offsets when continuation or cursor pagination suffices.
-  - Why: limit response size and avoid unnecessary counting and offset scans.
-  - Flag when: List endpoints return unbounded results, load all rows before pagination, or calculate totals that the interface does not use.
-- **Must** Queue slow work the response doesn't need, on a real async connection with supervised workers.
-  - Why: keep expensive work such as sending email from delaying the web response.
-  - Flag when: Request handlers synchronously perform deferrable work, or queued jobs explicitly use the sync connection.
 - **Must** Add indexes for measured filter, join, and ordering patterns; choose composite column order, coverage, and index type to match the query and database.
   - Why: support selective lookups and ordered retrieval without unnecessary scans or sorting.
   - Flag when: Frequent large-table queries lack matching indexes, or composite indexes omit the required leading columns or sort tie-breaker.
-- **Must** Register a cumulative query-time threshold (`DB::whenQueryingForLongerThan`) to catch requests with many small queries.
-  - Why: detect accumulated database latency that individually fast queries hide.
-- **Must** Process large datasets incrementally (`chunk`, `lazy`, cursors) instead of loading everything into memory.
-  - Why: keep memory use from growing with the entire recipient list or import input.
-  - Flag when: Large recipient sets or import inputs are fully materialized before processing.
-- **Must** Run independent slow operations concurrently using an appropriate HTTP, process, or concurrency driver.
-  - Why: overlap independent waiting or computation instead of adding their elapsed times.
-  - Flag when: Independent outbound requests or expensive tasks run sequentially before their results are combined.
-- **Must** Retrieve relationship counts and totals with database aggregates such as withCount, withSum, or withAvg.
-  - Why: avoid loading related collections or issuing an aggregate query for every parent.
-  - Flag when: Code loads relations solely to count or sum them, or runs relationship aggregate queries inside a parent loop.
+- **Must** Bound interactive listings and search results; use pagination suited to the dataset, avoiding full counts or deep offsets when continuation or cursor pagination suffices.
+  - Why: limit response size and avoid unnecessary counting and offset scans.
+  - Flag when: List endpoints return unbounded results, load all rows before pagination, or calculate totals that the interface does not use.
 - **Must** Select only needed columns, and use scalar projections such as pluck when full models are unnecessary.
   - Why: reduce transferred data, model hydration, and memory consumption.
   - Flag when: Large listings or exports select unused text, JSON, binary, or embedding columns, or hydrate models for scalar-only output.
-- **Must** Set explicit connect and total timeouts and retries on every outbound HTTP/SDK call.
-  - Why: keep slow external dependencies from holding up user requests.
-  - Flag when: Outbound clients have no explicit connection or total timeout in their call, shared builder, or configuration.
-- **Must** Fetch only the related values or bounded related rows needed; use subquery selects, one-of-many relationships, or per-parent eager-load limits for latest-related data.
-  - Why: avoid hydrating entire related histories or duplicating parent rows to obtain a single related value.
-  - Flag when: A whole has-many relationship is loaded to display one value or latest record, or an ordering join multiplies parent rows.
+- **Must** Queue slow work the response doesn't need, on a real async connection with supervised workers.
+  - Why: keep expensive work such as sending email from delaying the web response.
+  - Flag when: Request handlers synchronously perform deferrable work, or queued jobs explicitly use the sync connection.
+- **Must** Retrieve relationship counts and totals with database aggregates such as withCount, withSum, or withAvg.
+  - Why: avoid loading related collections or issuing an aggregate query for every parent.
+  - Flag when: Code loads relations solely to count or sum them, or runs relationship aggregate queries inside a parent loop.
+- **Must** Choose an indexed search strategy suited to the required matching semantics, using prefix matching where sufficient and full-text or a search engine for broad text search and relevance.
+  - Why: avoid large-table substring scans while preserving the intended search behavior.
+  - Flag when: Large-table search relies on leading-wildcard LIKE, or relevance-sensitive results have no ranked search strategy.
+- **Must** Memoize repeated expensive computations or lookups within the current request or execution context.
+  - Why: avoid repeating identical retrieval or rendering work while keeping cached state scoped to its context.
+  - Flag when: Repeated authorization checks, computations, or identical component renders repeat the same expensive work within one request.
+- **Must** Register a cumulative query-time threshold (`DB::whenQueryingForLongerThan`) to catch requests with many small queries.
+  - Why: detect accumulated database latency that individually fast queries hide.
+- **Must** Run independent slow operations concurrently using an appropriate HTTP, process, or concurrency driver.
+  - Why: overlap independent waiting or computation instead of adding their elapsed times.
+  - Flag when: Independent outbound requests or expensive tasks run sequentially before their results are combined.
+- **Must** Process large datasets incrementally (`chunk`, `lazy`, cursors) instead of loading everything into memory.
+  - Why: keep memory use from growing with the entire recipient list or import input.
+  - Flag when: Large recipient sets or import inputs are fully materialized before processing.
 - **Must** Keep predicates on indexed columns index-usable; use direct range comparisons or indexed generated expressions when transformations are required.
   - Why: preserve useful index access for normalized values and date ranges.
   - Flag when: WHERE clauses wrap indexed columns in functions without a matching expression or generated-column index.
+- **Must** Precompute or cache repeatedly requested aggregates over large histories, with explicit refresh, synchronization, and freshness behavior.
+  - Why: avoid repeatedly scanning historical data while keeping reported totals sufficiently current.
+  - Flag when: Hot counts or rolling analytics recompute over the full history on every request, or cached totals lack a refresh strategy.
+- **Must** Resize and compress images for their intended display dimensions before storage or delivery.
+  - Why: reduce image transfer size and unnecessary decoding work.
+  - Flag when: Uploads or delivered images retain unnecessarily large dimensions or unoptimized file sizes.
+- **Must** Set explicit connect and total timeouts and retries on every outbound HTTP/SDK call.
+  - Why: keep slow external dependencies from holding up user requests.
+  - Flag when: Outbound clients have no explicit connection or total timeout in their call, shared builder, or configuration.
+- **Must** Apply filtering, sorting, limiting, and grouping in database queries before materializing results.
+  - Why: avoid moving and processing large intermediate datasets in PHP.
+  - Flag when: Large results are fetched and then filtered, sorted, grouped, or limited in PHP.
+- **Must** Fetch only the related values or bounded related rows needed; use subquery selects, one-of-many relationships, or per-parent eager-load limits for latest-related data.
+  - Why: avoid hydrating entire related histories or duplicating parent rows to obtain a single related value.
+  - Flag when: A whole has-many relationship is loaded to display one value or latest record, or an ordering join multiplies parent rows.
 - **Must** Reuse already loaded parent models for inverse relationships with setRelation or supported inverse hydration such as chaperone.
   - Why: avoid redundant parent queries and duplicate model hydration.
   - Flag when: Code accesses child-to-parent relationships after loading the same parent and its children, triggering extra queries.
-- **Should** Apply filtering, sorting, limiting, and grouping in database queries before materializing results.
-  - Why: avoid moving and processing large intermediate datasets in PHP.
-  - Flag when: Large results are fetched and then filtered, sorted, grouped, or limited in PHP.
-- **Should** Choose an indexed search strategy suited to the required matching semantics, using prefix matching where sufficient and full-text or a search engine for broad text search and relevance.
-  - Why: avoid large-table substring scans while preserving the intended search behavior.
-  - Flag when: Large-table search relies on leading-wildcard LIKE, or relevance-sensitive results have no ranked search strategy.
-- **Should** Precompute or cache repeatedly requested aggregates over large histories, with explicit refresh, synchronization, and freshness behavior.
-  - Why: avoid repeatedly scanning historical data while keeping reported totals sufficiently current.
-  - Flag when: Hot counts or rolling analytics recompute over the full history on every request, or cached totals lack a refresh strategy.
-- **Should** Resize and compress images for their intended display dimensions before storage or delivery.
-  - Why: reduce image transfer size and unnecessary decoding work.
-  - Flag when: Uploads or delivered images retain unnecessarily large dimensions or unoptimized file sizes.
-- **Should** Batch repeated remote commands or requests when measurements show round-trip and serialization overhead dominates.
-  - Why: reduce repeated network and encoding costs while preserving required operation semantics.
-  - Flag when: A loop sends independently batchable commands to the same remote service one round trip at a time.
 - **Should** Cache routes in production and regenerate on deploy; don't cache routes in local dev.
   - Why: avoid repeating route registration and discovery work on every production request.
   - Flag when: Deployment clears route caches without rebuilding them, or local startup runs route:cache.
 - **Should** Combine counts or totals over the same dataset into one conditional aggregate query using expressions supported by the database.
   - Why: avoid repeated scans and query round trips for dashboard totals.
   - Flag when: Several queries count the same filtered dataset with different status or flag conditions.
-- **Should** Load nonessential data and offscreen media only when needed.
-  - Why: reduce initial page work and network contention.
-  - Flag when: Initial rendering eagerly requests data or images that are not needed until a later interaction or scroll.
-- **Should** Memoize repeated expensive computations or lookups within the current request or execution context.
-  - Why: avoid repeating identical retrieval or rendering work while keeping cached state scoped to its context.
-  - Flag when: Repeated authorization checks, computations, or identical component renders repeat the same expensive work within one request.
+- **Should** Consider SQL subqueries instead of materializing identifier lists and benchmark alternatives on the target database.
+  - Why: compares database execution with application-side materialization.
+  - Flag when: Queries pluck identifier lists into memory for subsequent whereIn calls without alternative benchmarks.
 - **Should** Consider separate indexed queries or UNION branches when cross-table OR conditions or complex queries prevent useful index access; verify the resulting plans.
   - Why: allow each selective branch to use its indexes without assuming one complex query is cheaper.
   - Flag when: Cross-table search combines OR predicates in one query with poor index access.
-- **Consider** Consider emulated prepared statements only after verifying performance and binding behavior for the database driver and workload.
-  - Why: make driver-level performance choices without assuming emulation is universally faster or equivalent.
-  - Flag when: Database configuration enables emulated prepares without evidence that the workload benefits or that parameter behavior remains suitable.
-- **Consider** Exclude unnecessary loaded relationships from queued model payloads.
-  - Why: avoid restoring and loading unrelated model data in workers.
-  - Flag when: Queued models carry loaded relationships that the job never uses.
-- **Consider** Keep service providers lean; don't eagerly build unused services or capture request state in singletons.
-  - Why: avoid paying bootstrap costs for dependency graphs the request never uses.
-  - Flag when: Providers eagerly resolve unused services or singleton factories capture the current request.
-- **Consider** Sample expensive diagnostic logging at a rate appropriate for production traffic.
-  - Why: limit observability overhead while retaining useful evidence.
-  - Flag when: Full SQL or similarly expensive diagnostic logging runs on every production request.
-- **Consider** Use COUNT(*) to count rows and inspect its execution plan for costly large-table counts.
-  - Why: express row-count semantics directly and verify efficient index access.
-  - Flag when: Row counts use nullable-column COUNT expressions unintentionally, or hot counts scan more data than necessary.
-- **Consider** Use exists or doesntExist when only the presence of matching rows is needed.
-  - Why: avoid counting or retrieving all matches for a boolean result.
-  - Flag when: A count or fetched collection is used solely to decide whether any rows exist.
+- **Should** Load nonessential data and offscreen media only when needed.
+  - Why: reduce initial page work and network contention.
+  - Flag when: Initial rendering eagerly requests data or images that are not needed until a later interaction or scroll.
+- **Should** Batch repeated remote commands or requests when measurements show round-trip and serialization overhead dominates.
+  - Why: reduce repeated network and encoding costs while preserving required operation semantics.
+  - Flag when: A loop sends independently batchable commands to the same remote service one round trip at a time.
+- **Consider** Accumulate commutative projection updates per key within each batch before persisting them.
+  - Why: reduces redundant writes by aggregating projection changes.
+  - Flag when: Commutative projection changes write repeatedly to the same key within a batch.
 - **Consider** Batch or buffer bulk activity writes and flush them at explicit lifecycle boundaries.
   - Why: reduce per-record write queries without leaving buffered activity unpersisted.
   - Flag when: Bulk updates write one activity record per query, or buffered writes have no defined flush boundary.
+- **Consider** Consider emulated prepared statements only after verifying performance and binding behavior for the database driver and workload.
+  - Why: make driver-level performance choices without assuming emulation is universally faster or equivalent.
+  - Flag when: Database configuration enables emulated prepares without evidence that the workload benefits or that parameter behavior remains suitable.
+- **Consider** Eager-load Pennant feature values for collections of scopes to avoid per-check queries.
+  - Why: avoids repeated feature queries for scope collections.
+  - Flag when: Loops check Pennant features for many scopes without eager-loading feature values.
+- **Consider** Exclude unnecessary loaded relationships from queued model payloads.
+  - Why: avoid restoring and loading unrelated model data in workers.
+  - Flag when: Queued models carry loaded relationships that the job never uses.
 - **Consider** Generate and serve responsive image variants when display sizes vary.
   - Why: avoid transferring full-resolution images to small viewports.
   - Flag when: Responsive pages serve one oversized image without appropriately sized variants.
-- **Consider** Include the data required for the initial screen in the initial response when it avoids redundant startup requests.
-  - Why: reduce sequential round trips before the interface becomes usable.
-  - Flag when: The initial screen waits for separate settings or capability requests that could be supplied with its response.
+- **Consider** Keep service providers lean; don't eagerly build unused services or capture request state in singletons.
+  - Why: avoid paying bootstrap costs for dependency graphs the request never uses.
+  - Flag when: Providers eagerly resolve unused services or singleton factories capture the current request.
 - **Consider** Precompute or cache remote-derived values before model serialization instead of issuing HTTP calls from appended accessors.
   - Why: prevent serialization from triggering hidden and repeated network waits.
   - Flag when: Automatically appended model accessors perform outbound HTTP requests.
+- **Consider** Reduce repeated template work by preparing data ahead of rendering and reusing or precompiling static fragments where supported.
+  - Why: avoid repeated computation and component overhead in large rendered lists.
+  - Flag when: Large template loops repeat expensive preparation or render identical static fragments independently.
+- **Consider** Repeat benchmark iterations and runs to detect transient machine-load effects.
+  - Why: requires repeated measurements for reliable benchmarks.
+  - Flag when: Benchmark scripts run a single iteration or a single measurement run.
+- **Consider** Sample expensive diagnostic logging at a rate appropriate for production traffic.
+  - Why: limit observability overhead while retaining useful evidence.
+  - Flag when: Full SQL or similarly expensive diagnostic logging runs on every production request.
+- **Consider** Skip expensive post-validation queries when prerequisite fields already have validation errors.
+  - Why: avoids expensive queries for already invalid requests.
+  - Flag when: Post-validation hooks query the database despite errors on prerequisite fields.
+- **Consider** Suppress subprocess output when it is unnecessary and potentially large.
+  - Why: avoids buffering unnecessary subprocess output.
+  - Flag when: Potentially large subprocess output is retained despite never being consumed.
+- **Consider** Use COUNT(*) to count rows and inspect its execution plan for costly large-table counts.
+  - Why: express row-count semantics directly and verify efficient index access.
+  - Flag when: Row counts use nullable-column COUNT expressions unintentionally, or hot counts scan more data than necessary.
+- **Consider** Use a fast noncryptographic hash for nonsecurity fingerprints when cryptographic properties are unnecessary.
+  - Why: reduce hashing overhead for cache keys and similar nonsecurity identifiers.
+  - Flag when: Frequently computed nonsecurity fingerprints use a slower cryptographic hash without needing its security properties.
+- **Consider** Use exists or doesntExist when only the presence of matching rows is needed.
+  - Why: avoid counting or retrieving all matches for a boolean result.
+  - Flag when: A count or fetched collection is used solely to decide whether any rows exist.
+- **Consider** Include the data required for the initial screen in the initial response when it avoids redundant startup requests.
+  - Why: reduce sequential round trips before the interface becomes usable.
+  - Flag when: The initial screen waits for separate settings or capability requests that could be supplied with its response.
 
 ### Tooling & AI
 
@@ -1132,105 +1372,138 @@
 - **Must** Maintain version-controlled project instructions for architecture, conventions, and workflows; load them into coding agents and update them when correcting drift.
   - Why: durable project context keeps generated changes aligned with team decisions.
   - Flag when: Agent instructions contradict repository conventions, omit relevant constraints, or lose durable corrections when regenerated.
-- **Must** Give coding agents access to application context and documentation matching installed framework and package versions, and consult it before implementing unfamiliar APIs.
-  - Why: version-aware guidance avoids invented APIs and incompatible patterns.
-  - Flag when: Agent setup lacks repository-aware documentation tools, or generated code relies on APIs absent from installed versions.
 - **Must** Review AI-generated diffs against the actual codebase, resolve bugs and review feedback, and simplify the code before merging.
   - Why: model output still needs accountable review for correctness, security, and maintainability.
   - Flag when: Generated changes merge with unresolved review findings, unsupported assumptions, or unnecessary complexity.
 - **Must** Run PHPStan with Larastan locally and in CI, starting at an attainable level and raising it over time.
   - Why: laravel-aware analysis catches undefined members and incompatible types before affected endpoints run.
   - Flag when: CI removes PHPStan analysis, or PHPStan configuration omits the Larastan extension.
+- **Must** Give coding agents access to application context and documentation matching installed framework and package versions, and consult it before implementing unfamiliar APIs.
+  - Why: version-aware guidance avoids invented APIs and incompatible patterns.
+  - Flag when: Agent setup lacks repository-aware documentation tools, or generated code relies on APIs absent from installed versions.
 - **Must** Use development diagnostics to inspect logs, runtime values, and queries, choosing non-blocking output or a full debugger as the investigation requires.
   - Why: appropriate diagnostics reveal application behavior without unnecessary execution interruptions.
   - Flag when: An investigation lacks relevant runtime evidence or leaves intrusive debugging in normal application paths.
 - **Must** Define outcomes, scope, constraints, and verification criteria before delegating implementation, and clarify consequential missing requirements.
   - Why: bounded tasks and explicit requirements reduce incorrect or excessive agent changes.
   - Flag when: Agent tasks omit acceptance criteria or authorize edits and provisioning beyond a defined scope.
+- **Must** Automate formatting, linting, tests, and applicable static analysis through CI or Git hooks before changes merge.
+  - Why: repeatable checks catch regressions without relying on manual review reminders.
+  - Flag when: Quality checks are removed from CI or hooks, or failing checks no longer block integration.
+- **Must** Manage agent context budgets by compacting long histories and loading concise, task-relevant instructions and tool output.
+  - Why: bounded context preserves relevant information and reduces unnecessary token consumption.
+  - Flag when: Agent loops resend unbounded histories or verbose irrelevant tool output.
+- **Must** Configure Rector for supported PHP and framework versions, apply focused transformations in reviewed batches, and verify behavior with tests.
+  - Why: mechanical refactoring is safer when runtime compatibility and behavior are checked.
+  - Flag when: Rector targets an unsupported runtime, or broad generated refactors lack review and regression validation.
+- **Must** Keep development tools and framework dependencies maintained, reviewing upgrade requirements and compatibility before adopting updates.
+  - Why: maintained tooling preserves security fixes and correct framework guidance.
+  - Flag when: Tooling remains on unsupported versions or upgrades ignore documented compatibility requirements.
 - **Must** Provide a reproducible development environment with declared runtime and service dependencies, automated setup, source synchronization, and restorable development data.
   - Why: repeatable environments reduce setup friction and differences from production behavior.
   - Flag when: Setup relies on undocumented local services or versions, or environment recreation loses required seed data.
 - **Must** Bound agent command and repository permissions, isolate processing of untrusted content, and require explicit approval for destructive actions.
   - Why: least privilege limits damage from unintended actions and embedded hostile instructions.
   - Flag when: An agent processing untrusted text has unnecessary secret or write access, or destructive commands bypass approval.
-- **Must** Configure Rector for supported PHP and framework versions, apply focused transformations in reviewed batches, and verify behavior with tests.
-  - Why: mechanical refactoring is safer when runtime compatibility and behavior are checked.
-  - Flag when: Rector targets an unsupported runtime, or broad generated refactors lack review and regression validation.
-- **Must** Automate formatting, linting, tests, and applicable static analysis through CI or Git hooks before changes merge.
-  - Why: repeatable checks catch regressions without relying on manual review reminders.
-  - Flag when: Quality checks are removed from CI or hooks, or failing checks no longer block integration.
+- **Must** Declare development and debugging tools as development dependencies and disable their interfaces and convenience shortcuts in production.
+  - Why: development tools can expose application data and need not ship with production dependencies.
+  - Flag when: Debugging packages enter require instead of require-dev, or production enables their interfaces.
+- **Must** Start bulk generation or automated changes from a clean version-control checkpoint and inspect the resulting diff.
+  - Why: a checkpoint makes generated changes attributable and selectively reversible.
+  - Flag when: Generation is mixed into unrelated uncommitted edits without a recoverable checkpoint.
 - **Must** Use conventional framework generators for recurring scaffolding and review the generated application code and tests.
   - Why: consistent scaffolding reduces repetitive work while generated behavior still requires review.
   - Flag when: Repeated boilerplate bypasses established generators or generated actions and tests are accepted without inspection.
+- **Must** Use narrow PHPStan suppressions or a baseline for existing violations, enforce checks on new code, and reduce the baseline over time.
+  - Why: targeted exceptions preserve useful analysis while allowing incremental adoption.
+  - Flag when: Broad ignore patterns hide new errors, or a baseline grows to cover newly introduced violations.
+- **Must** Build generated changes in small reviewable increments, using verified examples and checkpoints before expanding the scope.
+  - Why: incremental review makes drift and regressions easier to isolate and correct.
+  - Flag when: A large generated change combines unrelated steps without intermediate review or validation.
+- **Must** Encode recurring project and security restrictions in PHPStan rules with precise diagnostics and tests for both allowed and violating code.
+  - Why: automated restrictions catch repeatable defects while tested type handling limits false positives.
+  - Flag when: A recurring banned call is unchecked, or a custom analysis rule lacks useful diagnostics or positive and negative test cases.
+- **Must** Expose application capabilities through narrowly scoped, authorized agent tools with explicit input schemas and meaningful descriptions.
+  - Why: clear tool contracts support correct calls while authorization protects application data.
+  - Flag when: Agent tools have ambiguous descriptions, unconstrained inputs, or missing authorization checks.
+- **Must** Persist and resend conversation history for multi-turn AI features, scoped to the authorized user and domain record.
+  - Why: scoped history preserves continuity without mixing unrelated conversations.
+  - Flag when: AI conversations lose prior turns or share history across users or unrelated records.
+- **Must** Record per-invocation AI usage and costs, distinguish cached and uncached token categories, and enforce spending and iteration limits.
+  - Why: usage visibility and hard bounds prevent runaway agent loops and surprise bills.
+  - Flag when: AI calls lack usage accounting or bounds, or cost calculations collapse differently billed token categories.
+- **Must** Require schema-constrained structured AI output and validate it before consuming it as application data.
+  - Why: explicit output contracts prevent free-form responses from silently corrupting downstream logic.
+  - Flag when: Code parses free-form AI prose as structured fields or trusts output without schema validation.
+- **Should** Add development-only rendered HTML annotations that identify the Blade views, components, and layouts producing complex pages.
+  - Why: source annotations shorten navigation from rendered markup to the relevant template.
+  - Flag when: Template diagnostics expose internal source metadata in production.
 - **Should** Expose development and quality workflows through named Composer scripts shared by contributors and CI.
   - Why: stable project commands make setup and verification repeatable across tooling.
   - Flag when: Contributor instructions and CI duplicate inconsistent vendor commands or lack a common workflow script.
 - **Should** Expose only task-relevant tool definitions to agents and use searchable discovery for large tool catalogs.
   - Why: selective tool discovery reduces context cost and irrelevant capabilities.
   - Flag when: Agent clients receive a large unconditional tool catalog despite task-specific or searchable discovery.
-- **Should** Keep development tools and framework dependencies maintained, reviewing upgrade requirements and compatibility before adopting updates.
-  - Why: maintained tooling preserves security fixes and correct framework guidance.
-  - Flag when: Tooling remains on unsupported versions or upgrades ignore documented compatibility requirements.
-- **Should** Manage agent context budgets by compacting long histories and loading concise, task-relevant instructions and tool output.
-  - Why: bounded context preserves relevant information and reduces unnecessary token consumption.
-  - Flag when: Agent loops resend unbounded histories or verbose irrelevant tool output.
+- **Should** Give each parallel coding agent an isolated workspace and review its changes before integrating them.
+  - Why: isolated working copies prevent concurrent edits from overwriting each other.
+  - Flag when: Concurrent agents write into the same checkout without workspace isolation.
+- **Should** Keep dependencies limited to needed capabilities and remove unused or unnecessary packages.
+  - Why: fewer dependencies reduce maintenance and supply-chain exposure.
+  - Flag when: A package is added for trivial unused functionality or remains installed after its consumers are removed.
 - **Should** Measure type coverage and enforce an agreed minimum, adding declarations where signatures can accurately express the types.
   - Why: coverage checks expose missing declarations without forcing inaccurate types.
   - Flag when: Type coverage checks are removed or newly untyped signatures lower coverage below the project threshold.
-- **Should** Use narrow PHPStan suppressions or a baseline for existing violations, enforce checks on new code, and reduce the baseline over time.
-  - Why: targeted exceptions preserve useful analysis while allowing incremental adoption.
-  - Flag when: Broad ignore patterns hide new errors, or a baseline grows to cover newly introduced violations.
-- **Should** Add development-only rendered HTML annotations that identify the Blade views, components, and layouts producing complex pages.
-  - Why: source annotations shorten navigation from rendered markup to the relevant template.
-  - Flag when: Template diagnostics expose internal source metadata in production.
-- **Should** Build generated changes in small reviewable increments, using verified examples and checkpoints before expanding the scope.
-  - Why: incremental review makes drift and regressions easier to isolate and correct.
-  - Flag when: A large generated change combines unrelated steps without intermediate review or validation.
-- **Should** Declare development and debugging tools as development dependencies and disable their interfaces and convenience shortcuts in production.
-  - Why: development tools can expose application data and need not ship with production dependencies.
-  - Flag when: Debugging packages enter require instead of require-dev, or production enables their interfaces.
-- **Should** Expose application capabilities through narrowly scoped, authorized agent tools with explicit input schemas and meaningful descriptions.
-  - Why: clear tool contracts support correct calls while authorization protects application data.
-  - Flag when: Agent tools have ambiguous descriptions, unconstrained inputs, or missing authorization checks.
-- **Should** Persist and resend conversation history for multi-turn AI features, scoped to the authorized user and domain record.
-  - Why: scoped history preserves continuity without mixing unrelated conversations.
-  - Flag when: AI conversations lose prior turns or share history across users or unrelated records.
 - **Should** Prefer established local CLI tools for agent repository operations when they provide the needed capability without an additional MCP integration.
   - Why: reusing available command interfaces reduces integration overhead and agent context cost.
   - Flag when: Agent setup introduces an extra integration for operations already supported by available project CLIs.
-- **Should** Record per-invocation AI usage and costs, distinguish cached and uncached token categories, and enforce spending and iteration limits.
-  - Why: usage visibility and hard bounds prevent runaway agent loops and surprise bills.
-  - Flag when: AI calls lack usage accounting or bounds, or cost calculations collapse differently billed token categories.
-- **Should** Generate API documentation from application code, keep supplemental metadata beside the code, and rebuild it when endpoints change.
-  - Why: code-derived documentation is easier to keep aligned with actual endpoint behavior.
-  - Flag when: Endpoint changes leave generated documentation stale or omit metadata that extraction cannot infer.
+- **Should** Review staged changes selectively and commit coherent changes without secrets or sensitive files.
+  - Why: staging review catches accidental inclusions and keeps changes understandable.
+  - Flag when: A commit combines unrelated edits or includes credentials and sensitive files.
+- **Should** Verify the identity, necessity, and trustworthiness of agent-suggested packages, MCP servers, plugins, and skills before approving installation.
+  - Why: unverified dependencies can exploit hallucinated names or execute with agent permissions.
+  - Flag when: Agent workflows install unverified packages or extensions without reviewing their source and purpose.
 - **Should** In modular codebases, enforce allowed dependencies between modules with Deptrac in CI.
   - Why: catches dependencies on other modules' implementation classes before merging.
   - Flag when: CI removes the Deptrac check or suppresses a dependency forbidden by the module ruleset.
 - **Should** Route development email to an inspectable local mail sink instead of real recipients.
   - Why: mail capture permits feature verification without accidental external delivery.
   - Flag when: Development mail configuration sends test messages to a live provider or real recipients.
-- **Should** Start bulk generation or automated changes from a clean version-control checkpoint and inspect the resulting diff.
-  - Why: a checkpoint makes generated changes attributable and selectively reversible.
-  - Flag when: Generation is mixed into unrelated uncommitted edits without a recoverable checkpoint.
+- **Should** Generate API documentation from application code, keep supplemental metadata beside the code, and rebuild it when endpoints change.
+  - Why: code-derived documentation is easier to keep aligned with actual endpoint behavior.
+  - Flag when: Endpoint changes leave generated documentation stale or omit metadata that extraction cannot infer.
 - **Consider** Build optimized production assets and reference them via `@vite`/`Vite::asset()` for versioned URLs.
   - Why: reduces production asset size and lets content changes invalidate cached URLs.
   - Flag when: Templates hard-code compiled asset filenames or deployment scripts use development assets without a production build.
 - **Consider** Check identifiers and annotations for spelling errors, correcting mistakes and explicitly allowing legitimate domain terms.
   - Why: consistent names improve discoverability without flagging valid domain vocabulary.
   - Flag when: New identifiers contain accidental misspellings or spelling ignores broadly hide errors.
+- **Consider** Commit composer.lock and install application dependencies from it for reproducible versions.
+  - Why: locked dependency versions make builds consistent across environments.
+  - Flag when: Composer.lock is missing, ignored, or bypassed by deployment dependency resolution.
+- **Consider** Coordinate before rewriting pushed history and verify that collaborators have not added commits.
+  - Why: coordinated history changes avoid overwriting other contributors work.
+  - Flag when: A pushed branch is rewritten without checking for collaborator commits.
 - **Consider** Declare frontend entry points explicitly in Vite config with dev, build, and watch scripts.
   - Why: makes asset dependencies explicit and build commands repeatable without memorizing project-specific arguments.
   - Flag when: New frontend entry files lack Vite inputs, or package scripts omit the required build modes.
-- **Consider** Encode recurring project and security restrictions in PHPStan rules with precise diagnostics and tests for both allowed and violating code.
-  - Why: automated restrictions catch repeatable defects while tested type handling limits false positives.
-  - Flag when: A recurring banned call is unchecked, or a custom analysis rule lacks useful diagnostics or positive and negative test cases.
-- **Consider** Give each parallel coding agent an isolated workspace and review its changes before integrating them.
-  - Why: isolated working copies prevent concurrent edits from overwriting each other.
-  - Flag when: Concurrent agents write into the same checkout without workspace isolation.
 - **Consider** Ground project rules in actual repository decisions and supporting evidence, and review them with the team before adopting them.
   - Why: evidence-based instructions avoid encoding invented or conflicting project conventions.
   - Flag when: New project guidelines impose unsupported conventions or contradict agreed architecture.
+- **Consider** Isolate globally installed PHP development tools from application dependencies, using self-contained distributions where appropriate.
+  - Why: tool isolation avoids conflicting dependency requirements across projects.
+  - Flag when: Global tooling dependency changes interfere with application dependency resolution.
+- **Consider** Keep custom agent instructions outside generated guideline blocks so updates preserve them.
+  - Why: preserves custom instructions during guideline regeneration.
+  - Flag when: Custom agent instructions are inserted inside generated guideline markers.
+- **Consider** Keep production credentials and sensitive customer data out of agent-readable workspaces and AI prompts, and use organization-approved AI accounts.
+  - Why: agent access and external prompts can disclose confidential application data.
+  - Flag when: Agent configuration exposes production secrets, uploads sensitive datasets, or uses an unapproved personal account.
+- **Consider** Keep routine linting fast enough for frequent use by profiling slow checks and narrowing incremental checks while retaining full CI coverage.
+  - Why: responsive checks encourage regular validation without sacrificing complete merge checks.
+  - Flag when: Routine hooks repeatedly run unnecessary whole-repository checks or optimized checks remove required CI coverage.
+- **Consider** Load a Livewire-aware PHPStan extension to analyze computed properties rather than suppressing their errors.
+  - Why: configures static analysis for Livewire computed properties.
+  - Flag when: PHPStan configuration suppresses computed-property errors without a Livewire extension.
 - **Consider** Load analysis extensions for framework-specific test APIs when running PHPStan over tests.
   - Why: test-aware analysis understands closure bindings and matcher types.
   - Flag when: PHPStan analyzes Pest tests without the Pest extension or suppresses the resulting API errors wholesale.
@@ -1243,48 +1516,35 @@
 - **Consider** Resolve Composer dependencies against the production PHP version using config.platform.php and verify the deployment runtime satisfies package requirements.
   - Why: production-compatible resolution prevents development runtime differences from producing unusable locks.
   - Flag when: Composer resolves for a newer PHP runtime than production or platform overrides hide incompatible deployment requirements.
-- **Consider** Review staged changes selectively and commit coherent changes without secrets or sensitive files.
-  - Why: staging review catches accidental inclusions and keeps changes understandable.
-  - Flag when: A commit combines unrelated edits or includes credentials and sensitive files.
 - **Consider** Run automated CLI commands non-interactively with all required options explicit and preserve approval gates for destructive operations.
   - Why: explicit inputs prevent unattended commands from hanging or choosing unintended defaults.
   - Flag when: An automated command can prompt for input or relies on interactive defaults.
 - **Consider** Run documentation generation and its database resets or seeding in an isolated environment with disposable example data.
   - Why: documentation tooling must not mutate production data or publish real customer records.
   - Flag when: Documentation generation uses production credentials or non-disposable data for destructive setup.
-- **Consider** Verify the identity, necessity, and trustworthiness of agent-suggested packages, MCP servers, plugins, and skills before approving installation.
-  - Why: unverified dependencies can exploit hallucinated names or execute with agent permissions.
-  - Flag when: Agent workflows install unverified packages or extensions without reviewing their source and purpose.
-- **Consider** Coordinate before rewriting pushed history and verify that collaborators have not added commits.
-  - Why: coordinated history changes avoid overwriting other contributors work.
-  - Flag when: A pushed branch is rewritten without checking for collaborator commits.
-- **Consider** Customize reusable generator templates and extensions to match recurring project conventions and the existing test framework.
-  - Why: shared generation conventions prevent repeated manual corrections to scaffolding.
-  - Flag when: Generated components repeatedly require the same edits or introduce a different test framework from the project.
-- **Consider** Isolate globally installed PHP development tools from application dependencies, using self-contained distributions where appropriate.
-  - Why: tool isolation avoids conflicting dependency requirements across projects.
-  - Flag when: Global tooling dependency changes interfere with application dependency resolution.
-- **Consider** Keep Eloquent model property PHPDoc accurate so analyzers and editors understand dynamic attributes.
-  - Why: explicit attribute types make dynamic model access checkable.
-  - Flag when: Model attribute changes leave missing or stale property annotations.
-- **Consider** Keep dependencies limited to needed capabilities and remove unused or unnecessary packages.
-  - Why: fewer dependencies reduce maintenance and supply-chain exposure.
-  - Flag when: A package is added for trivial unused functionality or remains installed after its consumers are removed.
-- **Consider** Keep generation metadata current and review inferred relationships, validation, and authorization, supplying explicit definitions wherever inference is ambiguous.
-  - Why: generators cannot reliably infer all domain constraints or permissions.
-  - Flag when: Generated relationships, validation rules, or authorization rely on incorrect or ambiguous inference.
-- **Consider** Keep production credentials and sensitive customer data out of agent-readable workspaces and AI prompts, and use organization-approved AI accounts.
-  - Why: agent access and external prompts can disclose confidential application data.
-  - Flag when: Agent configuration exposes production secrets, uploads sensitive datasets, or uses an unapproved personal account.
-- **Consider** Keep routine linting fast enough for frequent use by profiling slow checks and narrowing incremental checks while retaining full CI coverage.
-  - Why: responsive checks encourage regular validation without sacrificing complete merge checks.
-  - Flag when: Routine hooks repeatedly run unnecessary whole-repository checks or optimized checks remove required CI coverage.
-- **Consider** Require schema-constrained structured AI output and validate it before consuming it as application data.
-  - Why: explicit output contracts prevent free-form responses from silently corrupting downstream logic.
-  - Flag when: Code parses free-form AI prose as structured fields or trusts output without schema validation.
 - **Consider** Share relevant live diagnostics through an access-controlled debugging session when collaborating on an investigation.
   - Why: shared runtime evidence lets collaborators inspect the same behavior.
   - Flag when: Shared debugging configuration exposes sensitive diagnostics without access controls.
+- **Consider** Use targeted code searches and review tools to identify insecure randomness and suspicious input handling, then inspect each match.
+  - Why: heuristic searches focus security review on potentially dangerous code.
+  - Flag when: New insecure randomness or suspect input handling is left unexamined despite matching known review patterns.
+- **Consider** Verify agent-generated UI changes in a real browser against the requested interactions and appearance.
+  - Why: browser verification catches rendering and interaction defects missed by source review.
+  - Flag when: UI changes have no browser verification or leave broken interactions in the rendered page.
+- **Consider** Verify structured-output schema enforcement for the exact AI provider and model before relying on it.
+  - Why: checks AI structured-output guarantees for the chosen model.
+  - Flag when: Code assumes structured schema enforcement without a capability check or provider-specific verification test.
+- **Consider** Customize reusable generator templates and extensions to match recurring project conventions and the existing test framework.
+  - Why: shared generation conventions prevent repeated manual corrections to scaffolding.
+  - Flag when: Generated components repeatedly require the same edits or introduce a different test framework from the project.
+- **Consider** Have the human owner explain agent-assisted changes in the pull request to confirm understanding.
+  - Why: requires human understanding of agent-assisted changes.
+- **Consider** Keep Eloquent model property PHPDoc accurate so analyzers and editors understand dynamic attributes.
+  - Why: explicit attribute types make dynamic model access checkable.
+  - Flag when: Model attribute changes leave missing or stale property annotations.
+- **Consider** Keep generation metadata current and review inferred relationships, validation, and authorization, supplying explicit definitions wherever inference is ambiguous.
+  - Why: generators cannot reliably infer all domain constraints or permissions.
+  - Flag when: Generated relationships, validation rules, or authorization rely on incorrect or ambiguous inference.
 - **Consider** Trace the installed framework or package construction and configuration path before customizing providers or manager callbacks.
   - Why: source inspection prevents extensions from relying on incorrect lifecycle assumptions.
   - Flag when: Provider or callback customization assumes a construction order that contradicts installed source.
@@ -1305,43 +1565,45 @@
 - **Must** Before refactoring, pin existing behavior with tests and keep them green through small steps; add new behavior separately.
   - Why: existing tests catch unintended behavior changes while internal structure is rearranged.
   - Flag when: Refactoring weakens existing test expectations or mixes structural changes with new behavior.
+- **Must** Enforce agreed structural, dependency, and security conventions with scoped architecture tests.
+  - Why: architecture checks detect drift in project conventions before it reaches runtime.
+  - Flag when: Architecture expectations contradict chosen conventions or exempt unrelated application namespaces.
+- **Must** Cover success, alternate paths, invalid input, forbidden access, and edge cases in acceptance scenarios.
+  - Why: happy-path tests leave alternative inputs and failure branches unverified.
+  - Flag when: New acceptance tests cover success but omit implemented validation failures or alternative branches.
+- **Must** Use browser tests for critical interactive journeys and JavaScript behavior, asserting visible results and relevant saved state.
+  - Why: real browser execution covers interactions that request tests cannot exercise.
+  - Flag when: Critical JavaScript interactions have only request tests or browser tests omit their observable effects.
 - **Must** Test observable application contracts and project-specific configuration rather than framework or package internals.
   - Why: behavioral tests retain value when implementations change without changing the contract.
   - Flag when: Tests assert vendor internals or private implementation details without a project-specific contract.
+- **Must** Write readable HTTP feature tests with explicit fixtures and auth, asserting responses, redirects, validation errors, and persisted data.
+  - Why: verifies application behavior through requests, including successful writes and failure responses.
+  - Flag when: New write-endpoint tests assert only HTTP status, omitting promised redirects, errors, or persisted effects.
+- **Must** Fake mail, notifications, queues, and events before acting, then assert recipients, payloads, and counts.
+  - Why: detects wrong recipients and payloads without coupling tests to internal callback order.
+  - Flag when: Side-effect tests fake after execution or assert only message classes without relevant recipients or payloads.
+- **Must** Give factories sensible defaults, named states, and relationship methods without hidden unconditional relations.
+  - Why: makes fixture conditions readable and prevents optional related records from appearing unexpectedly.
+  - Flag when: An unconditional factory callback creates optional related records for every fixture.
 - **Must** Use `--profile` to find and fix the slowest tests.
   - Why: measured slow tests reveal bottlenecks that make the suite impractical to run locally.
 - **Must** Use coverage reports to find untested code, not as a target in itself.
   - Why: coverage reveals application code the test suite never executes without proving assertion quality.
-- **Must** Cover success, alternate paths, invalid input, forbidden access, and edge cases in acceptance scenarios.
-  - Why: happy-path tests leave alternative inputs and failure branches unverified.
-  - Flag when: New acceptance tests cover success but omit implemented validation failures or alternative branches.
-- **Must** Enforce agreed structural, dependency, and security conventions with scoped architecture tests.
-  - Why: architecture checks detect drift in project conventions before it reaches runtime.
-  - Flag when: Architecture expectations contradict chosen conventions or exempt unrelated application namespaces.
-- **Must** Write readable HTTP feature tests with explicit fixtures and auth, asserting responses, redirects, validation errors, and persisted data.
-  - Why: verifies application behavior through requests, including successful writes and failure responses.
-  - Flag when: New write-endpoint tests assert only HTTP status, omitting promised redirects, errors, or persisted effects.
-- **Must** Give factories sensible defaults, named states, and relationship methods without hidden unconditional relations.
-  - Why: makes fixture conditions readable and prevents optional related records from appearing unexpectedly.
-  - Flag when: An unconditional factory callback creates optional related records for every fixture.
-- **Must** Use browser tests for critical interactive journeys and JavaScript behavior, asserting visible results and relevant saved state.
-  - Why: real browser execution covers interactions that request tests cannot exercise.
-  - Flag when: Critical JavaScript interactions have only request tests or browser tests omit their observable effects.
-- **Must** Give each test only the fixtures it needs and reset database and shared state so tests can't affect each other.
-  - Why: keeps unrelated setup and data left by other tests from changing outcomes.
-  - Flag when: Tests rely on preexisting records, execution order, or shared mutable state without cleanup.
-- **Must** Fake mail, notifications, queues, and events before acting, then assert recipients, payloads, and counts.
-  - Why: detects wrong recipients and payloads without coupling tests to internal callback order.
-  - Flag when: Side-effect tests fake after execution or assert only message classes without relevant recipients or payloads.
-- **Must** Follow nearby test conventions, register shared expectations centrally, and group strict assertions by subject.
-  - Why: consistent arrangement and focused assertion groups make failures easier to understand.
-  - Flag when: New tests mix declaration styles or switch subjects within one expectation chain.
 - **Must** Collapse duplicate tests of the same behavior into datasets/data providers.
   - Why: runs multiple input and expected-output cases without duplicating the same test body.
   - Flag when: Multiple tests repeat identical setup, action, and assertions with only input and expected values changed.
+- **Must** Give each test only the fixtures it needs and reset database and shared state so tests can't affect each other.
+  - Why: keeps unrelated setup and data left by other tests from changing outcomes.
+  - Flag when: Tests rely on preexisting records, execution order, or shared mutable state without cleanup.
+- **Must** Follow nearby test conventions, register shared expectations centrally, and group strict assertions by subject.
+  - Why: consistent arrangement and focused assertion groups make failures easier to understand.
+  - Flag when: New tests mix declaration styles or switch subjects within one expectation chain.
 - **Must** Use lifecycle hooks for repeated setup while keeping behavior-specific mutable fixtures explicit in each test.
   - Why: shared setup reduces repetition while explicit fixtures preserve local readability.
   - Flag when: Repeated configuration is copied between tests or shared hooks obscure scenario-specific records.
+- **Must** Add a Pest arch test banning `dd`, `dump`, and `ray` in application code.
+  - Why: catches leftover debugging calls even in paths behavioral tests never execute.
 - **Must** Adopt Pest incrementally, keeping existing PHPUnit tests working.
   - Why: pest runs existing PHPUnit tests, allowing adoption without rewriting the entire suite.
   - Flag when: Pest migration deletes existing PHPUnit tests without preserving their behavioral assertions.
@@ -1351,60 +1613,67 @@
 - **Must** Name tests for the observable outcome and condition, following local method casing and avoiding Given/When/Then labels.
   - Why: behavioral names explain the contract and the failing scenario.
   - Flag when: Test names describe internal methods without the outcome or use inconsistent PHPUnit method casing.
+- **Must** Test both allowed and forbidden access for every authorized action.
+  - Why: verifies permission checks on each action even when ownership rules look repetitive.
+  - Flag when: A newly protected action has permitted-access tests but no forbidden-access case.
+- **Should** Add security regression tests for rendered input, query inputs, protected payload fields, and applicable security controls.
+  - Why: attack-shaped inputs expose defects that ordinary happy paths miss.
+  - Flag when: A change to escaping, dynamic queries, signed URLs, or security controls lacks relevant adversarial cases.
 - **Should** Assert exact serialized keys when the exposed data shape is an application contract.
   - Why: unexpected attributes can break consumers or expose unintended data.
   - Flag when: Serialization contract tests check individual values but permit unexpected keys.
+- **Should** Exercise performance and resilience with repeatable load scenarios, dependency failure and recovery, and explicit error and latency limits.
+  - Why: normal success tests miss saturation and recovery failures under realistic workloads.
+  - Flag when: Infrastructure tuning lacks representative load or recovery checks with measurable acceptance criteria.
 - **Should** Fake deliberate sleeps and assert requested delays instead of waiting in tests.
   - Why: fake delays preserve verification without slowing the suite.
   - Flag when: Tests execute real sleeps for application retry or delay behavior.
+- **Should** Keep module-specific tests and factories with their module and include them in suite discovery.
+  - Why: module-local fixtures and tests make ownership and dependencies visible.
+  - Flag when: A new module stores its dedicated tests outside the established module structure.
+- **Should** Keep relevant fixture details visible in the test and extract big repeated setups into domain-named factory helpers.
+  - Why: keeps tests understandable locally while hiding cumbersome incidental fixture preparation behind meaningful scenario names.
+  - Flag when: Helpers hide behavior-relevant fixture values, or tests repeat large manual relationship-creation graphs.
+- **Should** Mark unfinished or skipped tests explicitly with a reason rather than commenting them out or making them pass misleadingly.
+  - Why: visible incomplete tests keep missing verification discoverable.
+  - Flag when: An unfinished test has empty passing assertions or is removed through comments without a reason.
 - **Should** Prepare test database schemas for the test connection and clear stale configuration before the test run.
   - Why: test initialization must use the intended configuration and schema.
   - Flag when: Test scripts reuse stale configuration or lack a schema dump for the connection they initialize.
-- **Should** Test both allowed and forbidden access for every authorized action.
-  - Why: verifies permission checks on each action even when ownership rules look repetitive.
-  - Flag when: A newly protected action has permitted-access tests but no forbidden-access case.
+- **Should** Retain tests for distinct defects and trim redundant higher-layer cases without deleting existing regression tests.
+  - Why: layered coverage should preserve distinct contracts without duplicating every scenario.
+  - Flag when: Tests for distinct failure modes are deleted as redundant or identical matrices are repeated across layers.
+- **Should** Use isolated test environments; match the production database engine for engine-specific behavior and use SQLite only where representative.
+  - Why: sQLite can miss production-specific query behavior, and shared database state makes tests interfere.
+  - Flag when: Engine-specific database tests use SQLite instead of the production engine.
 - **Should** Use mutation testing on critical code to expose weak assertions.
   - Why: surviving mutations expose missing cases and weak assertions even when line coverage is complete.
 - **Should** Use small snapshot tests only where clearer than explicit assertions, and review every baseline change.
   - Why: unchecked snapshots can preserve buggy output, while large artifacts hinder review and cause merge conflicts.
   - Flag when: New snapshots capture large output unrelated to the specific behavior under test.
-- **Should** Add a Pest arch test banning `dd`, `dump`, and `ray` in application code.
-  - Why: catches leftover debugging calls even in paths behavioral tests never execute.
-- **Should** Exercise performance and resilience with repeatable load scenarios, dependency failure and recovery, and explicit error and latency limits.
-  - Why: normal success tests miss saturation and recovery failures under realistic workloads.
-  - Flag when: Infrastructure tuning lacks representative load or recovery checks with measurable acceptance criteria.
-- **Should** Keep relevant fixture details visible in the test and extract big repeated setups into domain-named factory helpers.
-  - Why: keeps tests understandable locally while hiding cumbersome incidental fixture preparation behind meaningful scenario names.
-  - Flag when: Helpers hide behavior-relevant fixture values, or tests repeat large manual relationship-creation graphs.
 - **Should** Reduce test bootstrap costs with safe configuration and route caching, cheaper test hashing, and disabled unnecessary instrumentation.
   - Why: repeated framework and instrumentation work can dominate suite runtime.
   - Flag when: Test configuration enables costly request instrumentation or reuses cached configuration in tests that change it.
-- **Should** Retain tests for distinct defects and trim redundant higher-layer cases without deleting existing regression tests.
-  - Why: layered coverage should preserve distinct contracts without duplicating every scenario.
-  - Flag when: Tests for distinct failure modes are deleted as redundant or identical matrices are repeated across layers.
 - **Should** Scope event and queue fakes to expected classes unless assertions verify the complete dispatch result.
   - Why: blanket fakes can conceal unexpected dispatches or suppress unrelated required behavior.
   - Flag when: Event::fake() or Queue::fake() intercepts every class without assertions covering all dispatches.
-- **Should** Use isolated test environments; match the production database engine for engine-specific behavior and use SQLite only where representative.
-  - Why: sQLite can miss production-specific query behavior, and shared database state makes tests interfere.
-  - Flag when: Engine-specific database tests use SQLite instead of the production engine.
-- **Should** Add security regression tests for rendered input, query inputs, protected payload fields, and applicable security controls.
-  - Why: attack-shaped inputs expose defects that ordinary happy paths miss.
-  - Flag when: A change to escaping, dynamic queries, signed URLs, or security controls lacks relevant adversarial cases.
+- **Should** Assert independently known outcomes; never recompute the expected value with the code under test.
+  - Why: prevents copied implementation logic from making incorrect behavior pass its own assertions.
+  - Flag when: Expected values call the code under test or duplicate its calculation algorithm.
 - **Should** Disable frontend asset resolution in view tests or build the required assets before running them.
   - Why: view tests should not fail because the asset manifest is absent.
   - Flag when: View tests resolve Vite or Mix assets without a build step or a testing helper that disables resolution.
-- **Should** Mark unfinished or skipped tests explicitly with a reason rather than commenting them out or making them pass misleadingly.
-  - Why: visible incomplete tests keep missing verification discoverable.
-  - Flag when: An unfinished test has empty passing assertions or is removed through comments without a reason.
 - **Consider** Aim for complete test coverage of application code.
   - Why: broad execution coverage can support confidence during later refactoring.
 - **Consider** Arrange each test as explicit setup, one action, and assertions.
   - Why: a single action makes the behavior responsible for each failure clear.
   - Flag when: A test interleaves setup, multiple unrelated actions, and assertions.
-- **Consider** Assert independently known outcomes; never recompute the expected value with the code under test.
-  - Why: prevents copied implementation logic from making incorrect behavior pass its own assertions.
-  - Flag when: Expected values call the code under test or duplicate its calculation algorithm.
+- **Consider** Assert successful HTTP status alongside content when success is part of the response contract.
+  - Why: verifies HTTP success as part of response behavior.
+  - Flag when: HTTP tests assert content without asserting a successful status.
+- **Consider** Bind custom facades to service contracts and swap test fakes so facade and container resolution share the fake.
+  - Why: keeps facade and container fakes consistent.
+  - Flag when: A custom facade resolves a concrete class while its test fake replaces only the service contract.
 - **Consider** Call parent::setUp() first and parent::tearDown() last when overriding test lifecycle methods.
   - Why: the parent lifecycle initializes the test environment and releases shared resources.
   - Flag when: A test lifecycle override omits its parent call or runs it in the wrong order.
@@ -1413,24 +1682,47 @@
 - **Consider** Control time, randomness, and DNS lookups in tests that depend on them, using scoped framework helpers.
   - Why: controlled nondeterministic inputs keep assertions reproducible and avoid external dependencies.
   - Flag when: Tests assert dates or generated identifiers against uncontrolled values, or perform live DNS validation.
+- **Consider** Create prerequisite factory records before broadly faking events needed by model creation hooks.
+  - Why: preserves model creation hooks when arranging fixtures.
+  - Flag when: Event::fake() runs before prerequisite factories whose creation requires events.
+- **Consider** Enforce an agreed mutation score threshold in automated checks.
+  - Why: enforces mutation testing quality automatically.
+  - Flag when: Automated mutation checks omit a minimum score or allow scores below the agreed threshold.
 - **Consider** Exercise requests through test request helpers instead of mocking the Request facade.
   - Why: real request inputs preserve Laravel request construction and validation behavior.
   - Flag when: A test mocks the Request facade to simulate HTTP input.
+- **Consider** Fake both tool requests and subsequent model responses when testing AI tool workflows.
+  - Why: covers both phases of AI tool execution.
+  - Flag when: AI tool workflow tests fake tool requests but leave subsequent model responses unfaked.
+- **Consider** Fake network calls, sleeps, and exception reporting when suite-wide isolation is intended, and separately control clients outside Laravel facades.
+  - Why: isolates external calls and timing across the suite.
+  - Flag when: Suite isolation fakes HTTP only while real sleeps, reporting, or non-facade clients remain active.
 - **Consider** Fake storage and uploaded files when testing upload behavior.
   - Why: isolated disks and generated uploads avoid real filesystem dependencies.
   - Flag when: Upload tests write to a real application disk or require existing files.
+- **Consider** Fake subprocesses and reject unmatched real processes in isolated tests.
+  - Why: prevents subprocess execution in isolated tests.
+  - Flag when: Process tests omit Process::fake() or protection against unmatched real subprocesses.
 - **Consider** Guard AI prompt and model changes with opt-in evaluations against reference behavior, including prompt-injection cases.
   - Why: model and prompt changes can alter behavior beyond deterministic unit-test coverage.
   - Flag when: A changed prompt or model lacks representative evaluation cases and acceptance criteria.
 - **Consider** Ignore generated browser-test failure screenshots in version control.
   - Why: generated failure artifacts are transient diagnostics rather than maintained fixtures.
   - Flag when: Browser failure screenshots are committed or their output directory is missing from ignore rules.
-- **Consider** Keep module-specific tests and factories with their module and include them in suite discovery.
-  - Why: module-local fixtures and tests make ownership and dependencies visible.
-  - Flag when: A new module stores its dedicated tests outside the established module structure.
+- **Consider** Implement the general behavior required by the contract rather than hard-coding values to satisfy test fixtures.
+  - Why: fixture-specific implementations can pass tests while failing real inputs.
+  - Flag when: Production logic recognizes literal test values without a domain requirement.
+- **Consider** Inspect actual schema and relationship definitions before writing model or factory tests.
+  - Why: grounds model and factory tests in real schema contracts.
+- **Consider** Keep architecture-test exceptions explicit and narrowly scoped.
+  - Why: keeps architectural test exemptions precise.
+  - Flag when: Architecture tests add broad directory or namespace exclusions instead of explicit narrow exceptions.
 - **Consider** Name class-focused test files {ClassName}Test.php and mirror the tested class path under tests.
   - Why: consistent paths make the relevant tests easy to locate.
   - Flag when: A new class-focused test uses an unrelated filename or directory path.
+- **Consider** Name dataset cases clearly and share reusable datasets at the narrowest appropriate scope.
+  - Why: organizes reusable dataset cases with clear scope.
+  - Flag when: Dataset cases are unnamed or shared globally despite use by only a narrow test group.
 - **Consider** Organize feature tests by application area, with each file focused on one action or user flow.
   - Why: focused files make behavioral coverage and missing cases easy to locate.
   - Flag when: A feature test file combines unrelated application areas or user flows.
@@ -1439,6 +1731,9 @@
 - **Consider** Preserve exception handling when asserting HTTP error responses and fake exception reporting when needed.
   - Why: disabling the handler changes the response behavior being verified.
   - Flag when: An HTTP error-response test disables exception handling instead of testing the rendered response.
+- **Consider** Reload test states after activating the Verbs fake.
+  - Why: aligns test state with the activated Verbs fake.
+  - Flag when: Test states are loaded before Verbs::fake() and reused without reloading.
 - **Consider** Run real queries in database tests and assert resulting data, not SQL strings or builder call sequences.
   - Why: verifies query results rather than merely confirming that expected builder methods were called.
   - Flag when: Query tests mock builder calls or compare SQL strings without executing queries and checking results.
@@ -1448,12 +1743,42 @@
 - **Consider** Test Artisan command behavior through command execution and assert its relevant results.
   - Why: command invocation verifies application behavior at its console boundary.
   - Flag when: Changed command behavior lacks an execution test for its output or effects.
+- **Consider** Test custom casts with independent raw-storage fixtures, including hydration, nulls, and invalid inputs.
+  - Why: validates custom casts against independent storage representations.
+  - Flag when: Cast tests generate storage fixtures with the same cast or omit hydration, null, and invalid cases.
+- **Consider** Test mounted component authorization after changes to ownership, tenancy, scopes, or permissions.
+  - Why: verifies authorization on already mounted components.
+  - Flag when: Authorization tests cover only initial mounting after ownership, tenancy, scope, or permission changes.
+- **Consider** Test pipeline stages individually and test their assembled order and conditional composition.
+  - Why: covers pipeline stages and their composition.
+  - Flag when: Pipeline tests cover only individual stages or omit order and conditional assembly.
 - **Consider** Test rendered mailable content separately from delivery and recipient assertions.
   - Why: delivery fakes do not verify what the recipient will read.
   - Flag when: Mailable changes are covered only by assertSent or assertQueued checks.
+- **Consider** Test reusable packages in a representative host application with the models, routes, and configuration needed to exercise integration.
+  - Why: a real application harness catches integration failures that isolated package tests miss.
+  - Flag when: Package integration behavior is tested only through mocks without a representative application harness.
+- **Consider** Test supported PHP upgrades against release candidates to uncover dependency incompatibilities early.
+  - Why: checks dependency compatibility before PHP upgrades.
+  - Flag when: PHP compatibility checks omit release-candidate versions targeted for upgrade.
+- **Consider** Test the full authorization matrix in policies or gates and retain HTTP denial tests proving endpoint enforcement.
+  - Why: covers policy decisions and HTTP authorization enforcement.
+  - Flag when: Authorization tests omit permission combinations or endpoint denial assertions.
 - **Consider** Use authentication helpers for browser scenarios that do not test the login journey itself.
   - Why: repeated login interactions slow unrelated scenarios and add unnecessary failure points.
   - Flag when: Browser scenarios repeat the full login UI solely to establish authenticated state.
+- **Consider** Use bound Pest dataset closures for database fixtures created after test setup and type their parameters.
+  - Why: creates dataset fixtures after test setup.
+  - Flag when: Database fixtures are created eagerly in Pest datasets or bound dataset closure parameters lack types.
+- **Consider** Use realistic sanitized full-response fixtures for external API tests to reduce contract drift.
+  - Why: keeps external API fixtures representative of real responses.
+  - Flag when: External API tests use minimal handcrafted responses that omit realistic response fields.
+- **Consider** Use stable dedicated test attributes for frequently targeted UI elements.
+  - Why: dedicated selectors survive unrelated markup and styling changes.
+  - Flag when: Frequently reused UI test selectors depend on incidental classes or markup structure.
+- **Consider** Use subject-specific Laravel assertions for response, database, session, and model contracts.
+  - Why: uses assertions aligned with Laravel contract types.
+  - Flag when: Tests inspect response, database, session, or model internals with generic assertions instead of relevant Laravel assertions.
 - **Consider** Use the project's installed test tools and obtain user authorization before adding a new test dependency or browser.
   - Why: tool additions affect project setup and maintenance expectations.
   - Flag when: A test change adds a dependency, plugin, or browser without requested authorization.
@@ -1466,6 +1791,9 @@
 - **Consider** Wait for the required browser state instead of sleeping for a fixed duration.
   - Why: state-based waits tolerate variable execution speed.
   - Flag when: Browser tests use fixed sleeps to wait for asynchronous UI changes.
+- **Consider** Add authenticated route-discovery smoke tests with explicit bindings alongside behavior-specific tests.
+  - Why: adds authenticated coverage of route registration and bindings.
+  - Flag when: Route smoke tests omit authentication or explicit model bindings.
 - **Consider** Check important user journeys with keyboard navigation and assistive technologies.
   - Why: ordinary pointer interaction tests miss inaccessible controls and navigation failures.
   - Flag when: Changed critical controls or navigation lack checks for keyboard access and accessible names.
@@ -1484,12 +1812,6 @@
 - **Consider** Test event-driven workflows through committed projections, forbidden transitions, and controlled time and side effects.
   - Why: workflow correctness includes projected state and rejected transitions after events are applied.
   - Flag when: Workflow tests assert projections before commit or omit implemented forbidden transitions.
-- **Consider** Test reusable packages in a representative host application with the models, routes, and configuration needed to exercise integration.
-  - Why: a real application harness catches integration failures that isolated package tests miss.
-  - Flag when: Package integration behavior is tested only through mocks without a representative application harness.
-- **Consider** Use stable dedicated test attributes for frequently targeted UI elements.
-  - Why: dedicated selectors survive unrelated markup and styling changes.
-  - Flag when: Frequently reused UI test selectors depend on incidental classes or markup structure.
 
 ## Frontend stacks
 
@@ -1501,18 +1823,24 @@
 - **Must** Use semantic HTML and proper heading hierarchy; add ARIA only with the behavior it requires.
   - Why: gives assistive technology meaningful structure for navigating and understanding the interface.
   - Flag when: Clickable divs replace native controls, or heading levels follow styling instead of document hierarchy.
-- **Must** Show errors beside their fields, move focus to failures, and announce status to assistive tech without relying on color.
-  - Why: helps users identify and correct failures, including through assistive technology.
-  - Flag when: Validation failures change only field colors without associated corrective messages.
 - **Must** Compose layouts and fields with slots and simple common-case props.
   - Why: independent field pieces let callers rearrange markup and reuse controls without embedding every layout variation.
   - Flag when: Input component embeds many label, error, and layout variants instead of accepting composed slot content.
 - **Must** Escape all untrusted output with `{{ }}` and pass PHP data to JS via `Js::from()`/`@js`; never concatenate raw HTML or JS.
   - Why: unescaped user content can execute scripts in administrator views, and manual JavaScript serialization breaks quoting.
   - Flag when: User-controlled values appear in raw Blade output or are concatenated into JavaScript expressions.
+- **Must** Show errors beside their fields, move focus to failures, and announce status to assistive tech without relying on color.
+  - Why: helps users identify and correct failures, including through assistive technology.
+  - Flag when: Validation failures change only field colors without associated corrective messages.
+- **Should** Apply component-rendering optimizations to measured bottlenecks and restrict static folding to eligible static components.
+  - Why: targets meaningful rendering costs while preserving components that depend on dynamic values.
+  - Flag when: Rendering optimizations are added without profiling evidence, or static folding is applied to dynamic component attributes.
 - **Should** Forward `$attributes` to the right element and merge default classes so callers can extend styling.
   - Why: attribute forwarding preserves caller control, while class merging avoids duplicate class attributes.
   - Flag when: Component drops caller attributes or renders separate default and caller class attributes.
+- **Should** Generate PDFs from Blade views and prepared data, choosing a renderer that supports the required CSS.
+  - Why: reuses templating conventions and avoids unsupported layout features in PDF output.
+  - Flag when: PDF generation duplicates view markup in application code or uses CSS unsupported by its renderer.
 - **Should** Give custom Alpine controls named hidden inputs and `x-modelable` values so native forms and bindings still work.
   - Why: lets custom control state submit with native forms and bind through the parent.
   - Flag when: Custom Alpine form control lacks a named hidden input or exposed modelable value.
@@ -1522,9 +1850,12 @@
 - **Should** Use anonymous components with `@props` for simple templates and class components when PHP logic is needed.
   - Why: anonymous components avoid unnecessary PHP classes for presentation-only primitives.
   - Flag when: New component class only returns a static view and supplies no data or behavior.
-- **Should** Apply component-rendering optimizations to measured bottlenecks and restrict static folding to eligible static components.
-  - Why: targets meaningful rendering costs while preserving components that depend on dynamic values.
-  - Flag when: Rendering optimizations are added without profiling evidence, or static folding is applied to dynamic component attributes.
+- **Should** Move substantial view preparation into view models, composers, or components; keep templates rendering prepared data.
+  - Why: keeps shared presentation data available wherever its view is rendered.
+  - Flag when: Blade templates repeat substantial data preparation or display formatting.
+- **Consider** Add Open Graph metadata to pages intended for sharing.
+  - Why: gives shared links useful titles, descriptions, and preview images.
+  - Flag when: A shareable page lacks Open Graph metadata or uses unrelated defaults.
 - **Consider** Avoid __DIR__ and __FILE__ in Blade templates; resolve paths using application path helpers.
   - Why: these constants refer to the compiled view cache rather than the source template.
   - Flag when: A Blade template uses __DIR__ or __FILE__ to locate source files or assets.
@@ -1534,33 +1865,30 @@
 - **Consider** Avoid enabling autofocus by default on forms.
   - Why: automatic focus can open mobile keyboards and obscure the form before users inspect it.
   - Flag when: A form adds unconditional autofocus to an input.
+- **Consider** Check permissions rather than role names when deciding whether to show actions in views.
+  - Why: keeps interface authorization aligned with capabilities as role assignments change.
+  - Flag when: Blade visibility checks hard-code roles for an action that has a corresponding permission.
 - **Consider** Deduplicate scripts and other stack content from repeated components with @pushOnce and a shared explicit key across templates.
   - Why: prevents repeated component renders from adding the same asset or initialization code multiple times.
   - Flag when: A repeated component uses @push for shared assets, or separate templates push identical content without a common once key.
 - **Consider** Extend Blade only via supported directives/compiler hooks and inspect compiled views when debugging.
   - Why: avoids freezing per-render behavior into cached compiled PHP.
   - Flag when: Custom Blade compilation evaluates per-render values instead of emitting PHP that evaluates them at runtime.
-- **Consider** Generate PDFs from Blade views and prepared data, choosing a renderer that supports the required CSS.
-  - Why: reuses templating conventions and avoids unsupported layout features in PDF output.
-  - Flag when: PDF generation duplicates view markup in application code or uses CSS unsupported by its renderer.
-- **Consider** Move substantial view preparation into view models, composers, or components; keep templates rendering prepared data.
-  - Why: keeps shared presentation data available wherever its view is rendered.
-  - Flag when: Blade templates repeat substantial data preparation or display formatting.
-- **Consider** Return named Blade fragments when a request needs only part of a page.
-  - Why: lets partial-page clients receive the requested markup without duplicating the full-page template.
-  - Flag when: A partial-page response duplicates markup from a full-page view or returns an entire layout.
-- **Consider** Use @foreach with @include when repeated child views need variables from the parent view.
-  - Why: views rendered through @each do not inherit the parent view variables.
-  - Flag when: An @each child view references parent variables outside its explicitly supplied item data.
-- **Consider** Add Open Graph metadata to pages intended for sharing.
-  - Why: gives shared links useful titles, descriptions, and preview images.
-  - Flag when: A shareable page lacks Open Graph metadata or uses unrelated defaults.
-- **Consider** Check permissions rather than role names when deciding whether to show actions in views.
-  - Why: keeps interface authorization aligned with capabilities as role assignments change.
-  - Flag when: Blade visibility checks hard-code roles for an action that has a corresponding permission.
 - **Consider** Follow the project's camelCase convention for view filenames where adopted.
   - Why: consistent view filenames make template references predictable.
   - Flag when: A new view filename deviates from the existing camelCase naming convention.
+- **Consider** Provide passwordrules on new-password inputs derived from the server-side Password validation rule.
+  - Why: helps password managers generate passwords that satisfy the application validation policy.
+  - Flag when: A new-password input lacks passwordrules or hard-codes rules inconsistent with server validation.
+- **Consider** Return named Blade fragments when a request needs only part of a page.
+  - Why: lets partial-page clients receive the requested markup without duplicating the full-page template.
+  - Flag when: A partial-page response duplicates markup from a full-page view or returns an entire layout.
+- **Consider** Set appropriate autocomplete tokens for password, OTP, and payment inputs; allow password-manager autofill.
+  - Why: helps browsers and password managers fill the correct values and generate new credentials.
+  - Flag when: Credential, OTP, or card inputs omit or misuse autocomplete tokens, or password fields set autocomplete="off".
+- **Consider** Use @foreach with @include when repeated child views need variables from the parent view.
+  - Why: views rendered through @each do not inherit the parent view variables.
+  - Flag when: An @each child view references parent variables outside its explicitly supplied item data.
 - **Consider** Use accessible modals that manage focus entry, trapping, restoration, and keyboard behavior.
   - Why: keeps keyboard focus inside the dialog and restores it when the dialog closes.
   - Flag when: Custom modal opens without focus management or keyboard handling.
@@ -1573,43 +1901,64 @@
 
 ### Frontend: Livewire
 
-- **Must** Validate Livewire properties before persisting and authorize every referenced resource in actions.
-  - Why: prevents invalid component input from being persisted.
-  - Flag when: Livewire action persists editable properties without validation or accesses referenced resources without authorization.
 - **Must** Isolate independently interactive or expensive regions in components or islands, passing explicit props and events and evaluating region data on demand.
   - Why: keeps unrelated actions from changing state, rerendering regions, or rerunning expensive queries.
   - Flag when: Unrelated interface regions share interfering state or unrelated actions rerender expensive regions and rerun their queries.
 - **Must** Keep browser-only state in Alpine; use Livewire (`$wire`, PHP actions) only for server-dependent behavior.
   - Why: lets local UI interactions respond without a server round trip.
   - Flag when: PHP action only toggles modal visibility or another browser-only state.
+- **Must** Validate Livewire properties before persisting and authorize every referenced resource in actions.
+  - Why: prevents invalid component input from being persisted.
+  - Flag when: Livewire action persists editable properties without validation or accesses referenced resources without authorization.
 - **Must** Lazy-load expensive components (`#[Lazy]`) with a placeholder so they don't block initial render.
   - Why: lets the page or modal render promptly while expensive content loads.
   - Flag when: Initially mounted component performs expensive initialization synchronously without lazy loading or a placeholder.
+- **Must** Extract substantial related state, validation, and helpers into typed Livewire form objects, updating bindings and hooks together.
+  - Why: keeps component actions focused and related properties organized.
+  - Flag when: Large related property and validation groups remain in the component or extracted form paths leave stale bindings and hooks.
 - **Must** Put derived queries in `#[Computed]` methods, with explicit cache keys and invalidation when caching across requests.
   - Why: preserves derived query data that public model collections can lose during hydration.
   - Flag when: Public model collection stores custom joined query results needed across Livewire requests.
-- **Must** Use single-file components for small components and multi-file directories when complexity grows.
-  - Why: keeps related PHP, Blade, and JavaScript together as component complexity grows.
+- **Must** Use `$this->dispatch()` and Alpine `x-on` listeners for UI reactions like closing a modal after save.
+  - Why: lets successful server actions update local UI without a full-page refresh.
+- **Must** Route full-page components through Livewire's page entry point and configure their layout and title there.
+  - Why: removes controller and wrapper-view indirection while preserving the component lifecycle.
+  - Flag when: A route invokes render directly or a controller and view only host a full-page Livewire component.
 - **Must** Show loading feedback for pending Livewire interactions, scoped to the affected control or region.
   - Why: makes pending work visible without confusing independent instances of the same action.
   - Flag when: Livewire actions lack pending feedback or identical buttons share unrelated loading indicators.
-- **Must** Use `$this->dispatch()` and Alpine `x-on` listeners for UI reactions like closing a modal after save.
-  - Why: lets successful server actions update local UI without a full-page refresh.
-- **Should** Derive server-side search and filter results from bound Livewire properties and preserve navigable state in the URL.
-  - Why: keeps results synchronized and makes filtered views survive refreshes and shared links.
-  - Flag when: Search or filter state uses separate JavaScript synchronization or navigable filters are absent from the URL.
-- **Should** Route full-page components through Livewire's page entry point and configure their layout and title there.
-  - Why: removes controller and wrapper-view indirection while preserving the component lifecycle.
-  - Flag when: A route invokes render directly or a controller and view only host a full-page Livewire component.
-- **Should** Use deferred `wire:model` for ordinary forms and `wire:model.live.debounce` for search-as-you-type.
+- **Must** Use single-file components for small components and multi-file directories when complexity grows.
+  - Why: keeps related PHP, Blade, and JavaScript together as component complexity grows.
+- **Must** Use deferred `wire:model` for ordinary forms and `wire:model.live.debounce` for search-as-you-type.
   - Why: batches ordinary input changes until an action needs their values.
   - Flag when: Ordinary form inputs use live synchronization although intermediate values need no server processing.
 - **Should** Build reusable wrappers with `#[Modelable]`, slots, and attribute forwarding.
   - Why: lets parents bind extracted inputs and supply content and attributes to reusable wrappers.
   - Flag when: Reusable wrapper discards caller attributes or extracted input lacks a modelable value.
+- **Should** Derive server-side search and filter results from bound Livewire properties and preserve navigable state in the URL.
+  - Why: keeps results synchronized and makes filtered views survive refreshes and shared links.
+  - Flag when: Search or filter state uses separate JavaScript synchronization or navigable filters are absent from the URL.
+- **Should** Keep background polling from blocking user actions; choose intervals and visibility conditions that match freshness needs.
+  - Why: avoids unnecessary refresh work and delays to user interactions.
+  - Flag when: Polling refreshes hidden or inactive content unnecessarily, runs too frequently, or blocks interactive actions.
+- **Should** Make child props reactive when the child must track parent changes.
+  - Why: avoids custom synchronization events for state already owned by the parent.
+  - Flag when: A child prop must follow parent updates but is nonreactive or mirrored through custom events.
+- **Should** Move substantial persistence and business workflows into focused action or service classes, leaving UI orchestration in Livewire.
+  - Why: keeps business behavior reusable and separates it from component context.
+  - Flag when: Component actions contain substantial business workflows or extracted business actions manage UI state.
+- **Should** Preserve appropriate browser-stateful UI across Livewire navigation with matching named persist blocks in destination layouts.
+  - Why: keeps ongoing interactions intact across page changes.
+  - Flag when: Persistent UI uses mismatched persist keys or is recreated during navigation.
+- **Should** Skip view rendering for actions that only perform side effects or return data.
+  - Why: avoids rendering work when an action cannot change the displayed view.
+  - Flag when: A side-effect-only or data-only action unnecessarily rerenders its component.
 - **Should** Synchronize Alpine state with Livewire explicitly when client changes must affect server-rendered content.
   - Why: keeps shared client and server state consistent at the interaction's required timing.
   - Flag when: Alpine and Livewire independently mirror state or required server rendering waits on deferred synchronization.
+- **Should** Use Livewire sorting for reorderable lists and persist the resulting order server-side.
+  - Why: keeps drag-and-drop ordering consistent with stored state.
+  - Flag when: A sortable list has redundant custom sorting JavaScript or never persists reordered items.
 - **Should** Use Livewire's automatic assets and bundled Alpine unless the application has a concrete integration requirement.
   - Why: avoids duplicate Alpine initialization and unnecessary manual asset maintenance.
   - Flag when: Alpine is loaded separately or Livewire assets are manually managed without an integration requirement.
@@ -1618,37 +1967,16 @@
 - **Should** When rendering components by name (e.g. modal hosts), allowlist the component names.
   - Why: restricts dynamic rendering to components intended as allowed modal content.
   - Flag when: Client-supplied component name reaches dynamic rendering without an allowlist check.
-- **Should** Extract substantial related state, validation, and helpers into typed Livewire form objects, updating bindings and hooks together.
-  - Why: keeps component actions focused and related properties organized.
-  - Flag when: Large related property and validation groups remain in the component or extracted form paths leave stale bindings and hooks.
+- **Should** Choose request isolation for slow independent components and request bundling when many lazy components should load together.
+  - Why: balances interactive responsiveness with the cost of simultaneous requests.
+  - Flag when: Slow independent updates block other components or many jointly loaded lazy components issue avoidable separate requests.
 - **Should** Give looped elements and child components stable, unique wire:key values.
   - Why: keeps component identity and DOM updates correct when lists change.
   - Flag when: Looped Livewire elements or child components lack stable unique keys.
-- **Should** Keep background polling from blocking user actions; choose intervals and visibility conditions that match freshness needs.
-  - Why: avoids unnecessary refresh work and delays to user interactions.
-  - Flag when: Polling refreshes hidden or inactive content unnecessarily, runs too frequently, or blocks interactive actions.
-- **Should** Preserve appropriate browser-stateful UI across Livewire navigation with matching named persist blocks in destination layouts.
-  - Why: keeps ongoing interactions intact across page changes.
-  - Flag when: Persistent UI uses mismatched persist keys or is recreated during navigation.
-- **Consider** Follow the project's established Livewire component format and directory structure when adding components.
-  - Why: avoids introducing competing component conventions into an existing project.
-  - Flag when: New components adopt a different format or directory structure without a project-level reason.
-- **Consider** Move substantial persistence and business workflows into focused action or service classes, leaving UI orchestration in Livewire.
-  - Why: keeps business behavior reusable and separates it from component context.
-  - Flag when: Component actions contain substantial business workflows or extracted business actions manage UI state.
-- **Consider** Send ephemeral typing indicators through socket whispers, suppress repeated emissions, and clear them after inactivity.
-  - Why: avoids HTTP overhead and stale typing status.
-  - Flag when: Typing indicators use per-keystroke HTTP actions or lack throttling and an inactivity timeout.
-- **Consider** Skip view rendering for actions that only perform side effects or return data.
-  - Why: avoids rendering work when an action cannot change the displayed view.
-  - Flag when: A side-effect-only or data-only action unnecessarily rerenders its component.
-- **Consider** Use authorized broadcasting and Echo listeners for server-originated real-time updates.
-  - Why: delivers shared updates without repeated polling or manual client synchronization.
-  - Flag when: Real-time shared updates use unnecessary polling despite an existing broadcast event path.
-- **Consider** Use authorized presence channels for online-user lists, initializing membership and handling joins and departures.
-  - Why: keeps workspace presence accurate and restricted to authorized subscribers.
-  - Flag when: Presence lists omit initial membership, join or departure handling, or channel authorization.
-- **Consider** Use wire:navigate for suitable page navigation and enable hover prefetch only when its extra requests are justified.
+- **Should** Use Livewire pagination support, give simultaneous paginators distinct names, and reset pagination when filters change.
+  - Why: keeps pagination state independent and prevents stale page positions after filtering.
+  - Flag when: Multiple paginators share a page parameter or changed filters retain a stale page position.
+- **Should** Use wire:navigate for suitable page navigation and enable hover prefetch only when its extra requests are justified.
   - Why: improves navigation responsiveness while controlling speculative requests.
   - Flag when: Navigation prefetch adds unnecessary requests or suitable Livewire navigation bypasses established wire:navigate usage.
 - **Consider** Append or prepend only newly queried batches for load-more and infinite-scroll interfaces.
@@ -1657,39 +1985,57 @@
 - **Consider** Bind checkbox-group selections to one array and keep select-all checked, unchecked, and indeterminate states consistent.
   - Why: keeps aggregate selection controls aligned with individual selections.
   - Flag when: Select-all state is maintained separately without reflecting partial checkbox selections.
-- **Consider** Choose request isolation for slow independent components and request bundling when many lazy components should load together.
-  - Why: balances interactive responsiveness with the cost of simultaneous requests.
-  - Flag when: Slow independent updates block other components or many jointly loaded lazy components issue avoidable separate requests.
+- **Consider** Expose only component properties that need to participate in client-visible Livewire state.
+  - Why: reduces unnecessary client access to internal component state.
+  - Flag when: Internal-only state is declared as a public Livewire property.
+- **Consider** Follow the project's established Livewire component format and directory structure when adding components.
+  - Why: avoids introducing competing component conventions into an existing project.
+  - Flag when: New components adopt a different format or directory structure without a project-level reason.
+- **Consider** Handle shared request concerns through Livewire request or action interceptors supported by the installed version.
+  - Why: centralizes session, error, confirmation, and request-state handling.
+  - Flag when: Cross-cutting Livewire request handling is duplicated across components.
 - **Consider** Implement tabs with associated labels and panels, appropriate ARIA semantics, and active-tab keyboard navigation.
   - Why: makes tabbed content usable with keyboards and assistive technology.
   - Flag when: Tabs only toggle visibility without panel associations or arrow-key navigation.
 - **Consider** Introduce Livewire incrementally into legacy applications, limiting changes to the interactive features being added.
   - Why: avoids unnecessary rewrites and complexity in existing applications.
   - Flag when: A localized interactive feature triggers unrelated conversion of legacy views or frontend behavior.
+- **Consider** Keep Livewire methods private or protected unless browser invocation is intended.
+  - Why: limits browser-callable Livewire methods.
+  - Flag when: Livewire helper methods are public even though browser invocation is unintended.
 - **Consider** Keep a consistent component member order for state, validation, computed values, lifecycle hooks, actions, helpers, and rendering.
   - Why: makes component responsibilities easier to scan during review.
   - Flag when: Component member ordering diverges from the project's established convention.
 - **Consider** Keep component JavaScript alongside its template and use Livewire-managed script and asset lifecycles.
   - Why: scopes behavior to the component and avoids fragile document-level initialization.
   - Flag when: Component JavaScript relies on document event listeners or is detached from its component lifecycle.
-- **Consider** Make child props reactive when the child must track parent changes.
-  - Why: avoids custom synchronization events for state already owned by the parent.
-  - Flag when: A child prop must follow parent updates but is nonreactive or mirrored through custom events.
-- **Consider** Prefer class-based components when the project needs their static-analysis and IDE support over Volt.
-  - Why: supports projects whose tooling depends on ordinary PHP component classes.
-  - Flag when: A component switches to Volt despite established class-based tooling requirements.
+- **Consider** Move accepted uploads into durable storage before temporary upload retention expires.
+  - Why: preserves accepted temporary uploads in durable storage.
+  - Flag when: Accepted Livewire uploads remain only in temporary storage without durable persistence.
+- **Consider** Persist tenant or team middleware across Livewire requests when later permission checks depend on its context.
+  - Why: retains tenant authorization context on later requests.
+  - Flag when: Tenant or team middleware needed for access checks is not registered as persistent Livewire middleware.
 - **Consider** Represent structured public state with typed objects that explicitly support Livewire serialization and reconstruction.
   - Why: keeps state structured while preserving it correctly across hydration.
   - Flag when: A custom public state object lacks a supported serialization and reconstruction contract.
 - **Consider** Reuse a shared modal host and opening interface for forms that share modal behavior.
   - Why: avoids repeated modal containers and dispatch markup.
   - Flag when: Multiple forms duplicate modal host behavior or repeated modal-opening event markup.
-- **Consider** Use Livewire pagination support, give simultaneous paginators distinct names, and reset pagination when filters change.
-  - Why: keeps pagination state independent and prevents stale page positions after filtering.
-  - Flag when: Multiple paginators share a page parameter or changed filters retain a stale page position.
-- **Consider** Use Livewire sorting for reorderable lists and persist the resulting order server-side.
-  - Why: keeps drag-and-drop ordering consistent with stored state.
-  - Flag when: A sortable list has redundant custom sorting JavaScript or never persists reordered items.
+- **Consider** Send ephemeral typing indicators through socket whispers, suppress repeated emissions, and clear them after inactivity.
+  - Why: avoids HTTP overhead and stale typing status.
+  - Flag when: Typing indicators use per-keystroke HTTP actions or lack throttling and an inactivity timeout.
+- **Consider** Show unsaved-change indicators from Livewire's dirty-state tracking.
+  - Why: keeps unsaved feedback aligned with actual component changes.
+  - Flag when: Editable state has misleading or independently duplicated unsaved-change tracking.
+- **Consider** Unset memoized Livewire computed properties after changing their underlying data.
+  - Why: invalidates computed values after dependent data changes.
+  - Flag when: Livewire actions mutate dependencies without unsetting memoized computed properties.
+- **Consider** Use authorized broadcasting and Echo listeners for server-originated real-time updates.
+  - Why: delivers shared updates without repeated polling or manual client synchronization.
+  - Flag when: Real-time shared updates use unnecessary polling despite an existing broadcast event path.
+- **Consider** Use authorized presence channels for online-user lists, initializing membership and handling joins and departures.
+  - Why: keeps workspace presence accurate and restricted to authorized subscribers.
+  - Flag when: Presence lists omit initial membership, join or departure handling, or channel authorization.
 - **Consider** Use browser popovers for non-modal overlays and modal dialogs for blocking interactions through reusable wrappers.
   - Why: preserves native overlay behavior without repeated positioning and stacking logic.
   - Flag when: Overlays recreate popover or dialog behavior with nested divs and manual stacking.
@@ -1702,6 +2048,15 @@
 - **Consider** Use transitions where they clarify UI changes, following the installed Livewire version's transition behavior.
   - Why: makes interface changes understandable without relying on incompatible transition syntax.
   - Flag when: Animated Livewire UI changes use transition syntax unsupported by the installed version.
+- **Consider** Use viewport-triggered lazy loading or immediate post-render deferral according to when a component is needed.
+  - Why: matches component loading to when content is needed.
+  - Flag when: Components needed immediately use viewport-only lazy loading or offscreen components load immediately without need.
+- **Consider** Validate each wizard step before allowing progression to the next step.
+  - Why: prevents incomplete or invalid state from advancing through a multi-step workflow.
+  - Flag when: A wizard advances without validating the current step.
+- **Consider** Prefer class-based components when the project needs their static-analysis and IDE support over Volt.
+  - Why: supports projects whose tooling depends on ordinary PHP component classes.
+  - Flag when: A component switches to Volt despite established class-based tooling requirements.
 
 ### Frontend: Inertia
 
@@ -1711,45 +2066,63 @@
 - **Must** Use generated typed route or controller references for frontend URLs, and regenerate generated files instead of editing them.
   - Why: generated references keep frontend navigation aligned with Laravel routes.
   - Flag when: Frontend URLs are hard-coded or generated route files are edited manually.
+- **Must** Extract reusable frontend behavior into components, Vue composables, or React hooks once its responsibilities are clear.
+  - Why: shared behavior avoids repeated initialization and state logic across pages.
+  - Flag when: Pages duplicate reusable behavior or stateful logic.
+- **Must** Send only the attributes each page needs and never sensitive data; Inertia props are visible in the browser.
+  - Why: every returned prop is browser-visible, including unnecessary attributes and sensitive data.
+  - Flag when: Inertia props explicitly include secrets or unrelated model attributes.
 - **Must** Follow the frontend’s established page and component naming conventions, and keep server page identifiers, client resolution, and Blade entry paths consistent.
   - Why: consistent identifiers and paths prevent missing pages and asset resolution failures.
   - Flag when: A new page identifier or filename disagrees with the resolver or Blade asset path.
 - **Must** Generate frontend TypeScript types from PHP data contracts and regenerate them during development and builds.
   - Why: generated contracts prevent PHP and frontend data shapes from drifting.
   - Flag when: Frontend types duplicate PHP DTOs or generated contracts are not regenerated after PHP changes.
-- **Must** Configure Vite asset prefetching when Inertia page code splitting would otherwise delay subsequent navigation.
-  - Why: prefetching page chunks reduces subsequent navigation delays.
-  - Flag when: Code-split page navigation waits for asset downloads without configured prefetching.
 - **Must** Bundle application CSS and JavaScript with Vite and load the entries through @vite, importing CSS from JavaScript where appropriate.
   - Why: one asset pipeline provides consistent development and production bundles.
   - Flag when: Templates use runtime Tailwind CDN assets or retain obsolete Mix wiring during a Vite migration.
 - **Must** Submit with Inertia's form helpers, validate in Laravel, redirect after success, and display returned errors.
   - Why: server validation returns field errors while retaining inputs, and successful mutations redirect to a GET page.
   - Flag when: An Inertia form bypasses server validation or never displays returned field errors.
+- **Must** Configure Vite asset prefetching when Inertia page code splitting would otherwise delay subsequent navigation.
+  - Why: prefetching page chunks reduces subsequent navigation delays.
+  - Flag when: Code-split page navigation waits for asset downloads without configured prefetching.
 - **Must** Use strict TypeScript with explicit page-prop, shared-data, and form types; reuse shared types instead of duplicating shapes.
   - Why: explicit reusable types catch mismatched frontend data and form fields.
   - Flag when: Inertia props or forms use implicit any, or shared data shapes are duplicated.
-- **Must** Extract reusable frontend behavior into components, Vue composables, or React hooks once its responsibilities are clear.
-  - Why: shared behavior avoids repeated initialization and state logic across pages.
-  - Flag when: Pages duplicate reusable behavior or stateful logic.
-- **Should** Send only the attributes each page needs and never sensitive data; Inertia props are visible in the browser.
-  - Why: every returned prop is browser-visible, including unnecessary attributes and sensitive data.
-  - Flag when: Inertia props explicitly include secrets or unrelated model attributes.
-- **Should** Use Precognition with backend form-request rules for live validation, keeping form data synchronized before validating fields on change or blur.
-  - Why: reusing backend rules prevents duplicate validation logic and stale field checks.
-  - Flag when: Live validation duplicates backend rules or validates before updating the submitted field data.
-- **Should** Use deferred props with placeholders so cheap content renders first.
+- **Must** Navigate with Inertia links/visits; preserve state and scroll for debounced query-string filters on the same page.
+  - Why: same-page filtering retains input focus and scroll position without full document reloads.
+  - Flag when: Live query-string filtering sends every keystroke or omits state and scroll preservation.
+- **Must** Use deferred props with placeholders so cheap content renders first.
   - Why: slow secondary data otherwise delays displaying inexpensive, useful page content.
   - Flag when: An initial dashboard response waits for slow secondary data before returning cheap content.
-- **Should** Use persistent and nested Inertia layouts for shared application, authentication, and settings shells.
-  - Why: persistent shells avoid unnecessary remounts and preserve layout state between visits.
-  - Flag when: A shared shell is recreated inside every page and remounts during navigation.
+- **Should** Build infinite scrolling on Laravel pagination and Inertia scroll or merged props.
+  - Why: server pagination and prop merging keep incremental results consistent.
+  - Flag when: Infinite scrolling hand-accumulates records without server pagination or Inertia merging.
+- **Should** Load below-the-fold or next-page data on visibility using Inertia WhenVisible or IntersectionObserver.
+  - Why: visibility-triggered requests avoid loading unseen data prematurely.
+  - Flag when: Below-the-fold data is loaded eagerly despite an available optional prop.
 - **Should** Make Inertia SSR code independent of browser globals and verify the server-rendering path when introducing SSR.
   - Why: server rendering executes without browser-only objects such as window.
   - Flag when: SSR code accesses window or document unconditionally.
-- **Should** Navigate with Inertia links/visits; preserve state and scroll for debounced query-string filters on the same page.
-  - Why: same-page filtering retains input focus and scroll position without full document reloads.
-  - Flag when: Live query-string filtering sends every keystroke or omits state and scroll preservation.
+- **Should** Submit file-upload updates as multipart POST requests with Laravel method spoofing for PUT, PATCH, or DELETE semantics.
+  - Why: method spoofing preserves route semantics while allowing reliable multipart parsing.
+  - Flag when: A file-upload form sends multipart data directly with PUT or PATCH.
+- **Should** Use Inertia’s polling helper for periodic page-prop refreshes.
+  - Why: the helper manages refresh behavior and lifecycle cleanup.
+  - Flag when: A page uses a manual interval to reload Inertia props.
+- **Should** Use Precognition with backend form-request rules for live validation, keeping form data synchronized before validating fields on change or blur.
+  - Why: reusing backend rules prevents duplicate validation logic and stale field checks.
+  - Flag when: Live validation duplicates backend rules or validates before updating the submitted field data.
+- **Should** Use persistent and nested Inertia layouts for shared application, authentication, and settings shells.
+  - Why: persistent shells avoid unnecessary remounts and preserve layout state between visits.
+  - Flag when: A shared shell is recreated inside every page and remounts during navigation.
+- **Should** Share only truly common, small data via `HandleInertiaRequests`.
+  - Why: shared data accompanies page responses, so unnecessary sharing adds payload and request costs.
+  - Flag when: HandleInertiaRequests::share() loads large collections needed by only one page.
+- **Should** Use partial reloads and wrap expensive props in closures so omitted props aren't computed.
+  - Why: omitted props save response bytes and database work only when expensive queries are evaluated lazily.
+  - Flag when: A partial reload omits a prop whose expensive query still executes eagerly.
 - **Should** Use Vite-managed imports or asset helpers for bundled assets; reserve public paths for assets actually served from the public directory.
   - Why: correct asset paths survive development-server hosting and production builds.
   - Flag when: An absolute asset path points to a file that exists only in the source tree.
@@ -1762,80 +2135,167 @@
 - **Consider** Configure Vite development-server CORS with explicit allowed origins when the application needs additional origins.
   - Why: explicit origins support intended development clients without unnecessarily broad access.
   - Flag when: Vite permits arbitrary origins to accommodate a small known set of development clients.
+- **Consider** Confirm destructive user actions before submitting them.
+  - Why: confirmation reduces accidental irreversible changes.
+  - Flag when: A destructive action submits immediately without confirmation.
 - **Consider** Consider Inertia instant visits for destinations that can render meaningful content before the server response arrives.
   - Why: early rendering can improve navigation feedback when pending data is handled.
   - Flag when: An instant visit renders content that assumes unavailable server props.
-- **Consider** Let Vite emit frontend assets and configure TypeScript and JSX checks for the selected React or Vue adapter.
-  - Why: adapter-compatible checking avoids duplicate output and JSX compilation errors.
-  - Flag when: TypeScript emits competing build artifacts or uses JSX settings incompatible with the adapter.
-- **Consider** Memoize expensive prop computations when both controller logic and lazy prop resolution may invoke them in the same request.
-  - Why: request-scoped memoization prevents duplicate query or calculation work.
-  - Flag when: The same expensive prop closure runs in controller logic and again during serialization.
-- **Consider** Use ES module imports in frontend modules built by Vite.
-  - Why: consistent module syntax supports Vite dependency analysis and bundling.
-  - Flag when: Frontend source introduces CommonJS require calls in the Vite module graph.
-- **Consider** Use Inertia optimistic updates for suitable reversible interactions, preserve unchanged nested state, and reconcile or roll back the result.
-  - Why: optimistic feedback stays consistent with the server after success or failure.
-  - Flag when: An optimistic mutation overwrites nested values or lacks failure rollback.
-- **Consider** Use a standalone request helper for data-only interactions that should not navigate to an Inertia page.
-  - Why: data-only requests avoid unintended page visits and protocol mismatches.
-  - Flag when: Search suggestions use an Inertia visit against an endpoint returning ordinary JSON.
-- **Consider** Build infinite scrolling on Laravel pagination and Inertia scroll or merged props.
-  - Why: server pagination and prop merging keep incremental results consistent.
-  - Flag when: Infinite scrolling hand-accumulates records without server pagination or Inertia merging.
+- **Consider** Derive displayed Svelte account state reactively from current Inertia page props.
+  - Why: keeps Svelte account state synchronized with page props.
+  - Flag when: Svelte account state is initialized once from Inertia props without reactive derivation.
+- **Consider** Encrypt sensitive Inertia history and clear its encryption key at logout or privilege changes.
+  - Why: protects sensitive browser history across access changes.
+  - Flag when: Sensitive pages lack history encryption or logout and privilege changes omit clearing the history key.
+- **Consider** Enforce authorization and route access on the Laravel server even when the frontend hides unavailable actions.
+  - Why: browser-visible UI conditions cannot enforce access control.
+  - Flag when: An Inertia action or route relies solely on frontend permission checks.
+- **Consider** Group deferred Inertia props according to which should share a request and which should load in parallel.
+  - Why: controls request grouping for deferred props.
+  - Flag when: Deferred props needing independent parallel requests share a group or coordinated props use separate groups.
+- **Consider** Guard browser globals in shared theme utilities, allowlist persisted themes, and remove obsolete media-query listeners.
+  - Why: makes shared theme code safe across rendering environments.
+  - Flag when: Shared theme code accesses window unguarded, accepts arbitrary stored themes, or leaves listeners attached.
 - **Consider** Keep imports flowing from pages to feature modules to shared code, avoiding shared-code dependencies on pages.
   - Why: one-way dependencies prevent coupling and circular imports.
   - Flag when: Shared frontend code imports a feature page or feature-specific module.
 - **Consider** Keep independently reusable components and hooks in separate files, reserving default exports for page components where that is the project convention.
   - Why: focused modules make reusable behavior easier to find and maintain.
   - Flag when: A module contains multiple unrelated reusable components or hooks.
-- **Consider** Load below-the-fold or next-page data on visibility using Inertia WhenVisible or IntersectionObserver.
-  - Why: visibility-triggered requests avoid loading unseen data prematurely.
-  - Flag when: Below-the-fold data is loaded eagerly despite an available optional prop.
+- **Consider** Let Vite emit frontend assets and configure TypeScript and JSX checks for the selected React or Vue adapter.
+  - Why: adapter-compatible checking avoids duplicate output and JSX compilation errors.
+  - Flag when: TypeScript emits competing build artifacts or uses JSX settings incompatible with the adapter.
+- **Consider** Memoize expensive prop computations when both controller logic and lazy prop resolution may invoke them in the same request.
+  - Why: request-scoped memoization prevents duplicate query or calculation work.
+  - Flag when: The same expensive prop closure runs in controller logic and again during serialization.
 - **Consider** Prefer supported native browser primitives for dialogs, popovers, and declarative UI interactions when they meet the interface requirements.
   - Why: native primitives reduce custom interaction and lifecycle code.
   - Flag when: Custom modal or popover machinery duplicates a supported native primitive without a functional need.
-- **Consider** Share only truly common, small data via `HandleInertiaRequests`.
-  - Why: shared data accompanies page responses, so unnecessary sharing adds payload and request costs.
-  - Flag when: HandleInertiaRequests::share() loads large collections needed by only one page.
-- **Consider** Use partial reloads and wrap expensive props in closures so omitted props aren't computed.
-  - Why: omitted props save response bytes and database work only when expensive queries are evaluated lazily.
-  - Flag when: A partial reload omits a prop whose expensive query still executes eagerly.
+- **Consider** Prefetch likely next Inertia pages when the anticipated navigation justifies the extra requests.
+  - Why: prefetching reduces navigation latency for likely destinations.
+  - Flag when: Likely next-page links lack prefetching despite a demonstrated latency problem.
+- **Consider** Preserve pagination context when redirecting after deleting an item, handling an emptied final page.
+  - Why: users return to a valid nearby list page after deletion.
+  - Flag when: A deletion redirect discards the current pagination query or leaves an empty invalid page.
+- **Consider** Provide rescue feedback and explicit retry for failed deferred Inertia props.
+  - Why: provides recovery for failed deferred prop loading.
+  - Flag when: Deferred prop consumers omit rescue feedback or an explicit retry action.
+- **Consider** Reload volatile Inertia props on history navigation when restored data could mislead users.
+  - Why: controls freshness of props restored from browser history.
+  - Flag when: Volatile props are restored on history navigation without a reload.
+- **Consider** Return null for authenticated-user once props on signed-out requests to prevent stale identity reuse.
+  - Why: prevents cached authenticated identity after sign-out.
+  - Flag when: Authenticated-user once props do not return null on signed-out requests.
+- **Consider** Track page views for Inertia visits in the analytics integration.
+  - Why: client navigation does not trigger ordinary full-page analytics initialization.
+  - Flag when: Analytics tracks only the initial document load in an Inertia application.
+- **Consider** Use ES module imports in frontend modules built by Vite.
+  - Why: consistent module syntax supports Vite dependency analysis and bundling.
+  - Flag when: Frontend source introduces CommonJS require calls in the Vite module graph.
+- **Consider** Use Inertia flash data for one-time feedback that must not recur from browser history.
+  - Why: prevents one-time feedback from replaying through history.
+  - Flag when: One-time feedback is stored in regular page props instead of Inertia flash data.
+- **Consider** Use Inertia once props for expensive stable data with explicit refresh or expiration behavior.
+  - Why: caches stable expensive props with controlled freshness.
+  - Flag when: Expensive stable props are recomputed on every visit or once props omit needed refresh and expiration behavior.
+- **Consider** Use Inertia optimistic updates for suitable reversible interactions, preserve unchanged nested state, and reconcile or roll back the result.
+  - Why: optimistic feedback stays consistent with the server after success or failure.
+  - Flag when: An optimistic mutation overwrites nested values or lacks failure rollback.
+- **Consider** Use Inertia optional props for explicitly requested data and always props for data required during every partial reload.
+  - Why: defines inclusion rules for partial reload props.
+  - Flag when: Request-only data uses ordinary props or universally required data lacks always semantics.
+- **Consider** Use a standalone request helper for data-only interactions that should not navigate to an Inertia page.
+  - Why: data-only requests avoid unintended page visits and protocol mismatches.
+  - Flag when: Search suggestions use an Inertia visit against an endpoint returning ordinary JSON.
 
 ### Frontend: Filament
 
+- **Must** Use standalone Filament forms, tables, or actions inside Livewire pages when a full panel isn't needed.
+  - Why: existing Livewire pages can reuse Filament interfaces without adopting a full panel.
+- **Should** Customize Filament styling through theme CSS and fi-* hook classes; keep extensive overrides proportionate to the required appearance.
+  - Why: theme CSS provides a supported styling surface while extensive overrides add maintenance cost.
+  - Flag when: A styling change overrides vendor views or adds extensive CSS overrides for a minor appearance change.
+- **Should** Use Filament render hooks to insert content at supported interface extension points instead of overriding vendor views.
+  - Why: render hooks extend the interface without maintaining copies of vendor templates.
+  - Flag when: A vendor view is copied or overridden solely to insert content at an available render hook.
 - **Should** Use relationship selects and dot-notation columns instead of hand-assembling related data.
   - Why: relationship bindings supply related choices and display values without manually assembling UI data.
   - Flag when: A Filament select manually queries relationship options instead of using relationship().
-- **Should** Use standalone Filament forms, tables, or actions inside Livewire pages when a full panel isn't needed.
-  - Why: existing Livewire pages can reuse Filament interfaces without adopting a full panel.
-- **Consider** Customize Filament styling through theme CSS and fi-* hook classes; keep extensive overrides proportionate to the required appearance.
-  - Why: theme CSS provides a supported styling surface while extensive overrides add maintenance cost.
-  - Flag when: A styling change overrides vendor views or adds extensive CSS overrides for a minor appearance change.
-- **Consider** Generate a Filament resource per managed model, with fields and columns named after model attributes; rely on app validation and model policies.
-  - Why: model resources provide create, edit, and list interfaces with minimal application plumbing.
-  - Flag when: A Filament resource field name mismatches the model attribute it edits.
-- **Consider** Use Filament custom-data tables for API responses, arrays, or other non-Eloquent sources rather than fabricating models.
-  - Why: custom record providers let tables represent their actual data source.
-  - Flag when: A fake Eloquent model is introduced solely to display external or in-memory data in a table.
-- **Consider** Use Filament render hooks to insert content at supported interface extension points instead of overriding vendor views.
-  - Why: render hooks extend the interface without maintaining copies of vendor templates.
-  - Flag when: A vendor view is copied or overridden solely to insert content at an available render hook.
-- **Consider** Use backed PHP enums with Filament label, color, and icon contracts as needed to share select options and badge presentation.
-  - Why: enum metadata keeps option labels and case presentation consistent across forms and tables.
-  - Flag when: Select options and badge labels or colors duplicate mappings for the same enum cases.
-- **Consider** Use separate Filament panels and panel providers for audiences needing distinct resources and interfaces, and restrict access with canAccessPanel().
+- **Should** Use separate Filament panels and panel providers for audiences needing distinct resources and interfaces, and restrict access with canAccessPanel().
   - Why: separate panels organize audience-specific interfaces while access checks enforce entry restrictions.
   - Flag when: Admin and customer interfaces share panel resources despite different needs, or panel access ignores the intended audience.
+- **Should** Generate a Filament resource per managed model, with fields and columns named after model attributes; rely on app validation and model policies.
+  - Why: model resources provide create, edit, and list interfaces with minimal application plumbing.
+  - Flag when: A Filament resource field name mismatches the model attribute it edits.
+- **Should** Use Filament custom-data tables for API responses, arrays, or other non-Eloquent sources rather than fabricating models.
+  - Why: custom record providers let tables represent their actual data source.
+  - Flag when: A fake Eloquent model is introduced solely to display external or in-memory data in a table.
+- **Should** Use backed PHP enums with Filament label, color, and icon contracts as needed to share select options and badge presentation.
+  - Why: enum metadata keeps option labels and case presentation consistent across forms and tables.
+  - Flag when: Select options and badge labels or colors duplicate mappings for the same enum cases.
 - **Consider** Add select filters and `searchable()` columns instead of building custom search endpoints.
   - Why: declarative filters and searchable columns provide table search without bespoke endpoints.
   - Flag when: A Filament table adds a custom endpoint for ordinary column search.
+- **Consider** Avoid lazy loading Filament pages that depend on page authorization hooks.
+  - Why: preserves page authorization during loading.
+  - Flag when: Filament pages relying on page authorization hooks enable lazy loading.
+- **Consider** Define required Filament resource policy methods or enable strict authorization to detect missing authorization.
+  - Why: detects missing resource authorization methods.
+  - Flag when: Filament resources lack required policy methods and strict authorization is disabled.
+- **Consider** Enable individual-record authorization for Filament bulk operations when each selected record needs a policy check.
+  - Why: checks authorization for each selected bulk record.
+  - Flag when: Bulk actions requiring per-record checks omit individual-record authorization.
+- **Consider** Enforce Filament relation-manager owner access in canViewForRecord() on child component requests.
+  - Why: protects relation-manager child requests through owner access checks.
+  - Flag when: Relation managers omit required owner access checks in canViewForRecord().
+- **Consider** Give embedded Filament actions stable, unique URL identifiers.
+  - Why: makes embedded action URL identities unambiguous.
+  - Flag when: Embedded actions omit stable unique URL identifiers or reuse one identifier.
+- **Consider** Give multiple Filament forms distinct names and state paths and bind their models for relationship handling.
+  - Why: isolates multiple forms and binds relationship models.
+  - Flag when: Multiple forms share names or state paths or omit models needed for relationships.
 - **Consider** Group large Filament forms into sections, tabs, or wizard steps that follow the user's task.
   - Why: task-oriented grouping makes large forms easier to navigate and complete.
   - Flag when: A large form presents distinct groups of inputs without sections, tabs, or steps.
+- **Consider** Keep Filament modal initialization free of mutations requiring user confirmation.
+  - Why: keeps modal preparation separate from confirmed mutations.
+  - Flag when: Filament modal initialization writes data or triggers side effects requiring confirmation.
+- **Consider** Key custom Filament table records by stable unique identifiers across filtering, sorting, and pagination.
+  - Why: preserves custom table record identity across views.
+  - Flag when: Custom table records use positional or nonunique keys across sorting, filtering, or pagination.
 - **Consider** Limit re-rendering in reactive forms to fields that actually depend on the change.
   - Why: targeted rendering avoids re-rendering unaffected form fields after a state update.
   - Flag when: A reactive field re-renders the whole form when only one dependent field changes.
+- **Consider** Persist relationship repeater order in an explicit database column.
+  - Why: persists relationship repeater ordering explicitly.
+  - Flag when: Relationship repeaters allow reordering without an explicit database order column.
+- **Consider** Preserve registered Filament relation-manager keys and assign stable unique tab URL keys.
+  - Why: preserves relation registration and stable tab navigation.
+  - Flag when: Relation-manager keys are replaced or tab URL keys are unstable or duplicated.
+- **Consider** Protect Filament upload and rich-editor attachment paths from tampering and authorize access to referenced files.
+  - Why: secures uploaded files and editor attachment references.
+  - Flag when: Upload or attachment paths are accepted without tamper protection or file access authorization.
+- **Consider** Read submitted Filament forms through getState() before persistence so validation and transformation run.
+  - Why: runs form validation and transformation before saving.
+  - Flag when: Filament persistence reads raw form state instead of calling getState().
+- **Consider** Render Filament JSON rich content and private attachments through RichContentRenderer with matching disk and visibility settings.
+  - Why: renders structured rich content with correct attachment access.
+  - Flag when: JSON rich content bypasses RichContentRenderer or uses mismatched attachment disk and visibility settings.
+- **Consider** Reset Filament tables after actions mutate custom data so records reload.
+  - Why: refreshes custom table data after mutations.
+  - Flag when: Actions mutate custom table data without resetting the table.
+- **Consider** Resolve custom Filament bulk selections using selected keys or select-all exclusions while preserving access restrictions.
+  - Why: resolves bulk selection while preserving access constraints.
+  - Flag when: Custom bulk actions ignore selected keys or select-all exclusions or bypass access filters.
+- **Consider** Restrict custom Filament uploads to explicitly declared upload components.
+  - Why: limits custom upload endpoints to declared components.
+  - Flag when: Custom Filament upload handlers accept files for undeclared upload components.
+- **Consider** Set Filament upload visibility explicitly for custom storage disks.
+  - Why: defines storage visibility for custom upload disks.
+  - Flag when: Filament uploads use a custom disk without explicit visibility.
+- **Consider** Use Filament View pages for view-only users instead of read-only tabs on Edit pages.
+  - Why: uses page types appropriate for view-only access.
+  - Flag when: View-only users are routed to Edit pages with read-only tabs.
 - **Consider** Use Filament repeaters to edit collections of child items within a parent form.
   - Why: repeaters provide a coherent interface for adding, editing, and removing child items.
   - Flag when: A parent form hand-builds repeated child-item inputs and their add or remove controls.
@@ -1857,6 +2317,9 @@
 - **Consider** Distinguish inline code from code blocks when applying code-specific styles.
   - Why: inline code styling should not unintentionally alter preformatted blocks.
   - Flag when: Broad code selectors that also affect code inside pre elements.
+- **Consider** Document the rationale for non-obvious breakpoint choices.
+  - Why: recorded intent helps maintain consistent responsive behavior.
+  - Flag when: Custom breakpoint choices added without an explanation.
 - **Consider** Follow the project’s existing Tailwind styling conventions before introducing new patterns.
   - Why: consistent styling conventions make changes easier to maintain.
   - Flag when: New styling approach that diverges from existing Tailwind usage.
@@ -1869,6 +2332,15 @@
 - **Consider** Match the project’s existing dark-mode behavior in new and changed components.
   - Why: consistent variants preserve usability across supported color modes.
   - Flag when: New light-only styles in a project with dark-mode support.
+- **Consider** Prefer native select controls when they meet the required styling, interaction, and browser-support needs.
+  - Why: native controls can avoid unnecessary custom dropdown dependencies.
+  - Flag when: Custom dropdown dependency introduced for needs a native select can meet.
+- **Consider** Prefer rem-based breakpoints when layouts should respond to user font-size preferences.
+  - Why: relative breakpoints accommodate larger preferred font sizes.
+  - Flag when: New or changed breakpoints expressed in fixed pixel units.
+- **Consider** Preserve newlines in escaped text with white-space: pre-line when line breaks should remain visible.
+  - Why: cSS preserves line breaks without requiring unescaped HTML.
+  - Flag when: Escaped multiline content converted to raw HTML solely to show newlines.
 - **Consider** Remove redundant Tailwind classes and place shared styles on the appropriate parent or child elements.
   - Why: intentional class placement reduces repetition and conflicting styles.
   - Flag when: Duplicate utilities or repeated inheritable styles on sibling elements.
@@ -1884,18 +2356,12 @@
 - **Consider** Use gap utilities for spacing between siblings in flex and grid layouts.
   - Why: container spacing avoids per-child margin management.
   - Flag when: Sibling margins used solely to establish flex or grid spacing.
+- **Consider** Use the project’s Tailwind breakpoints and theme values in custom responsive CSS.
+  - Why: shared responsive tokens keep custom CSS aligned with utility styles.
+  - Flag when: Hard-coded media queries that duplicate or diverge from theme breakpoints.
 - **Consider** Use utilities supported by the installed Tailwind version and replace obsolete utility names when upgrading to v4.
   - Why: version-compatible utilities preserve the intended generated styles.
   - Flag when: V3-only utilities such as bg-opacity-* or flex-shrink-* in v4 code.
-- **Consider** Document the rationale for non-obvious breakpoint choices.
-  - Why: recorded intent helps maintain consistent responsive behavior.
-  - Flag when: Custom breakpoint choices added without an explanation.
-- **Consider** Prefer native select controls when they meet the required styling, interaction, and browser-support needs.
-  - Why: native controls can avoid unnecessary custom dropdown dependencies.
-  - Flag when: Custom dropdown dependency introduced for needs a native select can meet.
-- **Consider** Prefer rem-based breakpoints when layouts should respond to user font-size preferences.
-  - Why: relative breakpoints accommodate larger preferred font sizes.
-  - Flag when: New or changed breakpoints expressed in fixed pixel units.
 - **Consider** Verify responsive layouts with different browser default font sizes.
   - Why: font-size changes can expose breakpoint and layout failures.
   - Flag when: Responsive layout changes without checking larger default font sizes.
@@ -1910,6 +2376,11 @@
 - **Must** Test framework-dependent packages with Orchestra Testbench, loading providers and migrations explicitly.
   - Why: bare PHPUnit tests lack the Laravel services and database schema needed by framework-dependent package behavior.
   - Flag when: Framework-dependent package tests extend bare PHPUnit TestCase without bootstrapping Laravel.
+- **Should** Build reusable components inside the app first, then extract mature ones into packages (Composer path repositories).
+  - Why: mature, separable features can be reused and maintained independently while the application stays focused on its domain.
+- **Should** Expose focused extension points and configurable default classes for customizable package operations, models, and jobs; consistently use the configured implementations.
+  - Why: consumers can customize individual steps and types without copying workflows or editing vendor code.
+  - Flag when: Customizable workflows are monolithic, narrow configuration switches multiply, or package code bypasses configured model, action, or job classes.
 - **Should** Register package resources through its service provider, using boot() for runtime components and centralized resource declarations when package tooling supports them.
   - Why: consistent provider registration makes package resources available and avoids duplicated setup plumbing.
   - Flag when: Package resources are unregistered, runtime components are registered before boot, or resource declarations bypass the package provider conventions.
@@ -1920,19 +2391,62 @@
 - **Should** Use scoped route discovery only for repetitive routes, keeping manual routes where control matters.
   - Why: scoped discovery removes repetitive declarations while manual routes preserve deliberate control over important URLs.
   - Flag when: Route discovery scans all controllers or views instead of a dedicated directory.
-- **Should** Build reusable components inside the app first, then extract mature ones into packages (Composer path repositories).
-  - Why: mature, separable features can be reused and maintained independently while the application stays focused on its domain.
-- **Should** Expose focused extension points and configurable default classes for customizable package operations, models, and jobs; consistently use the configured implementations.
-  - Why: consumers can customize individual steps and types without copying workflows or editing vendor code.
-  - Flag when: Customizable workflows are monolithic, narrow configuration switches multiply, or package code bypasses configured model, action, or job classes.
+- **Consider** Accept and handle nullable Pennant scopes when feature checks must work without authentication.
+  - Why: supports feature checks without an authenticated scope.
+  - Flag when: Pennant feature resolvers reject null scopes where unauthenticated checks are required.
+- **Consider** Align role and permission guard names with the user's authentication guard.
+  - Why: aligns permission guard identities with authentication.
+  - Flag when: Role or permission guard names differ from the user's authentication guard.
+- **Consider** Assign stable aliases to persisted event types and maintain their class mappings through refactors.
+  - Why: preserves event identities through implementation refactors.
+  - Flag when: Persisted event types use class names without stable aliases or refactors remove required mappings.
+- **Consider** Attach every state read during Verbs event application to the event when exact historical reconstruction is required.
+  - Why: records every state dependency for historical reconstruction.
+  - Flag when: Verbs event application reads state that is not attached to the event.
 - **Consider** Avoid naming third-party packages or products "Laravel X" in a way that implies official Laravel ownership.
   - Why: the Laravel trademark and product identity should not imply endorsement of third-party offerings.
   - Flag when: A third-party package or product adopts a Laravel-prefixed brand suggesting it is an official Laravel product.
 - **Consider** Capture reusable project defaults in a starter kit with an .env.example and automated Composer project-creation setup.
   - Why: repeatable project initialization keeps shared defaults and setup steps consistent.
   - Flag when: A starter kit omits environment templates or requires manual setup that should run during project creation.
+- **Consider** Centralize missing-translation fallbacks instead of duplicating fallback logic at read sites.
+  - Why: centralizes translation fallback policy.
+  - Flag when: Missing-translation fallback logic is duplicated at individual read sites.
+- **Consider** Configure Scout searchable fields explicitly, import existing records, and keep the index in sync.
+  - Why: irrelevant indexed attributes create noisy matches, while imports and synchronization keep searchable records current.
+  - Flag when: Searchable attributes include irrelevant fields, or indexed model updates bypass Scout lifecycle events.
+- **Consider** Declare translated model attributes explicitly and store per-locale values in supported JSON columns.
+  - Why: declares translation fields and compatible persistence.
+  - Flag when: Translated attributes are undeclared or their storage columns cannot hold supported per-locale JSON.
+- **Consider** Define feature defaults for future scopes as well as updating existing persisted assignments.
+  - Why: applies feature policy to existing and future scopes.
+  - Flag when: Feature changes update persisted assignments but leave future-scope resolver defaults unchanged.
+- **Consider** Dispatch contextual events at meaningful package lifecycle points so consumers can attach side effects through listeners.
+  - Why: application-specific side effects can extend package behavior without changing package internals.
+  - Flag when: Package lifecycle side effects require editing internal workflows or adding a separate configuration switch for each consumer hook.
+- **Consider** Distinguish omitted DTO update fields from explicit null, allowing null only when the field contract permits it.
+  - Why: preserves omission and null semantics in DTO updates.
+  - Flag when: DTO updates collapse omitted fields into null or allow null for non-nullable fields.
+- **Consider** Enable Octane permission reset listeners when stale permission data requires flushing between execution cycles.
+  - Why: resets cached permissions during Octane execution cycles.
+  - Flag when: Permission reset listeners are disabled where Octane retains stale permission data.
+- **Consider** Explicitly preserve required validation and transformation when custom Data creation methods bypass the normal pipeline.
+  - Why: preserves Data validation and transformation guarantees.
+  - Flag when: Custom Data creation methods bypass required validation or transformation without restoring it.
+- **Consider** Extend the parent laravel-data pipeline when adding preparation stages.
+  - Why: retains inherited laravel-data processing stages.
+  - Flag when: Custom Data preparation pipelines replace the parent pipeline instead of extending it.
+- **Consider** Flush Pennant's in-memory cache when a workflow requires fresh feature checks.
+  - Why: refreshes in-memory feature results when required.
+  - Flag when: Workflows requiring fresh Pennant checks omit flushing its in-memory cache.
 - **Consider** Follow semantic versioning and keep a changelog and upgrade guide.
   - Why: predictable versions and migration instructions help consumers understand release changes and upgrade requirements.
+- **Consider** Give persisted Pennant feature names stable aliases that survive class refactoring.
+  - Why: keeps stored feature identities stable across refactors.
+  - Flag when: Pennant feature names depend on class names without stable aliases.
+- **Consider** Guard manually invoked side effects explicitly; Verbs Once attributes protect only framework-invoked hooks.
+  - Why: respects the invocation boundary of Verbs Once hooks.
+  - Flag when: Manually called side-effect methods rely solely on Verbs Once attributes.
 - **Consider** Implement package logic in plain services; register providers and optional facades via Composer auto-discovery.
   - Why: an optional facade proxies an ordinary service that consumers can also instantiate directly.
   - Flag when: Package business logic is implemented inside a facade instead of its underlying service.
@@ -1945,17 +2459,47 @@
 - **Consider** Keep runtime deps in `require` and tools/tests in `require-dev`/`autoload-dev`.
   - Why: consumers receive runtime dependencies without inheriting package test tooling or test autoload mappings.
   - Flag when: Composer.json puts test tools in require, test namespaces in autoload, or runtime dependencies in require-dev.
-- **Consider** Use a maintained media package (e.g. Spatie Media Library) with purpose-specific collections and disks.
-  - Why: a media package handles repeated upload, model association, derivative, and storage workflows.
-- **Consider** Verify Cashier webhook signatures, trust provider state for orders and subscriptions, and keep custom effects in listeners.
-  - Why: authenticated provider callbacks establish billing state while asynchronous checkout completion may still be pending.
-  - Flag when: Checkout return handlers mark orders paid without provider confirmation, or webhook routes bypass signature verification.
-- **Consider** Dispatch contextual events at meaningful package lifecycle points so consumers can attach side effects through listeners.
-  - Why: application-specific side effects can extend package behavior without changing package internals.
-  - Flag when: Package lifecycle side effects require editing internal workflows or adding a separate configuration switch for each consumer hook.
+- **Consider** Load Verbs states through canonical State loading APIs instead of constructing duplicate instances.
+  - Why: uses canonical Verbs state identity and loading.
+  - Flag when: Verbs state instances are created directly instead of using canonical State loading APIs.
+- **Consider** Mark constructor-derived Data properties as Computed and rebuild the DTO when their dependencies change.
+  - Why: keeps derived Data properties consistent with dependencies.
+  - Flag when: Constructor-derived Data properties lack Computed or dependencies mutate without rebuilding the DTO.
 - **Consider** Protect package registry accounts with two-factor authentication and create release tags only from the protected release branch.
   - Why: protected publishing credentials and reviewed release commits reduce unauthorized package releases.
   - Flag when: Release workflows tag unprotected branches or documented registry account policies omit two-factor authentication.
 - **Consider** Provide an installation command when package setup requires multiple coordinated actions.
   - Why: one repeatable entry point reduces incomplete or inconsistent consumer setup.
   - Flag when: Package installation requires coordinated manual setup steps with no command to perform them.
+- **Consider** Purge persisted Pennant assignments when changed resolvers must run again for existing scopes.
+  - Why: reruns changed feature resolvers for existing scopes.
+  - Flag when: Pennant resolvers change without purging existing persisted assignments that must be recomputed.
+- **Consider** Refresh or reset loaded Verbs state before reuse when newer committed events must be observed.
+  - Why: refreshes Verbs state before observing newer events.
+  - Flag when: Previously loaded Verbs state is reused after newer events commit without refresh or reset.
+- **Consider** Register retained Pennant features before purging unregistered feature assignments.
+  - Why: protects retained assignments during feature cleanup.
+  - Flag when: Unregistered-feature purges run before retained Pennant features are registered.
+- **Consider** Reinitialize the permission registrar cache after changing its store or prefix during an in-process tenant switch.
+  - Why: refreshes permission cache bindings during tenant switches.
+  - Flag when: Tenant switches change cache store or prefix without reinitializing the permission registrar cache.
+- **Consider** Resolve Pennant feature scopes explicitly in jobs and commands without relying on authenticated HTTP context.
+  - Why: supplies feature scopes outside HTTP authentication.
+  - Flag when: Pennant checks in jobs or commands implicitly rely on the authenticated user scope.
+- **Consider** Unset loaded user roles and permissions after switching permission teams before checking access.
+  - Why: clears loaded permissions when permission teams change.
+  - Flag when: Permission team switches leave loaded user roles and permissions intact before access checks.
+- **Consider** Use a maintained media package (e.g. Spatie Media Library) with purpose-specific collections and disks.
+  - Why: a media package handles repeated upload, model association, derivative, and storage workflows.
+- **Consider** Use package permission mutation methods or explicitly invalidate the permission cache after direct database changes.
+  - Why: keeps permission cache consistent with mutations.
+  - Flag when: Roles or permissions are modified directly in the database without permission cache invalidation.
+- **Consider** Use persistent Pennant storage when feature assignments must survive across requests.
+  - Why: persists Pennant assignments across requests.
+  - Flag when: Pennant uses an in-memory store despite requiring feature assignments to survive requests.
+- **Consider** Use stable model-state persistence names independent of implementation class names.
+  - Why: decouples stored model states from class names.
+  - Flag when: Persisted model-state names use implementation class names that change during refactors.
+- **Consider** Verify Cashier webhook signatures, trust provider state for orders and subscriptions, and keep custom effects in listeners.
+  - Why: authenticated provider callbacks establish billing state while asynchronous checkout completion may still be pending.
+  - Flag when: Checkout return handlers mark orders paid without provider confirmation, or webhook routes bypass signature verification.
