@@ -6392,7 +6392,7 @@ After:
 'users.*.name' => ['required', 'string', 'max:255'],
 ```
 
-## Should (2715)
+## Should (2718)
 
 ### Architecture
 
@@ -27159,6 +27159,22 @@ After:
 Route::apiResource('articles', ArticleController::class);
 ```
 
+#### Use dotted route-name segments and snake_case inside multiword segments
+- **Do:** Use dotted route-name segments and snake_case inside multiword segments.
+- **Flag when:** Flag when route names mix separators or casing, for example camelCase segments such as users.showActive or kebab-case alongside snake_case, without an established project exception.
+- **Why:** A consistent route-name vocabulary makes link generation predictable.
+- **Enforced by:** manual
+
+Before:
+```php
+->name('users-showActive')
+```
+
+After:
+```php
+->name('users.show_active')
+```
+
 #### Give substantial publish, approve or archive operations a separate resource/controller boundary
 - **Do:** Give substantial publish, approve or archive operations a separate resource/controller boundary.
 - **Flag when:** Flag when non-CRUD workflows crowd a resource controller with independent access or lifecycle requirements.
@@ -29483,6 +29499,28 @@ public function publish(Post $post) { $post->publish(); }
 After:
 ```php
 public function publish(Post $post) { Gate::authorize('publish', $post); $post->publish(); }
+```
+
+#### Skip readonly on properties the framework or a package hydrates or mutates after construction
+- **Do:** Exception to style-032: leave properties writable (no readonly) on classes whose state the framework or a package fills in or changes after construction, such as Livewire form objects and component properties, Filament form state, Eloquent models and other hydrated objects.
+- **Flag when:** Flag when readonly is added to a property that the framework or a package assigns after construction (Livewire/Filament form state, hydrated or model attributes), which fails as soon as the framework tries to assign it.
+- **Why:** readonly properties can only be initialised once from inside the class scope, so framework hydration or later mutation fails; readonly by default (style-032) only fits state that is fixed at construction.
+- **Enforced by:** manual
+
+Before:
+```php
+class PostForm extends Form
+{
+    public readonly string $title;
+}
+```
+
+After:
+```php
+class PostForm extends Form
+{
+    public string $title = '';
+}
 ```
 
 #### Use camelCase route parameter names (e.g. {userId}, {newsItem})
@@ -40357,6 +40395,32 @@ After:
 - **Flag when:** Flag when performance settings are changed without measurements or the source of slow work remains unknown.
 - **Why:** Measurement directs optimization to the actual bottleneck.
 - **Enforced by:** manual
+
+#### Create each test's records inside the test; use beforeEach only for setup every test shares
+- **Do:** By default, create the records a test needs with factories inside that test, or in a helper the test calls explicitly. Use beforeEach() (or setUp()) only for setup that every test in the file needs, such as an authenticated user, fakes or configuration, so each test still gets fresh state.
+- **Flag when:** Flag when beforeEach() or setUp() creates records that only some tests in the file use, or hides scenario-specific records that a test's assertions depend on.
+- **Why:** Records created in the test keep each scenario readable and avoid unneeded data, while per-test shared setup removes repetition only for state that is truly common to the whole file.
+- **Enforced by:** manual
+
+Before:
+```php
+beforeEach(function () {
+    $this->user = User::factory()->create();
+    $this->post = Post::factory()->published()->create(); // used by 2 of 8 tests
+});
+```
+
+After:
+```php
+beforeEach(function () {
+    $this->actingAs(User::factory()->create()); // every test needs a signed-in user
+});
+
+test('owner can archive a post', function () {
+    $post = Post::factory()->for(auth()->user())->published()->create();
+    // ...
+});
+```
 
 #### Extract discrete reusable business operations
 - **Do:** Extract a cohesive business operation into an action when it improves reuse or independent testing.

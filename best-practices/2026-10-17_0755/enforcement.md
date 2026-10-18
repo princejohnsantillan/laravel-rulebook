@@ -1,7 +1,7 @@
 # Enforcement
 Which tool rule enforces each listed practice. Rules without a tool are enforced manually in review.
 
-668 of 6855 listed rules have a tool rule.
+668 of 6858 listed rules have a tool rule.
 
 | Level | Rule | Enforced by |
 |---|---|---|

@@ -3,11 +3,11 @@ Each candidate rule was measured against 44 public repos pinned to a commit: fir
 
 Scoring: +2 if first-party code follows the rule at least 80% of the time, +1 if the whole sample follows it at least 70%. Rules below 30% overall go to aspirational.md.
 
-- Scored rules (Must/Should/Consider): 7019
-- Code-checkable with data: 2490
-- Followed by >=70% of the sample: 1883
-- First-party >=80%: 1307
-- Aspirational (<30%): 162
+- Scored rules (Must/Should/Consider): 7023
+- Code-checkable with data: 2494
+- Followed by >=70% of the sample: 1885
+- First-party >=80%: 1308
+- Aspirational (<30%): 163
 
 ## Claude recheck
 Claude (Opus, medium effort) independently re-measured a random 5% sample (178 rules). Agreement (within 15 points and same side of the 30%/70% thresholds): 120/178 (67%).
@@ -864,6 +864,7 @@ The method was then fixed: a minimum of 5 applicable repos (3 first-party) befor
 | Should | Use JSON rather than PHP object deserialization for untrusted browser data | 100% | 100% |
 | Should | Use $request->query() or $request->post() when it matters whether a value comes from the query string or the request body | 100% |  |
 | Should | Assume every route exposed to the frontend (e.g. via Ziggy) will be found, and make sure each has authorisation | 100% | 100% |
+| Should | Skip readonly on properties the framework or a package hydrates or mutates after construction | 100% |  |
 | Should | Use camelCase route parameter names (e.g. {userId}, {newsItem}) | 100% | 100% |
 | Should | Limit deep nesting of API routes; prefer /error-occurrences/1 over /projects/1/errors/1/error-occurrences/1 | 100% | 100% |
 | Should | Never run untrusted code from forks in a pull_request_target workflow | 100% | 100% |
@@ -1864,6 +1865,7 @@ The method was then fixed: a minimum of 5 applicable repos (3 first-party) befor
 | Should | Use explicit HTML assertions for unescaped response assertions | 70% |  |
 | Should | Automate repeatable upgrades with Rector | 70% |  |
 | Should | Use territory locale directory identifiers consistently | 70% |  |
+| Should | Create each test's records inside the test; use beforeEach only for setup every test shares | 70% | 100% |
 | Should | Report business validation failures with ValidationException | 70% |  |
 | Should | Handle JSON validation failures as field error responses | 70% |  |
 | Should | Use subject-specific assertions | 70% | 87% |
@@ -2065,6 +2067,7 @@ The method was then fixed: a minimum of 5 applicable repos (3 first-party) befor
 | Should | Test container binding types and promised lifetimes | 36% | 50% |
 | Should | Preserve callback result types through helper APIs | 36% | 60% |
 | Should | Test lowest and current supported dependencies | 35% | 18% |
+| Should | Use dotted route-name segments and snake_case inside multiword segments | 35% | 29% |
 | Should | Type-hint dispatched-object assertion predicates | 35% | 43% |
 | Should | Promote ordinary constructor-only properties | 35% | 36% |
 | Should | Keep isolated unit tests free of application boot | 35% | 45% |

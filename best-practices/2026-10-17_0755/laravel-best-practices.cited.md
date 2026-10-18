@@ -8877,7 +8877,7 @@ After:
 'users.*.name' => ['required', 'string', 'max:255'],
 ```
 
-## Should (2715)
+## Should (2718)
 
 ### Architecture
 
@@ -35831,6 +35831,28 @@ After:
 Route::apiResource('articles', ArticleController::class);
 ```
 
+#### Use dotted route-name segments and snake_case inside multiword segments
+- **Do:** Use dotted route-name segments and snake_case inside multiword segments.
+- **Flag when:** Flag when route names mix separators or casing, for example camelCase segments such as users.showActive or kebab-case alongside snake_case, without an established project exception.
+- **Why:** A consistent route-name vocabulary makes link generation predictable.
+- **Enforced by:** manual
+- **Score:** 5 (sources 5 + adoption 0); adoption first-party 29%, all 35%; id `http-025`; L13-current
+  - [laravel/boost skill: laravel-best-practices/style](https://github.com/laravel/boost/blob/f1411f90d54cb01ffe30606b7ca92789aad737d9/.ai/laravel/skill/laravel-best-practices/rules/style.md#L16) (boost, 2026-10)
+  - [laravel/boost](https://github.com/laravel/boost/blob/f1411f90d54cb01ffe30606b7ca92789aad737d9/.ai/laravel/skill/laravel-best-practices/rules/style.md#L16) (boost, 2026-10)
+  - [alexeymezenin/laravel-best-practices](https://github.com/alexeymezenin/laravel-best-practices/blob/2bdce1396b292085665f1ee9cb012b66a8ffe216/README.md#L563) (community, 2022-10)
+  - [laravel/boost](https://github.com/laravel/boost/blob/f1411f90d54cb01ffe30606b7ca92789aad737d9/.ai/laravel/skill/laravel-best-practices/rules/routing.md#L65) (teaching, 2026)
+  - [MrPunyapal/go-get-laravel (wiki)](https://github.com/MrPunyapal/go-get-laravel/wiki/Naming-Conventions/916c64b42f7e1f37e4fbeb227a8116e3583142c7) (community, 2023-12)
+
+Before:
+```php
+->name('users-showActive')
+```
+
+After:
+```php
+->name('users.show_active')
+```
+
 #### Give substantial publish, approve or archive operations a separate resource/controller boundary
 - **Do:** Give substantial publish, approve or archive operations a separate resource/controller boundary.
 - **Flag when:** Flag when non-CRUD workflows crowd a resource controller with independent access or lifecycle requirements.
@@ -38674,6 +38696,31 @@ public function publish(Post $post) { $post->publish(); }
 After:
 ```php
 public function publish(Post $post) { Gate::authorize('publish', $post); $post->publish(); }
+```
+
+#### Skip readonly on properties the framework or a package hydrates or mutates after construction
+- **Do:** Exception to style-032: leave properties writable (no readonly) on classes whose state the framework or a package fills in or changes after construction, such as Livewire form objects and component properties, Filament form state, Eloquent models and other hydrated objects.
+- **Flag when:** Flag when readonly is added to a property that the framework or a package assigns after construction (Livewire/Filament form state, hydrated or model attributes), which fails as soon as the framework tries to assign it.
+- **Why:** readonly properties can only be initialised once from inside the class scope, so framework hydration or later mutation fails; readonly by default (style-032) only fits state that is fixed at construction.
+- **Enforced by:** manual
+- **Score:** 4 (sources 3 + adoption 1); adoption first-party , all 100%; id `http-180`; L13-current
+  - [laravel/framework](https://github.com/laravel/framework/blob/e51b5fe16d6f0e547137087e52c6106118c319f1/rector.php#L85) (linters, 2026-10)
+  - [Spatie guidelines](https://spatie.be/guidelines/php#content-class-defaults) (community, 2026-02)
+
+Before:
+```php
+class PostForm extends Form
+{
+    public readonly string $title;
+}
+```
+
+After:
+```php
+class PostForm extends Form
+{
+    public string $title = '';
+}
 ```
 
 #### Use camelCase route parameter names (e.g. {userId}, {newsItem})
@@ -53098,6 +53145,39 @@ After:
   - [laravel/boost skill: testing-best-practices/performance](https://github.com/laravel/boost/blob/f1411f90d54cb01ffe30606b7ca92789aad737d9/.ai/laravel/skill/testing-best-practices/rules/performance.blade.php#L77) (boost, 2026-10)
   - [laravel/boost](https://github.com/laravel/boost/blob/f1411f90d54cb01ffe30606b7ca92789aad737d9/.ai/laravel/skill/testing-best-practices/rules/performance.blade.php#L19) (boost, 2026-10)
   - [laravel/boost](https://github.com/laravel/boost/blob/f1411f90d54cb01ffe30606b7ca92789aad737d9/.ai/laravel/skill/testing-best-practices/rules/performance.blade.php#L72) (boost, 2026-10)
+
+#### Create each test's records inside the test; use beforeEach only for setup every test shares
+- **Do:** By default, create the records a test needs with factories inside that test, or in a helper the test calls explicitly. Use beforeEach() (or setUp()) only for setup that every test in the file needs, such as an authenticated user, fakes or configuration, so each test still gets fresh state.
+- **Flag when:** Flag when beforeEach() or setUp() creates records that only some tests in the file use, or hides scenario-specific records that a test's assertions depend on.
+- **Why:** Records created in the test keep each scenario readable and avoid unneeded data, while per-test shared setup removes repetition only for state that is truly common to the whole file.
+- **Enforced by:** manual
+- **Score:** 10 (sources 7 + adoption 3); adoption first-party 100%, all 70%; id `testing-092`; L13-current
+  - [laravel/boost skill: testing-best-practices/review](https://github.com/laravel/boost/blob/f1411f90d54cb01ffe30606b7ca92789aad737d9/.ai/laravel/skill/testing-best-practices/rules/review.blade.php#L42) (boost, 2026-08)
+  - [laravel/boost skill: testing-best-practices/review](https://github.com/laravel/boost/blob/f1411f90d54cb01ffe30606b7ca92789aad737d9/.ai/laravel/skill/testing-best-practices/rules/review.blade.php#L44) (boost, 2026-08)
+  - [laravel/boost skill: testing-best-practices/review](https://github.com/laravel/boost/blob/f1411f90d54cb01ffe30606b7ca92789aad737d9/.ai/laravel/skill/testing-best-practices/rules/review.blade.php#L46) (boost, 2026-08)
+  - [laravel/boost skill: testing-best-practices/test-data](https://github.com/laravel/boost/blob/f1411f90d54cb01ffe30606b7ca92789aad737d9/.ai/laravel/skill/testing-best-practices/rules/test-data.blade.php#L10) (boost, 2026-10)
+  - [laravel/fortify](https://github.com/laravel/fortify/blob/7aa4ac434062c2f4754985ab74adb1dcb11f1123/tests/ConfirmablePasswordControllerTest.php#L20) (first-party, 2026-10)
+  - [pestphp/pest](https://github.com/pestphp/pest/blob/e9fa0f50c5c6f11be77bf8d69ba121c9f0b54d8c/tests/Features/BeforeEach.php#L3) (packages, 2026-10)
+
+Before:
+```php
+beforeEach(function () {
+    $this->user = User::factory()->create();
+    $this->post = Post::factory()->published()->create(); // used by 2 of 8 tests
+});
+```
+
+After:
+```php
+beforeEach(function () {
+    $this->actingAs(User::factory()->create()); // every test needs a signed-in user
+});
+
+test('owner can archive a post', function () {
+    $post = Post::factory()->for(auth()->user())->published()->create();
+    // ...
+});
+```
 
 #### Extract discrete reusable business operations
 - **Do:** Extract a cohesive business operation into an action when it improves reuse or independent testing.

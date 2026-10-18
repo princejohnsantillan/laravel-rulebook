@@ -15,10 +15,10 @@ Every active and aspirational rule was tagged against the Laravel 13 docs and fr
 | Level | Rules |
 |---|---|
 | Must (7+ points) | 413 |
-| Should (4-6) | 2,715 |
+| Should (4-6) | 2,718 |
 | Consider (2-3) | 3,727 |
-| Aspirational (under 30% adoption; in aspirational.md) | 162 (21 Must-scored, 38 Should-scored, 103 Consider-scored) |
-| Open conflicts (3 pairs, 6 rules; in conflicts.md) | 6 |
+| Aspirational (under 30% adoption; in aspirational.md) | 163 (22 Must-scored, 38 Should-scored, 103 Consider-scored) |
+| Open conflicts | 0 (3 pairs resolved on 2026-10-18; see conflicts.md) |
 | Rejected after Claude verification | 3 |
 
 ## Files
@@ -27,13 +27,18 @@ Every active and aspirational rule was tagged against the Laravel 13 docs and fr
 - `enforcement.md`: which rules a tool (Pint, Larastan/PHPStan, Rector, etc.) can enforce, with config snippets
 - `adoption-report.md`: how often 44 pinned public repos follow each rule
 - `aspirational.md`: well-sourced rules that most code does not follow yet
-- `conflicts.md`: opposing rules that both scored 4 or more, with Claude's assessment
+- `conflicts.md`: opposing rules that both scored 4 or more, with Claude's assessment and the decision for each resolved pair
 
 ## How it was built
 - Sources were collected separately by Codex (gpt-6.1-sol) and Claude (Opus), then merged and deduplicated. Claude collection ran as 37 small chunks: official docs and source (o01-o10), Laracon and teaching (t01-t18), linters (l01-l04), community and blogs (c01-c05).
 - Scoring: official docs, first-party code and Boost 3 points; packages and linters 2; Laracon 2 (3 for a Laravel-employee speaker); teaching/blog and community 1; Laravel News 0. Adoption adds +2 if first-party code follows a rule at least 80% of the time and +1 if the whole sample follows it at least 70%. Adoption points need at least 5 applicable repos (3 for first-party).
 - Practices found by only one model were checked against their sources by Claude, and every Must rule was rechecked by Claude at xhigh effort.
 - Adoption method v2: non-applicable repos are excluded, and equivalent implementations count as followed. A Claude recheck of a fresh sample agreed with **85% (51/60)** of the v2 results, up from 67% (120/178) under v1.
+
+## Conflict decisions (2026-10-18)
+- Route names: kept `http-025` (dotted names, snake_case inside multiword segments); dropped `http-179` (camelCase).
+- readonly: kept `style-032` (readonly promoted properties by default; aspirational, since about 9% of sampled code follows it); `http-180` reworded into its exception for properties the framework or a package hydrates or changes after construction.
+- Test data: merged `testing-183` into `testing-092` (create records inside each test; `beforeEach` only for setup every test in the file shares).
 
 ## Caveats
 - The first Claude collection round ran at max effort, before the effort policy changed. The first 975 single-model checks ran at xhigh and the rest at medium.

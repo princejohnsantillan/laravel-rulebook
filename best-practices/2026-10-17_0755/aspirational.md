@@ -13,6 +13,7 @@ Rules that scored at least Consider but that fewer than 30% of the applicable sa
 | Retry only transient HTTP failures | Must | 10 | 20% |  | L13-current |
 | Fail tests on relevant deprecations | Must | 10 | 14% | 33% | L13-current |
 | Annotate relationship return types with the required model generics | Must | 9 | 24% | 33% | L13-current |
+| Make promoted constructor properties readonly by default | Must | 9 | 9% | 0% | L13-current |
 | Document structured arrays with PHPDoc shapes | Must | 8 | 11% | 22% | L13-current |
 | Rotate production logs with bounded retention | Must | 8 | 14% | 0% | L13-current |
 | Escape LIKE metacharacters when input should match literally and verify the driver escape semantics | Must | 8 | 20% |  | L13-current |
