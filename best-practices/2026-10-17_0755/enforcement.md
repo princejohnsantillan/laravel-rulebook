@@ -1,145 +1,188 @@
 # Enforcement
-
-> **INTERIM snapshot (2026-10-17 22:50, Asia/Manila).** Claude collection chunks and the stricter adoption re-run are still pending. Levels and counts will change when they are folded in. See README.md.
-
 Which tool rule enforces each listed practice. Rules without a tool are enforced manually in review.
 
-595 of 5803 listed rules have a tool rule.
+668 of 6855 listed rules have a tool rule.
 
 | Level | Rule | Enforced by |
 |---|---|---|
 | Must | Read environment variables in configuration files and read those settings through config() in application code | larastan:NoEnvCallsOutsideOfConfigRule, shift:workbench/convert-env-to-config |
 | Must | Use framework fakes at framework boundaries | partial: rector:ReplaceExpectsMethodsInTestsRector, partial: rector:ReplaceWithoutJobsEventsAndNotificationsWithFacadeFakeRector |
+| Must | Freeze time for time-dependent tests | partial: rector:CarbonSetTestNowToTravelToRector |
 | Must | Configure middleware, exception handling and route loading in bootstrap/app.php in streamlined applications | partial: shift:slimmer/bootstrap |
 | Must | Scope dispatch uniqueness to the logical operation | partial: larastan:UniqueJobDeclaresUniqueIdRule |
-| Must | Return anonymous migration classes | rector:AnonymousMigrationsRector, shift:workbench/adopt-anonymous-migrations |
 | Must | Serialize model identifiers rather than live dependencies | partial: larastan:JobWithModelPropertyDeclaresSerializesModelsRule |
 | Must | Use application environment predicates for environment checks | rector:AppEnvironmentComparisonToParameterRector |
+| Must | Return anonymous migration classes | rector:AnonymousMigrationsRector, shift:workbench/adopt-anonymous-migrations |
+| Must | Follow PHPUnit discovery and naming conventions | pint:php_unit_method_casing, shift:workbench/format-test-cases |
 | Must | Do not store request-specific state in Octane singletons or static properties | partial: larastan:OctaneCompatibilityRule |
 | Must | Include CSRF tokens in state-changing forms | partial: shift:workbench/blade/csrf |
-| Must | Follow PHPUnit discovery and naming conventions | pint:php_unit_method_casing, shift:workbench/format-test-cases |
-| Must | Use the Laravel Vite asset pipeline | partial: shift:vite-converter |
-| Must | Declare custom Eloquent collections with #[CollectedBy] for new Laravel 13 code | rector:CollectedByPropertyToCollectedByAttributeRector |
-| Must | Do not rely on batch or bulk dispatch uniqueness | partial: larastan:NoBatchedUniqueJobRule |
-| Must | Use supported LIKE helpers with deliberate case semantics | partial: rector:WhereToWhereLikeRector |
 | Must | Load relationship counts with withCount() instead of hydrating children | partial: larastan:NoUnnecessaryCollectionCallRule |
+| Must | Use the Laravel Vite asset pipeline | partial: shift:vite-converter |
+| Must | Do not rely on batch or bulk dispatch uniqueness | partial: larastan:NoBatchedUniqueJobRule |
+| Must | Use blank and filled with intentional value semantics | partial: rector:EmptyToBlankAndFilledFuncRector |
+| Must | Use class-based factories and named state methods | rector:FactoryApplyingStatesRector, rector:FactoryDefinitionRector, rector:FactoryFuncCallToStaticCallRector |
 | Must | Resolve current request/container/config dependencies at use time rather than retaining stale instances in Octane singletons | partial: larastan:OctaneCompatibilityRule |
+| Must | Use HasMiddleware::middleware() for controller-owned middleware in new streamlined applications | shift:upgrade-12/controller-middleware |
 | Must | Declare nullable parameters explicitly | pint:nullable_type_declaration_for_default_null_value |
 | Must | Compare shared secrets with timing-safe equality | partial: rector:StaticCallToFuncCallRector |
-| Must | Use class-based factories and named state methods | rector:FactoryApplyingStatesRector, rector:FactoryDefinitionRector, rector:FactoryFuncCallToStaticCallRector |
-| Must | Use $request->input() instead of $request->get(); input() supports dot notation for nested values | rector:RenameMethodRector, shift:public/laravel13/request-input |
+| Must | Remove debug calls before committing | partial: rector:RemoveDumpDataDeadCodeRector |
 | Must | Stay current within supported releases | partial: shift:public/linter/current-version |
-| Must | Select constrained eager-load columns inside the callback | partial: larastan:RelationExistenceRule |
-| Must | List only defined computed accessors in model appends | larastan:ModelAppendsRule |
-| Must | Use valid delimited regular expressions | partial: larastan:PHPStan\Rules\Regexp\RegularExpressionPatternRule |
+| Must | Configure application exception policy through withExceptions() in the streamlined bootstrap | partial: shift:slimmer/bootstrap |
+| Must | Use $request->input() instead of $request->get(); input() supports dot notation for nested values | rector:RenameMethodRector, shift:public/laravel13/request-input |
 | Must | Keep classes compatible with PSR-4 autoloading | partial: pint:psr_autoloading |
+| Must | Use strict comparisons when types matter | pint:strict_comparison |
+| Must | Select constrained eager-load columns inside the callback | partial: larastan:RelationExistenceRule |
+| Must | Avoid model members that collide with inherited or trait-provided APIs | partial: larastan:PHPStan\Rules\Methods\OverridingMethodRule, partial: larastan:PHPStan\Rules\Properties\OverridingPropertyRule |
+| Must | List only defined computed accessors in model appends | larastan:ModelAppendsRule |
+| Must | Do not declare optional parameters before required parameters | pint:no_unreachable_default_argument_value |
+| Must | Honor batch cancellation before doing work | partial: larastan:BatchableJobChecksCancellationRule |
+| Must | Enqueue transaction-dependent jobs after commit | partial: larastan:JobDispatchedInTransactionUsesAfterCommitRule |
+| Must | Replace legacy job retry configuration names | rector:RenameMethodRector, rector:RenamePropertyRector |
+| Must | Respect internal API boundaries | partial: larastan:PHPStan\Rules\InternalTag\RestrictedInternalClassConstantUsageExtension, partial: larastan:PHPStan\Rules\InternalTag\RestrictedInternalClassNameUsageExtension, partial: larastan:PHPStan\Rules\InternalTag\RestrictedInternalFunctionUsageExtension, partial: larastan:PHPStan\Rules\InternalTag\RestrictedInternalMethodUsageExtension, partial: larastan:PHPStan\Rules\InternalTag\RestrictedInternalPropertyUsageExtension |
+| Must | Call accessible symbols with compatible arguments | larastan:PHPStan\Rules\Classes\InstantiationRule, larastan:PHPStan\Rules\Functions\CallToFunctionParametersRule, larastan:PHPStan\Rules\Functions\DefineParametersRule, larastan:PHPStan\Rules\Methods\CallMethodsRule, larastan:PHPStan\Rules\Methods\CallStaticMethodsRule, larastan:PHPStan\Rules\Functions\CallCallablesRule |
+| Must | Throw exception objects | partial: larastan:PHPStan\Rules\Exceptions\ThrowExprTypeRule |
+| Must | Preserve inherited method contracts | larastan:PHPStan\Rules\Methods\OverridingMethodRule, larastan:PHPStan\Rules\Methods\MethodSignatureRule |
+| Must | Use valid delimited regular expressions | partial: larastan:PHPStan\Rules\Regexp\RegularExpressionPatternRule |
 | Must | Declare PHPUnit metadata with attributes | shift:phpunit/attributes |
 | Must | Replace legacy Laravel global helpers with Arr and Str | rector:FuncCallToStaticCallRector |
+| Must | Reconcile published configuration with installed versions during upgrades | partial: shift:public/laravel13/config-env |
 | Must | Return every provided service binding from provides() in a deferrable service provider | partial: larastan:DeferrableServiceProviderMissingProvidesRule |
+| Must | Replace removed spatial column helpers with supported geometry definitions | rector:RefactorBlueprintGeometryColumnsRector |
 | Must | Declare Attribute accessors and attributed local scopes protected | larastan:NoPublicModelScopeAndAccessorRule, rector:MakeModelAttributesAndScopesProtectedRector |
+| Must | Read query-expression SQL with getValue() and the connection grammar | rector:DatabaseExpressionCastsToMethodCallRector, rector:DatabaseExpressionToStringToMethodCallRector |
 | Must | Replace the removed model dates property with date or datetime casts | rector:UnifyModelDatesWithCastsRector, shift:workbench/convert-dates-property |
+| Must | Match the installed framework method signature in custom implementations and overrides | partial: rector:ArgumentAdderRector, partial: larastan:PHPStan\Rules\Methods\OverridingMethodRule |
+| Must | Remove obsolete translation roots after migration | partial: shift:upgrade-9/lang-folder |
 | Must | Use Laravel request, server and session APIs instead of PHP request/session superglobals | rector:RequestVariablesToRequestFacadeRector, rector:ServerVariableToRequestFacadeRector, rector:SessionVariableToSessionFacadeRector |
-| Must | Use HasMiddleware::middleware() for controller-owned middleware in new streamlined applications | shift:upgrade-12/controller-middleware |
 | Must | Use explicit nullable parameter types | pint:nullable_type_declaration, pint:nullable_type_declaration_for_default_null_value |
-| Must | Honor batch cancellation before doing work | partial: larastan:BatchableJobChecksCancellationRule |
 | Must | Add Batchable to jobs submitted to batches | larastan:BatchedJobIsBatchableRule |
-| Must | Enqueue transaction-dependent jobs after commit | partial: larastan:JobDispatchedInTransactionUsesAfterCommitRule |
 | Must | Replace obsolete framework event-name strings with event classes | rector:EventStringToClassConstantRector |
-| Must | Use explicit HTML assertions for unescaped response assertions | rector:AssertSeeToAssertSeeHtmlRector |
-| Must | Remove debug calls before committing | partial: rector:RemoveDumpDataDeadCodeRector |
-| Must | Use blank and filled with intentional value semantics | partial: rector:EmptyToBlankAndFilledFuncRector |
 | Should | Define model casts in casts(), preserving an established project convention | rector:ModelCastsPropertyToCastsMethodRector |
-| Should | Inject container-managed collaborators explicitly where ordinary dependency injection is available | partial: rector:ArgumentFuncCallToMethodCallRector |
 | Should | Use subject-specific assertions | partial: shift:phpunit-13/type-specific-assertions |
+| Should | Inject container-managed collaborators explicitly where ordinary dependency injection is available | partial: rector:ArgumentFuncCallToMethodCallRector |
+| Should | Use PHPDoc for information native types cannot express | partial: pint:no_superfluous_phpdoc_tags, partial: shift:public/fixer/redundant-docblock-types |
 | Should | Parameterize equivalent test cases | partial: shift:pest-converter/datasets |
 | Should | Inject dependencies at replaceable boundaries | partial: rector:StaticCallToMethodCallRector |
+| Should | Reuse suitable Laravel and application capabilities | partial: shift:laravel-linter/leverage-features |
+| Should | Inject persistent collaborators through constructors | partial: rector:ArgumentFuncCallToMethodCallRector, partial: rector:StaticCallToMethodCallRector |
+| Should | Write multi-rule validation as arrays | partial: rector:ValidationRuleArrayStringValueToArrayRector, partial: shift:workbench/adopt-validation-arrays |
+| Should | Use to_route for named redirects | rector:RedirectRouteToToRouteHelperRector |
+| Should | Preserve key and value types in generics | partial: larastan:PHPStan\Rules\PhpDoc\InvalidPhpDocVarTagTypeRule, partial: larastan:PHPStan\Rules\Properties\MissingPropertyTypehintRule, partial: larastan:PHPStan\Rules\Methods\MissingMethodParameterTypehintRule, partial: larastan:PHPStan\Rules\Methods\MissingMethodReturnTypehintRule |
 | Should | Use framework contracts for replaceable service dependencies | partial: rector:ArgumentFuncCallToMethodCallRector |
+| Should | Use Attribute-returning methods for new model accessors and mutators unless a legacy style is established | rector:MigrateToSimplifiedAttributeRector, shift:workbench/adopt-attribute-accessors-mutators |
 | Should | Use Laravel 13 model attributes when adopting the attribute convention | partial: rector:EmptyGuardedPropertyToUnguardedAttributeRector, partial: rector:FillablePropertyToFillableAttributeRector, partial: rector:GuardedPropertyToGuardedAttributeRector, partial: shift:workbench/laravel-property-attributes |
 | Should | Declare native parameter and return contracts | partial: larastan:PHPStan\Rules\Methods\MissingMethodParameterTypehintRule, partial: larastan:PHPStan\Rules\Methods\MissingMethodReturnTypehintRule, partial: larastan:PHPStan\Rules\Functions\MissingFunctionParameterTypehintRule, partial: larastan:PHPStan\Rules\Functions\MissingFunctionReturnTypehintRule |
-| Should | Write multi-rule validation as arrays | partial: rector:ValidationRuleArrayStringValueToArrayRector, partial: shift:workbench/adopt-validation-arrays |
-| Should | Extract complex or reusable validation into Form Requests | partial: shift:workbench/convert-controller-validation |
-| Should | Reuse suitable Laravel and application capabilities | partial: shift:laravel-linter/leverage-features |
-| Should | Use Attribute-returning methods for new model accessors and mutators unless a legacy style is established | rector:MigrateToSimplifiedAttributeRector, shift:workbench/adopt-attribute-accessors-mutators |
-| Should | Keep ordinary application models in App\Models unless the project uses an established modular layout | shift:public/namespace-models/move |
-| Should | Use automatic command discovery in standard directories | shift:workbench/leverage-command-autoloading |
-| Should | Inject persistent collaborators through constructors | partial: rector:ArgumentFuncCallToMethodCallRector, partial: rector:StaticCallToMethodCallRector |
-| Should | Use readable PHPUnit test names | pint:php_unit_method_casing |
-| Should | Run application checks in CI | partial: shift:public/ci/tests, partial: shift:public/ci/style |
-| Should | Publish only configuration files and options that the application customizes, preserving framework merge behavior | partial: shift:public/slimmer/configuration |
-| Should | Import class and facade symbols explicitly instead of relying on global aliases or repeated fully qualified references | partial: rector:RenameClassRector, partial: pint:fully_qualified_strict_types, partial: shift:workbench/replace-global-facades |
-| Should | Prefer back() for straightforward redirects to the previous page | rector:RedirectBackToBackHelperRector |
-| Should | Space the logical NOT operator consistently | pint:not_operator_with_successor_space |
 | Should | Use expectations for values in Pest | partial: shift:pest-converter/expectations |
 | Should | Prefer named status assertions | rector:AssertStatusToAssertMethodRector |
-| Should | Check type coverage | partial: larastan:PHPStan\Rules\Functions\MissingFunctionParameterTypehintRule, partial: larastan:PHPStan\Rules\Functions\MissingFunctionReturnTypehintRule, partial: larastan:PHPStan\Rules\Methods\MissingMethodParameterTypehintRule, partial: larastan:PHPStan\Rules\Methods\MissingMethodReturnTypehintRule, partial: larastan:PHPStan\Rules\Properties\MissingPropertyTypehintRule |
-| Should | Annotate concrete model factory types | rector:AddExtendsAnnotationToModelFactoriesRector |
-| Should | Use equivalent Laravel 13 model attributes when adopting the declarative configuration style | partial: rector:AppendsPropertyToAppendsAttributeRector, partial: rector:ConnectionPropertyToConnectionAttributeRector, partial: rector:DateFormatPropertyToDateFormatAttributeRector, partial: rector:HiddenPropertyToHiddenAttributeRector, partial: rector:RouteKeyMethodToRouteKeyAttributeRector, partial: rector:TablePropertyToTableAttributeRector, partial: shift:workbench/laravel-property-attributes |
-| Should | Use Url attributes for shareable Livewire state | rector:LivewireComponentQueryStringToUrlAttributeRector |
+| Should | Extract complex or reusable validation into Form Requests | partial: shift:workbench/convert-controller-validation |
+| Should | Declare custom Eloquent collections with #[CollectedBy] for new Laravel 13 code | rector:CollectedByPropertyToCollectedByAttributeRector |
+| Should | Keep ordinary application models in App\Models unless the project uses an established modular layout | shift:public/namespace-models/move |
+| Should | Use Artisan console components under the styled-output convention | partial: rector:UseComponentPropertyWithinCommandsRector |
 | Should | Reference controller actions with tuple notation [Controller::class, 'method'] instead of 'Controller@method' strings | rector:RouteActionCallableRector, shift:workbench/adopt-class-based-routes |
 | Should | Promote ordinary constructor-only properties | partial: rector:ClassPropertyAssignToConstructorPromotionRector, partial: shift:workbench/adopt-new-in-initializers |
-| Should | Skip asset manifest lookup in server tests | partial: shift:public/vite/test-helpers |
+| Should | Enable strict scalar argument checking | pint:declare_strict_types, shift:workbench/declare-strict-types |
+| Should | Import class and facade symbols explicitly instead of relying on global aliases or repeated fully qualified references | partial: rector:RenameClassRector, partial: pint:fully_qualified_strict_types, partial: shift:workbench/replace-global-facades |
+| Should | Use supported LIKE helpers with deliberate case semantics | partial: rector:WhereToWhereLikeRector |
+| Should | Use automatic command discovery in standard directories | shift:workbench/leverage-command-autoloading |
+| Should | Keep streamlined application base controllers minimal | partial: shift:upgrade-12/base-controller-traits |
+| Should | Use first-class callables for simple method references | partial: rector:ArrayToFirstClassCallableRector |
+| Should | Use readable PHPUnit test names | pint:php_unit_method_casing |
+| Should | Aggregate and check existence in SQL instead of loading full collections | partial: larastan:NoUnnecessaryCollectionCallRule |
+| Should | Use the direct complementary helper instead of negating its counterpart | rector:AvoidNegatedCollectionContainsOrDoesntContainRector, rector:NotFilledBlankFuncCallToBlankFilledFuncCallRector, rector:ReverseConditionableMethodCallRector |
+| Should | Follow established test conventions | partial: pint:php_unit_method_casing |
+| Should | Run application checks in CI | partial: shift:public/ci/tests, partial: shift:public/ci/style |
 | Should | Use a Form Request for each meaningful input action | partial: shift:workbench/convert-controller-validation |
+| Should | Publish only configuration files and options that the application customizes, preserving framework merge behavior | partial: shift:public/slimmer/configuration |
+| Should | Use dedicated Blade authentication directives | shift:workbench/modernize-blade-directives |
+| Should | Prefer back() for straightforward redirects to the previous page | rector:RedirectBackToBackHelperRector |
+| Should | Space the logical NOT operator consistently | pint:not_operator_with_successor_space |
+| Should | Use trailing commas in multiline lists | pint:trailing_comma_in_multiline |
+| Should | Use canonical collection method names | rector:UnaliasCollectionMethodsRector |
+| Should | Check type coverage | partial: larastan:PHPStan\Rules\Functions\MissingFunctionParameterTypehintRule, partial: larastan:PHPStan\Rules\Functions\MissingFunctionReturnTypehintRule, partial: larastan:PHPStan\Rules\Methods\MissingMethodParameterTypehintRule, partial: larastan:PHPStan\Rules\Methods\MissingMethodReturnTypehintRule, partial: larastan:PHPStan\Rules\Properties\MissingPropertyTypehintRule |
+| Should | Annotate concrete model factory types | rector:AddExtendsAnnotationToModelFactoriesRector |
+| Should | Use explicit JSON request helpers | rector:JsonCallToExplicitJsonCallRector |
+| Should | Use equivalent Laravel 13 model attributes when adopting the declarative configuration style | partial: rector:AppendsPropertyToAppendsAttributeRector, partial: rector:ConnectionPropertyToConnectionAttributeRector, partial: rector:DateFormatPropertyToDateFormatAttributeRector, partial: rector:HiddenPropertyToHiddenAttributeRector, partial: rector:RouteKeyMethodToRouteKeyAttributeRector, partial: rector:TablePropertyToTableAttributeRector, partial: shift:workbench/laravel-property-attributes |
+| Should | Use Url attributes for shareable Livewire state | rector:LivewireComponentQueryStringToUrlAttributeRector |
+| Should | Skip asset manifest lookup in server tests | partial: shift:public/vite/test-helpers |
 | Should | Use Laravel current-date helpers | partial: rector:NowFuncWithStartOfDayMethodCallToTodayFuncRector |
 | Should | Keep magic property annotations valid | larastan:PHPStan\Rules\Classes\PropertyTagRule, larastan:PHPStan\Rules\Classes\PropertyTagTraitRule, larastan:PHPStan\Rules\Classes\PropertyTagTraitUseRule |
 | Should | Commit the selected formatter configuration and enforce it consistently in CI | partial: shift:public/ci/style |
 | Should | Document custom facade methods with accurate @method annotations | partial: larastan:PHPStan\Rules\Classes\MethodTagRule |
-| Should | Use Artisan console components under the styled-output convention | partial: rector:UseComponentPropertyWithinCommandsRector |
-| Should | Use dedicated Blade authentication directives | shift:workbench/modernize-blade-directives |
+| Should | Push large-data filtering into SQL rather than filtering hydrated models in PHP | partial: larastan:NoUnnecessaryCollectionCallRule |
+| Should | Use protected #[Scope] methods for new local scopes unless the project retains legacy scope naming | rector:ScopeNamedClassMethodToScopeAttributedClassMethodRector, shift:workbench/laravel-local-scope-attribute |
 | Should | Use DeferrableProvider for deferred service providers | rector:PropertyDeferToDeferrableProviderToRector |
 | Should | Declare the Laravel majors a package actually supports | partial: shift:workbench/bump-laravel-package-dependencies |
-| Should | Keep streamlined application base controllers minimal | partial: shift:upgrade-12/base-controller-traits |
+| Should | Write string concatenations without spaces around the dot operator | pint:concat_space |
 | Should | Write inheritdoc as an inline PHPDoc tag | pint:phpdoc_tag_type |
+| Should | Check formatting in CI | partial: shift:public/ci/style |
 | Should | Build response metadata fluently | shift:workbench/adopt-fluent-responses |
 | Should | Use fluent strings for sequential transformations | shift:workbench/adopt-stringables |
-| Should | Enable strict scalar argument checking | pint:declare_strict_types, shift:workbench/declare-strict-types |
+| Should | Use explicit HTML assertions for unescaped response assertions | rector:AssertSeeToAssertSeeHtmlRector |
+| Should | Use direct string containment and boundary predicates | partial: pint:modernize_strpos, partial: rector:StrStartsWithRector, partial: rector:StrEndsWithRector |
 | Should | Use the adopted Laravel PHPDoc alignment | pint:phpdoc_align |
 | Should | Keep PHPStan ignore annotations valid | partial: larastan:PHPStan\Rules\Ignore\IgnoreParseErrorRule |
-| Should | Represent stored callbacks with Closure or callable PHPDoc | partial: larastan:PHPStan\Rules\Properties\InvalidCallablePropertyTypeRule |
 | Should | Reference class names with class constants | shift:workbench/use-class-constant |
+| Should | Annotate generic factory traits | larastan:PHPStan\Rules\Generics\UsedTraitsRule |
+| Should | Use expressive timestamp-ordering helpers | rector:EloquentOrderByToLatestOrOldestRector |
 | Should | Use lookup defaults only when semantics match | partial: rector:ApplyDefaultInsteadOfNullCoalesceRector |
 | Should | Preserve command and supported framework metadata when adopting Laravel 13 PHP attributes | partial: rector:AliasesPropertyToAliasesAttributeRector, partial: rector:DescriptionPropertyToDescriptionAttributeRector, partial: rector:HelpPropertyToHelpAttributeRector, partial: rector:SignaturePropertyToSignatureAttributeRector |
 | Should | Prefer bound class or contract identifiers over equivalent legacy string container keys | partial: rector:ReplaceServiceContainerCallArgRector |
 | Should | Use return-type-hinted binding closures to avoid repeating the abstract when adopting inferred binding syntax | rector:ContainerBindConcreteWithClosureOnlyRector |
-| Should | Use protected #[Scope] methods for new local scopes unless the project retains legacy scope naming | rector:ScopeNamedClassMethodToScopeAttributedClassMethodRector, shift:workbench/laravel-local-scope-attribute |
+| Should | Follow Eloquent schema conventions for new models unless domain or legacy constraints require overrides | partial: shift:workbench/remove-redundant-table-name |
+| Should | Start composable conditional model queries with query() and follow the established chain style | partial: larastan:NoImplicitQueryBuilderCallRule, partial: rector:EloquentMagicMethodToQueryBuilderRector |
+| Should | Omit redundant asc arguments in conventional query ordering | shift:workbench/streamline-order-methods |
 | Should | Declare a precise array return contract for model casts() | partial: larastan:PHPStan\Rules\Methods\MissingMethodReturnTypehintRule |
 | Should | Use computed properties for derived page data | partial: rector:LivewireComponentComputedMethodToComputedAttributeRector |
 | Should | Use braces for every control-structure body | pint:control_structure_braces |
 | Should | Use intention-revealing prefix and suffix checks | partial: rector:SubStrToStartsWithOrEndsWithStaticMethodCallRector |
 | Should | Complete the selected Tailwind build integration | partial: shift:public/vite/postcss |
-| Should | Write string concatenations without spaces around the dot operator | pint:concat_space |
-| Should | Check formatting in CI | partial: shift:public/ci/style |
+| Should | Prefer session() for straightforward session value retrieval | partial: shift:workbench/adopt-common-helpers |
+| Should | Use the injected request object in controllers and middleware instead of equivalent request facade or helper calls | shift:workbench/leverage-request-injection |
+| Should | Automate import ordering and unused-import cleanup | pint:ordered_imports, pint:no_unused_imports |
+| Should | Type declared application properties | partial: larastan:PHPStan\Rules\Properties\MissingPropertyTypehintRule |
 | Should | Bound uniqueness lock lifetime | partial: larastan:UniqueJobDeclaresUniqueForRule |
 | Should | Use Laravel 13 queue attributes consistently when adopting them | partial: rector:BackoffPropertyToBackoffAttributeRector, partial: rector:DelayPropertyToDelayAttributeRector, partial: rector:DeleteWhenMissingModelsPropertyToDeleteWhenMissingModelsAttributeRector, partial: rector:FailOnTimeoutPropertyToFailOnTimeoutAttributeRector, partial: rector:JobConnectionPropertyToJobConnectionAttributeRector, partial: rector:MaxExceptionsPropertyToMaxExceptionsAttributeRector, partial: rector:QueuePropertyToQueueAttributeRector, partial: rector:TimeoutPropertyToTimeoutAttributeRector, partial: rector:TriesPropertyToTriesAttributeRector, partial: rector:UniqueForPropertyToUniqueForAttributeRector |
 | Should | Declare valid PHPDoc generic contracts | partial: larastan:PHPStan\Rules\Generics\ClassTemplateTypeRule, partial: larastan:PHPStan\Rules\Generics\FunctionTemplateTypeRule, partial: larastan:PHPStan\Rules\Generics\InterfaceTemplateTypeRule, partial: larastan:PHPStan\Rules\Generics\MethodTagTemplateTypeRule, partial: larastan:PHPStan\Rules\Generics\MethodTagTemplateTypeTraitRule, partial: larastan:PHPStan\Rules\Generics\MethodTemplateTypeRule |
+| Should | Use direct filter/reject predicates instead of double negation | rector:AvoidNegatedCollectionFilterOrRejectRector |
 | Should | Remove unused imports | pint:no_unused_imports |
-| Should | Use canonical collection method names | rector:UnaliasCollectionMethodsRector |
+| Should | Import classes and globals under the import policy | pint:global_namespace_import, pint:fully_qualified_strict_types |
+| Should | Order class elements consistently | pint:ordered_class_elements |
+| Should | Remove unconsumed private members | partial: larastan:PHPStan\Rules\DeadCode\UnusedPrivateConstantRule, partial: larastan:PHPStan\Rules\DeadCode\UnusedPrivateMethodRule, partial: larastan:PHPStan\Rules\DeadCode\UnusedPrivatePropertyRule |
 | Should | Remove identity-only with helper calls | larastan:NoUselessWithFunctionCallsRule, rector:RemoveRedundantWithCallsRector |
 | Should | Retain failed browser diagnostics | partial: shift:ci-generator/dusk-job |
 | Should | Prefer the shared fake helper in modern factories | rector:ReplaceFakerInstanceWithHelperRector |
 | Should | Call Faker formatters as methods | rector:ReplaceFakerPropertyFetchWithMethodCallRector |
 | Should | Use fluent rule builders for complex parameterized constraints | partial: shift:workbench/convert-validation-rules |
 | Should | Migrate Form Request behavior properties to Laravel 13 attributes | partial: rector:ErrorBagPropertyToErrorBagAttributeRector, partial: rector:StopOnFirstFailurePropertyToStopOnFirstFailureAttributeRector |
+| Should | Type dependencies to the API their consumers actually use | partial: larastan:PHPStan\Rules\Methods\CallMethodsRule |
 | Should | Remove unused dependencies after checking usage | partial: shift:workbench/remove-unused-composer-dependencies |
 | Should | Match generic interface annotations to real contracts | larastan:PHPStan\Rules\Generics\ClassAncestorsRule, larastan:PHPStan\Rules\Generics\EnumAncestorsRule, larastan:PHPStan\Rules\Generics\InterfaceAncestorsRule |
 | Should | Use early returns for invalid or empty input | partial: rector:ChangeNestedIfsToEarlyReturnRector |
 | Should | Avoid PHP 8.5 global helper name collisions | partial: rector:FuncCallToStaticCallRector |
 | Should | Match CI PHP versions, extensions, and container services to the project’s supported development and runtime requirements | partial: shift:public/ci/php-environment |
-| Should | Configure application exception policy through withExceptions() in the streamlined bootstrap | partial: shift:slimmer/bootstrap |
-| Should | Start composable conditional model queries with query() and follow the established chain style | partial: larastan:NoImplicitQueryBuilderCallRule, partial: rector:EloquentMagicMethodToQueryBuilderRector |
-| Should | Push large-data filtering into SQL rather than filtering hydrated models in PHP | partial: larastan:NoUnnecessaryCollectionCallRule |
+| Should | Provide private Composer credentials through deployment or CI secrets before dependency installation | partial: shift:public/ci/private-packages |
+| Should | Use Arr::get() for nested optional array reads while preserving the original missing-value semantics | rector:ArrayToArrGetRector |
+| Should | Rename frontend environment variables during Vite migration | shift:public/vite/environment |
 | Should | Use request->user() when a request object is already available | larastan:NoAuthFacadeInRequestScopeRule, larastan:NoAuthHelperInRequestScopeRule |
+| Should | Use ScopedBy for equivalent class-based global scope registration when adopting model attributes | shift:workbench/laravel-global-scope-attribute |
 | Should | Prefer composition for reusable model/controller behavior over deep custom base-class hierarchies | partial: shift:public/linter/composition |
+| Should | Migrate custom mail integrations from SwiftMailer to Symfony Mailer | partial: rector:RenameMethodRector, partial: shift:upgrade-9/swiftmailer |
 | Should | Use PHP nullsafe access for simple optional chains | rector:OptionalToNullsafeOperatorRector, shift:workbench/convert-optional-to-nullsafe |
+| Should | Use Hidden attributes for command visibility when adopting Laravel 13 attributes | rector:CommandHiddenPropertyToHiddenAttributeRector |
 | Should | Give controller actions concrete Inertia or redirect response return types | partial: larastan:PHPStan\Rules\Methods\MissingMethodReturnTypehintRule |
-| Should | Use first-class callables for simple method references | partial: rector:ArrayToFirstClassCallableRector |
 | Should | Use strict value comparisons | partial: pint:strict_comparison, partial: pint:strict_param |
 | Should | Choose collection extraction semantics deliberately | partial: larastan:NoUnnecessaryEnumerableToArrayCallsRule, partial: rector:ConvertEnumerableToArrayToAllRector |
-| Should | Automate import ordering and unused-import cleanup | pint:ordered_imports, pint:no_unused_imports |
-| Should | Replace legacy job retry configuration names | rector:RenameMethodRector, rector:RenamePropertyRector |
+| Should | Use Blade method-spoofing directives | shift:workbench/blade/method |
+| Should | Avoid redundant value wrappers | larastan:NoUselessValueFunctionCallsRule, rector:RemoveRedundantValueCallsRector |
+| Should | Replace removed synchronous dispatch APIs | rector:RenameFunctionRector, rector:RenameMethodRector |
+| Should | Format fluent chains consistently | partial: pint:method_chaining_indentation |
+| Should | Use ForwardsCalls for framework-style method delegation | partial: rector:UseForwardsCallsTraitRector |
+| Should | Use strict equality or timing-safe comparison for digest strings | partial: pint:strict_comparison |
+| Should | Prefer statically discoverable variables and member calls | larastan:PHPStan\Rules\VariableVariables\VariableMethodCallRule, larastan:PHPStan\Rules\VariableVariables\VariableMethodCallableRule, larastan:PHPStan\Rules\VariableVariables\VariableStaticMethodCallRule, larastan:PHPStan\Rules\VariableVariables\VariableStaticMethodCallableRule, larastan:PHPStan\Rules\VariableVariables\VariableStaticPropertyFetchRule, larastan:PHPStan\Rules\VariableVariables\VariableVariablesRule, larastan:PHPStan\Rules\VariableVariables\VariablePropertyFetchRule |
+| Should | Write useful PHPDoc descriptions as sentences | partial: pint:phpdoc_summary |
 | Should | Use supported braced string interpolation | pint:simple_to_complex_string_variable |
-| Should | Follow established test conventions | partial: pint:php_unit_method_casing |
+| Should | Initialize typed properties before use | partial: larastan:PHPStan\Rules\Properties\UninitializedPropertyRule |
 | Should | Share Faker generators across fixture creation | partial: rector:ReplaceFakerInstanceWithHelperRector |
-| Should | Use an explicit consistent request-access convention | partial: shift:workbench/normalize-request-access |
 | Should | Remove no-op value helper calls | larastan:NoUselessValueFunctionCallsRule, rector:RemoveRedundantValueCallsRector |
 | Should | Separate class members consistently | pint:class_attributes_separation |
 | Should | Remove obsolete package PHPDoc tags | pint:phpdoc_no_package |
@@ -158,16 +201,17 @@ Which tool rule enforces each listed practice. Rules without a tool are enforced
 | Should | Replace obsolete Laravel type names | partial: rector:RenameClassRector |
 | Should | Depend on the cache repository contract for store operations | rector:RenameClassRector |
 | Should | Use explicit methods on contract-typed cache repositories | rector:ArrayDimFetchToMethodCallRector |
-| Should | Provide private Composer credentials through deployment or CI secrets before dependency installation | partial: shift:public/ci/private-packages |
-| Should | Use Arr::get() for nested optional array reads while preserving the original missing-value semantics | rector:ArrayToArrGetRector |
+| Should | Apply the repository’s selected helper or facade idiom consistently for equivalent operations | partial: rector:HelperFuncCallToFacadeClassRector, partial: shift:workbench/adopt-common-helpers |
 | Should | Read environment-backed settings through env() inside configuration files instead of direct $_ENV access | rector:EnvVariableToEnvHelperRector |
 | Should | Use self for enum and final-class member references when late static binding cannot change the target | pint:self_static_accessor |
 | Should | Use array-unpacking key types supported by the configured PHP runtime | larastan:PHPStan\Rules\Arrays\ArrayUnpackingRule |
 | Should | Use the App facade for container interaction outside providers when adopting the facade idiom | partial: rector:HelperFuncCallToFacadeClassRector |
+| Should | Adopt an explicit forward-only migration policy | partial: shift:workbench/remove-down-migration |
 | Should | Import the Schema facade explicitly | rector:RenameClassRector |
-| Should | Rename frontend environment variables during Vite migration | shift:public/vite/environment |
+| Should | Resolve database services by supported class or contract | rector:ReplaceServiceContainerCallArgRector |
 | Should | Use explicit NULL predicates | rector:WhereNullComparisonToWhereNullRector |
-| Should | Follow Eloquent schema conventions for new models unless domain or legacy constraints require overrides | partial: shift:workbench/remove-redundant-table-name |
+| Should | Remove casts whose input already has the required type | larastan:PHPStan\Rules\Cast\UselessCastRule |
+| Should | Declare domain event payloads as explicit typed properties | partial: larastan:PHPStan\Rules\Properties\MissingPropertyTypehintRule |
 | Should | Instantiate unsaved models with new when no factory behavior is needed | larastan:NoModelMakeRule |
 | Should | Call parent::boot() when overriding model boot() | rector:AddParentBootToModelClassMethodRector |
 | Should | Use lowercase canonical PHP casts with one space before the operand | pint:cast_spaces, pint:lowercase_cast, pint:no_short_bool_cast, pint:short_scalar_cast |
@@ -175,14 +219,18 @@ Which tool rule enforces each listed practice. Rules without a tool are enforced
 | Should | Replace the removed unset cast with explicit null or unset as appropriate | larastan:PHPStan\Rules\Cast\UnsetCastRule, pint:no_unset_cast |
 | Should | Pass only string-convertible values to output and native string-conversion operations | larastan:PHPStan\Rules\Cast\EchoRule, larastan:PHPStan\Rules\Cast\InvalidPartOfEncapsedStringRule, larastan:PHPStan\Rules\Cast\PrintRule, larastan:PHPStan\Rules\Functions\ImplodeParameterCastableToStringRule, larastan:PHPStan\Rules\Functions\ParameterCastableToStringRule |
 | Should | Use conversions supported by the source and required target types | larastan:PHPStan\Rules\Cast\InvalidCastRule, larastan:PHPStan\Rules\Functions\ParameterCastableToNumberRule |
-| Should | Omit redundant asc arguments in conventional query ordering | shift:workbench/streamline-order-methods |
-| Should | Use ScopedBy for equivalent class-based global scope registration when adopting model attributes | shift:workbench/laravel-global-scope-attribute |
+| Should | Use ObservedBy for equivalent observer registration when adopting model attributes | shift:workbench/laravel-observedby-attribute |
+| Should | Replace removed legacy Laravel helpers, classes and method names with supported equivalents | partial: rector:RenameMethodRector, partial: rector:FuncCallToStaticCallRector, partial: rector:RenameClassRector |
 | Should | Count matching rows in SQL instead of hydrating models to count them | partial: larastan:NoUnnecessaryCollectionCallRule |
 | Should | Use enum backing values as PHP array keys | partial: larastan:PHPStan\Rules\Arrays\InvalidKeyInArrayDimFetchRule, partial: larastan:PHPStan\Rules\Arrays\InvalidKeyInArrayItemRule |
 | Should | Annotate custom builders and their model registration with matching generic types | partial: larastan:PHPStan\Rules\Generics\ClassAncestorsRule, partial: larastan:PHPStan\Rules\Methods\MissingMethodReturnTypehintRule |
 | Should | Import Blade View and Vite facades explicitly | rector:RenameClassRector |
+| Should | Inject the Blade compiler when adopting dependency injection | rector:StaticCallToMethodCallRector |
 | Should | Replace obsolete view expression types | rector:RenameClassRector |
 | Should | Enforce agreed formatting with automated tooling | partial: pint:Pint/laravel_blade |
+| Should | Use Collects metadata under the Laravel 13 attribute convention | rector:CollectsPropertyToCollectsAttributeRector |
+| Should | Use the dedicated permanent redirect helper for an intended 301 | rector:Redirect301ToPermanentRedirectRector |
+| Should | Put intentionally cacheable pages in a dedicated stateless middleware group | shift:public/fast-laravel/static-group |
 | Should | Indent each nested array element by one indentation level | pint:array_indentation |
 | Should | Declare arrays with short [] syntax | pint:array_syntax, shift:workbench/adopt-short-arrays |
 | Should | Put one space on each side of binary operators | pint:binary_operator_spaces |
@@ -202,10 +250,10 @@ Which tool rule enforces each listed practice. Rules without a tool are enforced
 | Should | Separate include and require from their paths with one space and remove unnecessary path parentheses | pint:include |
 | Should | Use post-increment and post-decrement when the expression result is unused | pint:increment_style |
 | Should | Indent PHP code with spaces instead of tabs | pint:indentation_type |
-| Should | Use lowercase numeric base prefixes and uppercase hexadecimal digits in integer literals | pint:integer_literal_case |
 | Should | Remove unused variables from closure use lists | pint:lambda_not_used_import |
 | Should | Use LF line endings consistently in PHP files | pint:line_ending |
 | Should | Put code after a PHP opening tag on a new line | pint:linebreak_after_opening_tag |
+| Should | Use short [] syntax for array destructuring assignments | pint:list_syntax |
 | Should | Write PHP keywords in lowercase | pint:lowercase_keywords |
 | Should | Write self, static, and parent in lowercase | pint:lowercase_static_reference |
 | Should | Use the canonical uppercase spelling of PHP magic constants | pint:magic_constant_casing |
@@ -213,6 +261,7 @@ Which tool rule enforces each listed practice. Rules without a tool are enforced
 | Should | Call native PHP functions using their canonical casing | pint:native_function_casing |
 | Should | Call canonical PHP functions instead of their aliases | pint:no_alias_functions |
 | Should | Use canonical language constructs such as exit instead of aliases such as die | pint:no_alias_language_construct_call |
+| Should | Use brace syntax for PHP control structures instead of colon/end syntax | pint:no_alternative_syntax |
 | Should | Remove redundant b or B prefixes from string literals | pint:no_binary_string |
 | Should | Do not put blank lines immediately after a class opening brace | pint:no_blank_lines_after_class_opening |
 | Should | Place PHPDoc blocks directly above the documented element without an intervening blank line | pint:no_blank_lines_after_phpdoc |
@@ -228,7 +277,6 @@ Which tool rule enforces each listed practice. Rules without a tool are enforced
 | Should | Remove trailing whitespace from comment and PHPDoc lines | pint:no_trailing_whitespace_in_comment |
 | Should | Remove unnecessary parentheses around break, clone, continue, echo, return, case, and yield expressions | pint:no_unneeded_control_parentheses |
 | Should | Remove superfluous braces while retaining control-structure body braces | pint:no_unneeded_braces |
-| Should | Do not declare optional parameters before required parameters | pint:no_unreachable_default_argument_value |
 | Should | Remove empty return statements at the end of functions | pint:no_useless_return |
 | Should | Do not put whitespace before array-item commas | pint:no_whitespace_before_comma_in_array |
 | Should | Remove whitespace from blank lines | pint:no_whitespace_in_blank_line |
@@ -264,15 +312,23 @@ Which tool rule enforces each listed practice. Rules without a tool are enforced
 | Should | Write union and intersection type operators without surrounding spaces | pint:types_spaces |
 | Should | Put one space after array-item commas when the next item is on the same line | pint:whitespace_after_comma_in_array |
 | Should | Read and write only accessible declared properties or properties supported by a documented dynamic API | larastan:PHPStan\Rules\Properties\AccessPropertiesInAssignRule, larastan:PHPStan\Rules\Properties\AccessPropertiesRule |
-| Should | Use the injected request object in controllers and middleware instead of equivalent request facade or helper calls | shift:workbench/leverage-request-injection |
+| Should | Use fluent route configuration methods instead of legacy array options | shift:workbench/adopt-fluent-routes |
 | Should | Import Laravel facade classes explicitly instead of relying on global aliases | rector:RenameClassRector, shift:workbench/replace-global-facades |
+| Should | Resolve HTTP/session services by bound classes or contracts instead of equivalent string container keys | partial: rector:ReplaceServiceContainerCallArgRector |
 | Should | Memoize derived values with Livewire computed methods | partial: rector:LivewireComponentComputedMethodToComputedAttributeRector |
 | Should | Lint PHP syntax in CI | partial: shift:public/ci/syntax |
 | Should | Verify required extensions before moving to Cloud | partial: shift:public/cloud/extensions |
+| Should | Do not overwrite live values with loop variables | larastan:PHPStan\Rules\ForeachLoop\OverwriteVariablesWithForeachRule, larastan:PHPStan\Rules\ForLoop\OverwriteVariablesWithForLoopInitRule |
+| Should | Call genuinely static methods statically | larastan:PHPStan\Rules\StrictCalls\DynamicCallOnStaticMethodsRule, larastan:PHPStan\Rules\StrictCalls\DynamicCallOnStaticMethodsCallableRule |
+| Should | Preserve required parent initialization in child constructors | partial: larastan:PHPStan\Rules\Classes\RequireParentConstructCallRule |
+| Should | Initialize arrays before appending to them | larastan:PHPStan\Rules\DisallowedConstructs\DisallowedImplicitArrayCreationRule |
+| Should | Do not re-run constructors on existing objects | larastan:PHPStan\Rules\Methods\IllegalConstructorMethodCallRule, larastan:PHPStan\Rules\Methods\IllegalConstructorStaticCallRule |
+| Should | Use the current receiver directly in ordinary closures | larastan:PHPStan\Rules\Functions\ClosureUsesThisRule |
+| Should | Remove constructors that only forward unchanged parent arguments | partial: rector:RemoveParentDelegatingConstructorRector |
+| Should | Use oldest for ascending creation order | rector:EloquentOrderByToLatestOrOldestRector, shift:workbench/use-latest-oldest |
+| Should | Document public exception contracts | partial: larastan:PHPStan\Rules\Exceptions\MissingCheckedExceptionInMethodThrowsRule, partial: larastan:PHPStan\Rules\Exceptions\MissingCheckedExceptionInFunctionThrowsRule |
 | Should | Use Laravel-13-compatible dependency constraints | partial: shift:workbench/bump-laravel-dependencies |
 | Should | Use canonical PHP function names | partial: pint:no_alias_functions |
-| Should | Avoid redundant value wrappers | larastan:NoUselessValueFunctionCallsRule, rector:RemoveRedundantValueCallsRector |
-| Should | Format fluent chains consistently | partial: pint:method_chaining_indentation |
 | Should | Use synchronous dispatch explicitly for synchronous commands | rector:DispatchNonShouldQueueToDispatchSyncRector |
 | Should | Keep backed enums valid | larastan:PHPStan\Rules\Classes\EnumSanityRule |
 | Should | Use unique parameter names | larastan:PHPStan\Rules\Functions\RedefinedParametersRule |
@@ -284,8 +340,9 @@ Which tool rule enforces each listed practice. Rules without a tool are enforced
 | Should | Avoid reserved parameter variable names | larastan:PHPStan\Rules\Functions\InvalidParameterNameRule |
 | Should | Leave constructor return types undeclared | larastan:PHPStan\Rules\Methods\ConstructorReturnTypeRule |
 | Should | Put literals first under an adopted Yoda comparison policy | pint:yoda_style |
-| Should | Respect internal API boundaries | partial: larastan:PHPStan\Rules\InternalTag\RestrictedInternalClassConstantUsageExtension, partial: larastan:PHPStan\Rules\InternalTag\RestrictedInternalClassNameUsageExtension, partial: larastan:PHPStan\Rules\InternalTag\RestrictedInternalFunctionUsageExtension, partial: larastan:PHPStan\Rules\InternalTag\RestrictedInternalMethodUsageExtension, partial: larastan:PHPStan\Rules\InternalTag\RestrictedInternalPropertyUsageExtension |
-| Should | Write useful PHPDoc descriptions as sentences | partial: pint:phpdoc_summary |
+| Should | Use declared casing for class references | partial: pint:class_reference_name_casing, partial: larastan:PHPStan\Rules\Namespaces\ExistingNamesInUseRule, partial: larastan:PHPStan\Rules\Classes\InstantiationRule |
+| Should | Compare known strings directly with the empty string | rector:StrlenZeroToIdenticalEmptyStringRector |
+| Should | Use append syntax for a single unused-result array push | pint:array_push |
 | Should | Leave one blank line after namespaces | pint:blank_line_after_namespace |
 | Should | Separate the namespace from the file preamble | pint:blank_lines_before_namespace |
 | Should | Use the selected brace placement | pint:braces_position |
@@ -303,7 +360,6 @@ Which tool rule enforces each listed practice. Rules without a tool are enforced
 | Should | Keep variables on the left of comparisons | pint:yoda_style |
 | Should | Import one trait per statement | pint:single_trait_insert_per_statement |
 | Should | Use canonical internal class casing | pint:class_reference_name_casing |
-| Should | Give intentional empty loops braces | pint:empty_loop_body |
 | Should | Remove redundant empty-string concatenation | pint:no_useless_concat_operator |
 | Should | Collapse extra PHPDoc blank lines | pint:phpdoc_trim_consecutive_blank_line_separation |
 | Should | Put annotation types before variable names | pint:phpdoc_var_annotation_correct_order |
@@ -332,14 +388,12 @@ Which tool rule enforces each listed practice. Rules without a tool are enforced
 | Should | Preserve inherited and composed constant contracts | larastan:PHPStan\Rules\Constants\OverridingConstantRule, larastan:PHPStan\Rules\Traits\ConflictingTraitConstantsRule |
 | Should | Use results of pure operations | larastan:PHPStan\Rules\DeadCode\CallToConstructorStatementWithoutImpurePointsRule, larastan:PHPStan\Rules\DeadCode\CallToFunctionStatementWithoutImpurePointsRule, larastan:PHPStan\Rules\DeadCode\CallToMethodStatementWithoutImpurePointsRule, larastan:PHPStan\Rules\DeadCode\CallToStaticMethodStatementWithoutImpurePointsRule, larastan:PHPStan\Rules\DeadCode\NoopRule, larastan:PHPStan\Rules\Functions\CallToFunctionStatementWithoutSideEffectsRule |
 | Should | Remove unreachable statements after exits | larastan:PHPStan\Rules\DeadCode\UnreachableStatementRule |
-| Should | Remove unconsumed private members | partial: larastan:PHPStan\Rules\DeadCode\UnusedPrivateConstantRule, partial: larastan:PHPStan\Rules\DeadCode\UnusedPrivateMethodRule, partial: larastan:PHPStan\Rules\DeadCode\UnusedPrivatePropertyRule |
 | Should | Keep catch clauses reachable | partial: larastan:PHPStan\Rules\Exceptions\CatchWithUnthrownExceptionRule |
 | Should | Do not override exits in finally | larastan:PHPStan\Rules\Exceptions\OverwrittenExitPointByFinallyRule, larastan:PHPStan\Rules\Functions\ReturnTypeAfterFinallyRule |
 | Should | Remove no-op callback-free array filters | larastan:PHPStan\Rules\Functions\ArrayFilterRule |
 | Should | Avoid reindexing known lists | larastan:PHPStan\Rules\Functions\ArrayValuesRule |
 | Should | Return values matching native contracts | larastan:PHPStan\Rules\Missing\MissingReturnRule, larastan:PHPStan\Rules\Functions\ArrowFunctionReturnTypeRule, larastan:PHPStan\Rules\Functions\ClosureReturnTypeRule, larastan:PHPStan\Rules\Functions\ReturnTypeAfterFinallyRule, larastan:PHPStan\Rules\Functions\ReturnTypeRule, larastan:PHPStan\Rules\Methods\ReturnTypeRule |
 | Should | Do not consume void expression results | partial: larastan:PHPStan\Rules\Comparison\UsageOfVoidMatchExpressionRule |
-| Should | Call accessible symbols with compatible arguments | larastan:PHPStan\Rules\Classes\InstantiationRule, larastan:PHPStan\Rules\Functions\CallToFunctionParametersRule, larastan:PHPStan\Rules\Functions\DefineParametersRule, larastan:PHPStan\Rules\Methods\CallMethodsRule, larastan:PHPStan\Rules\Methods\CallStaticMethodsRule, larastan:PHPStan\Rules\Functions\CallCallablesRule |
 | Should | Create first-class callables from real callable symbols | larastan:PHPStan\Rules\Classes\InstantiationCallableRule, larastan:PHPStan\Rules\Functions\FunctionCallableRule, larastan:PHPStan\Rules\Methods\MethodCallableRule, larastan:PHPStan\Rules\Methods\StaticMethodCallableRule |
 | Should | Use resolvable declaration types | larastan:PHPStan\Rules\Functions\ExistingClassesInArrowFunctionTypehintsRule, larastan:PHPStan\Rules\Functions\ExistingClassesInClosureTypehintsRule, larastan:PHPStan\Rules\Functions\ExistingClassesInTypehintsRule, larastan:PHPStan\Rules\Methods\ExistingClassesInTypehintsRule, larastan:PHPStan\Rules\Properties\ExistingClassesInPropertiesRule, larastan:PHPStan\Rules\Properties\ExistingClassesInPropertyHookTypehintsRule |
 | Should | Match defaults to parameter types | larastan:PHPStan\Rules\Functions\IncompatibleArrowFunctionDefaultParameterTypeRule, larastan:PHPStan\Rules\Functions\IncompatibleClosureDefaultParameterTypeRule, larastan:PHPStan\Rules\Functions\IncompatibleDefaultParameterTypeRule, larastan:PHPStan\Rules\Methods\IncompatibleDefaultParameterTypeRule |
@@ -350,12 +404,10 @@ Which tool rule enforces each listed practice. Rules without a tool are enforced
 | Should | Validate random integer bounds | partial: larastan:PHPStan\Rules\Functions\RandomIntParametersRule |
 | Should | Read only declared console inputs | larastan:UndefinedArgumentOrOptionRule |
 | Should | Gate newer PHP syntax on the supported runtime floor | partial: larastan:PHPStan\Rules\Constants\ConstantAttributesRule, partial: larastan:PHPStan\Rules\Properties\PropertyInClassRule |
-| Should | Throw exception objects | partial: larastan:PHPStan\Rules\Exceptions\ThrowExprTypeRule |
 | Should | Use declared function-name casing | larastan:PHPStan\Rules\Functions\CallToNonExistentFunctionRule |
 | Should | Keep enum declarations nongeneric | larastan:PHPStan\Rules\Generics\EnumTemplateTypeRule |
 | Should | Resolve statically included files | partial: larastan:PHPStan\Rules\Keywords\RequireFileExistsRule |
 | Should | Avoid unstable named arguments across inheritance | partial: larastan:PHPStan\Rules\Methods\MethodCallWithPossiblyRenamedNamedArgumentRule |
-| Should | Preserve inherited method contracts | larastan:PHPStan\Rules\Methods\OverridingMethodRule, larastan:PHPStan\Rules\Methods\MethodSignatureRule |
 | Should | Import real functions and constants with correct names | larastan:PHPStan\Rules\Namespaces\ExistingNamesInGroupUseRule, larastan:PHPStan\Rules\Namespaces\ExistingNamesInUseRule |
 | Should | Use operators with compatible operand types | larastan:PHPStan\Rules\Operators\InvalidIncDecOperationRule, larastan:PHPStan\Rules\Operators\InvalidBinaryOperationRule, larastan:PHPStan\Rules\Operators\InvalidComparisonOperationRule, larastan:PHPStan\Rules\Operators\InvalidUnaryOperationRule |
 | Should | Express argument-dependent return types accurately | partial: larastan:PHPStan\Rules\PhpDoc\FunctionConditionalReturnTypeRule, partial: larastan:PHPStan\Rules\PhpDoc\MethodConditionalReturnTypeRule |
@@ -368,7 +420,6 @@ Which tool rule enforces each listed practice. Rules without a tool are enforced
 | Should | Preserve inherited property contracts | larastan:PHPStan\Rules\Properties\OverridingPropertyRule, larastan:PHPStan\Rules\Properties\ReadOnlyPropertyAssignRule |
 | Should | Escape regex data with the actual delimiter | larastan:PHPStan\Rules\Regexp\RegularExpressionQuotingRule |
 | Should | Remove unneeded return union members | larastan:PHPStan\Rules\TooWideTypehints\TooWideArrowFunctionReturnTypehintRule, larastan:PHPStan\Rules\TooWideTypehints\TooWideClosureReturnTypehintRule, larastan:PHPStan\Rules\TooWideTypehints\TooWideFunctionReturnTypehintRule, larastan:PHPStan\Rules\TooWideTypehints\TooWideMethodReturnTypehintRule |
-| Should | Keep closed property types precise | larastan:PHPStan\Rules\TooWideTypehints\TooWidePropertyTypeRule |
 | Should | Analyze traits through consuming classes | partial: larastan:PHPStan\Rules\Traits\NotAnalysedTraitRule |
 | Should | Define local variables on every read path | larastan:PHPStan\Rules\Variables\CompactVariablesRule, larastan:PHPStan\Rules\Variables\DefinedVariableRule |
 | Should | Unset only valid mutable targets | larastan:PHPStan\Rules\Variables\UnsetRule |
@@ -380,82 +431,91 @@ Which tool rule enforces each listed practice. Rules without a tool are enforced
 | Should | Remove impossible strict membership candidates | larastan:PHPStan\Rules\Comparison\ImpossibleInArrayHaystackFiniteTypesRule |
 | Should | Remove writes whose values are never read | larastan:PHPStan\Rules\DeadCode\UnusedVariableRule |
 | Should | Remove impossible throws annotations | partial: larastan:PHPStan\Rules\Exceptions\TooWideFunctionThrowTypeRule, partial: larastan:PHPStan\Rules\Exceptions\TooWideMethodThrowTypeRule, partial: larastan:PHPStan\Rules\Exceptions\TooWidePropertyHookThrowTypeRule |
-| Should | Initialize typed properties before use | partial: larastan:PHPStan\Rules\Properties\UninitializedPropertyRule |
 | Should | Remove provably redundant sorts | partial: larastan:PHPStan\Rules\Functions\SortWithoutEffectRule |
-| Should | Use strict comparisons when types matter | pint:strict_comparison |
 | Should | Enable class-based model factory discovery | rector:AddHasFactoryToModelsRector |
 | Should | Use canonical PHPUnit lifecycle signatures | pint:php_unit_set_up_tear_down_visibility, shift:workbench/fix-phpunit-methods |
 | Should | Start compatible headless browser infrastructure in CI | partial: shift:ci-generator/dusk-job |
+| Should | Use an explicit consistent request-access convention | partial: shift:workbench/normalize-request-access |
 | Should | Import the Validator facade explicitly | rector:RenameClassRector |
 | Should | Use the selected local filesystem abstraction consistently | rector:UnlinkFuncCallToFileFacadeDeleteRector |
-| Should | Reconcile published configuration with installed versions during upgrades | partial: shift:public/laravel13/config-env |
 | Should | Resolve the current container lazily instead of capturing the boot-time container in an Octane singleton | partial: larastan:OctaneCompatibilityRule |
 | Should | Pass only array-valued configuration keys to Config::collection() | larastan:ConfigCollectionRule |
 | Should | Use the Date facade for date creation when the application relies on Laravel’s configurable date implementation | rector:CarbonToDateFacadeRector |
 | Should | Use explicit container resolution, binding, and existence methods when adopting the explicit container API style | rector:ArrayDimFetchToMethodCallRector |
-| Should | Replace removed spatial column helpers with supported geometry definitions | rector:RefactorBlueprintGeometryColumnsRector |
+| Should | Use a fresh binding or current-container resolver for configuration in long-lived Octane services | partial: larastan:OctaneCompatibilityRule |
+| Should | Read database table prefixes from the connection | partial: larastan:PHPStan\Rules\RestrictedUsage\RestrictedMethodUsageRule |
 | Should | Use current Livewire component formats for new projects | partial: shift:livewire-mfc-converter |
 | Should | Use explicit date-intent query helpers | rector:DateWhereClauseToShorthandRector |
 | Should | Reference only relationships that are defined and statically checked | larastan:RelationExistenceRule |
 | Should | Declare void on methods that return no value | partial: rector:AddVoidReturnTypeWhereNoReturnRector, partial: larastan:PHPStan\Rules\Methods\MissingMethodReturnTypehintRule, partial: larastan:PHPStan\Rules\Methods\ReturnTypeRule |
 | Should | Invoke local scopes through a query builder and provide analysis metadata where required | partial: larastan:NoImplicitQueryBuilderCallRule, partial: rector:AddGenericBuilderToScopesRector |
-| Should | Read query-expression SQL with getValue() and the connection grammar | rector:DatabaseExpressionCastsToMethodCallRector, rector:DatabaseExpressionToStringToMethodCallRector |
 | Should | Type relationship query-constraint callbacks with the appropriate builder | rector:EloquentWhereRelationTypeHintingParameterRector |
-| Should | Match the installed framework method signature in custom implementations and overrides | partial: rector:ArgumentAdderRector, partial: larastan:PHPStan\Rules\Methods\OverridingMethodRule |
+| Should | Inject action-specific Form Requests for resource writes | partial: shift:workbench/convert-controller-validation |
 | Should | Replace removed Cashier stripeOptions() overrides with the supported stripe() extension point | rector:CashierStripeOptionsToStripeRector |
 | Should | Indent Blade with four spaces | partial: pint:Pint/laravel_blade |
 | Should | Replace Volt base classes only when migrating away from Volt | partial: rector:RenameClassRector, partial: shift:livewire-4/volt-to-sfc |
+| Should | Type query and tap closure parameters with their actual argument types | rector:EloquentWhereTypeHintClosureParameterRector, rector:TypeHintTappableCallRector |
 | Should | Pass exception classes to conditional throw helpers | rector:ThrowIfAndThrowUnlessExceptionsToUseClassStringRector |
+| Should | Pass view data as explicit key-value arrays | shift:workbench/normalize-view-data |
 | Should | Confirm dynamic usage before removing unused views | partial: larastan:UnusedViewsRule |
 | Should | Review long-lived container bindings when adopting Octane | partial: larastan:OctaneCompatibilityRule |
-| Should | Use Hidden attributes for command visibility when adopting Laravel 13 attributes | rector:CommandHiddenPropertyToHiddenAttributeRector |
-| Should | Avoid terminating requests while debugging session writes | partial: rector:RemoveDumpDataDeadCodeRector |
-| Should | Remove obsolete translation roots after migration | partial: shift:upgrade-9/lang-folder |
-| Should | Put intentionally cacheable pages in a dedicated stateless middleware group | shift:public/fast-laravel/static-group |
-| Should | Use fluent route configuration methods instead of legacy array options | shift:workbench/adopt-fluent-routes |
+| Should | Move legacy Lumen applications onto a maintained Laravel upgrade path | partial: shift:lumen-to-laravel |
+| Should | Use arrow functions for simple expression callbacks | pint:use_arrow_functions |
+| Should | Use context-independent callable syntax | partial: rector:ArrayToFirstClassCallableRector |
 | Should | Format comments consistently | pint:single_line_comment_spacing, pint:align_multiline_comment |
 | Should | Prefer native declarations over redundant PHPDoc | partial: pint:no_superfluous_phpdoc_tags, partial: shift:public/fixer/redundant-docblock-types |
+| Should | Replace removed unsigned floating-point schema helpers | partial: rector:RenameMethodRector |
+| Should | Use a uniqueness-aware job dispatch entrypoint | partial: larastan:NoBatchedUniqueJobRule |
 | Should | Match queued dispatch arguments to constructors | larastan:CheckDispatchArgumentTypesCompatibleWithClassConstructorRule, larastan:PHPStan\Rules\Methods\MissingMethodParameterTypehintRule |
+| Should | Use bulk dispatch for independent untracked jobs | partial: larastan:NoBatchedUniqueJobRule |
+| Should | Use framework CORS middleware rather than the obsolete Fruitcake package | partial: rector:RenameClassRector |
+| Should | Declare wholly immutable DTOs readonly | partial: rector:ReadOnlyClassRector |
 | Should | Adopt level six for complete type declarations | partial: larastan:PHPStan\Rules\Functions\MissingFunctionParameterTypehintRule, partial: larastan:PHPStan\Rules\Functions\MissingFunctionReturnTypehintRule, partial: larastan:PHPStan\Rules\Methods\MissingMethodParameterTypehintRule, partial: larastan:PHPStan\Rules\Properties\MissingPropertyTypehintRule, partial: larastan:PHPStan\Rules\Methods\MissingMethodReturnTypehintRule |
 | Should | Make classes final unless designed for extension | partial: shift:phpunit/final-test-classes |
-| Should | Import classes and globals under the import policy | pint:global_namespace_import, pint:fully_qualified_strict_types |
 | Should | Space concatenation operators under the custom policy | pint:concat_space |
 | Should | Use all() when recursive conversion is unnecessary | larastan:NoUnnecessaryEnumerableToArrayCallsRule, rector:ConvertEnumerableToArrayToAllRector |
 | Should | Use strict closures for null or typed view data | partial: pint:strict_comparison |
 | Should | Migrate Volt classes when adopting Livewire 4 built-in components | partial: shift:livewire-4/volt-to-sfc |
 | Should | Type-hint dispatched-object assertion predicates | partial: rector:AssertWithClassStringToTypeHintedClosureRector |
 | Should | Replace deprecated Livewire Rule attributes | rector:RenameAttributeRector |
+| Consider | Declare class-constant visibility explicitly under the adopted style | partial: pint:modifier_keywords |
+| Consider | Handle absent path inputs before calling application path helpers | partial: larastan:PHPStan\Rules\Functions\CallToFunctionParametersRule |
 | Consider | Replace abandoned dependencies | partial: shift:preshift/abandoned-dependencies |
 | Consider | Gate interface property hooks by the PHP target | larastan:PHPStan\Rules\Properties\PropertiesInInterfaceRule |
 | Consider | Accept Throwable in custom exception handlers | rector:AddParamTypeDeclarationRector |
 | Consider | Keep exception-handler ignore public | rector:ChangeMethodVisibilityRector |
 | Consider | Qualify global PHP attributes in framework-style code | pint:global_namespace_import |
-| Consider | Apply the repository’s selected helper or facade idiom consistently for equivalent operations | partial: rector:HelperFuncCallToFacadeClassRector, partial: shift:workbench/adopt-common-helpers |
 | Consider | Define every statically referenced file-based translation key in the configured translation files | larastan:NoMissingTranslationsRule |
 | Consider | Keep constant values compatible with declared and static-analysis-configured constant types | larastan:PHPStan\Rules\Constants\ValueAssignedToDefineRule, larastan:PHPStan\Rules\Constants\ValueAssignedToGlobalConstantRule, larastan:PHPStan\Rules\Constants\ValueAssignedToClassConstantRule |
 | Consider | Initialize readonly properties only through write paths allowed by the supported PHP version | larastan:PHPStan\Rules\Properties\ReadOnlyPropertyAssignRule |
-| Consider | Use a fresh binding or current-container resolver for configuration in long-lived Octane services | partial: larastan:OctaneCompatibilityRule |
-| Consider | Adopt an explicit forward-only migration policy | partial: shift:workbench/remove-down-migration |
+| Consider | Handle absent past and upcoming Paddle payments | partial: larastan:PHPStan\Rules\Properties\AccessPropertiesRule, partial: larastan:PHPStan\Rules\Methods\CallMethodsRule |
+| Consider | Construct custom database grammars and blueprints with their connection | partial: larastan:PHPStan\Rules\Classes\InstantiationRule |
+| Consider | Use current float and double migration signatures | partial: larastan:PHPStan\Rules\Methods\CallMethodsRule |
 | Consider | Implement the user-provider contract for custom user storage | partial: larastan:PHPStan\Rules\Methods\MissingMethodImplementationRule, partial: larastan:PHPStan\Rules\Methods\OverridingMethodRule |
 | Consider | Omit unused exception bindings from catch clauses | rector:RemoveUnusedVariableInCatchRector |
+| Consider | Declare custom cast read and write generic types | partial: larastan:PHPStan\Rules\Generics\ClassAncestorsRule |
+| Consider | Provide both numeric deviation methods for numeric custom casts | partial: larastan:PHPStan\Rules\Methods\MissingMethodImplementationRule |
 | Consider | Declare only available relationships in model eager-load defaults | larastan:ModelRelationDefaultsRule |
 | Consider | Import Laravel classes explicitly instead of relying on global aliases | rector:RenameClassRector |
-| Consider | Migrate custom mail integrations from SwiftMailer to Symfony Mailer | partial: rector:RenameMethodRector, partial: shift:upgrade-9/swiftmailer |
+| Consider | Implement the current synchronous Mailer contract | partial: larastan:PHPStan\Rules\Methods\MissingMethodImplementationRule |
 | Consider | Preserve parent event-provider registration | rector:AddParentRegisterToEventServiceProviderRector |
 | Consider | Import applied PHP attribute classes | partial: pint:global_namespace_import, partial: pint:fully_qualified_strict_types |
 | Consider | Type method parameters explicitly | partial: larastan:PHPStan\Rules\Methods\MissingMethodParameterTypehintRule, partial: shift:workbench/type-hints |
+| Consider | Omit redundant new-expression parentheses on PHP 8.4+ | partial: rector:NewMethodCallWithoutParenthesesRector |
+| Consider | Use the portable whereLike API for supported pattern searches | rector:WhereToWhereLikeRector |
 | Consider | Use middlewareAliases in a retained legacy HTTP kernel | partial: rector:RenamePropertyRector |
+| Consider | Use Laravel Request conversion at framework request boundaries | partial: larastan:PHPStan\Rules\Methods\CallMethodsRule |
 | Consider | Write declare directive assignments without spaces around the equals sign | pint:declare_equal_normalize |
 | Consider | Write declare(...) without spaces around its parentheses | pint:declare_parentheses |
+| Consider | Use lowercase numeric base prefixes and uppercase hexadecimal digits in integer literals | pint:integer_literal_case |
 | Consider | Remove PHPDoc types that repeat native declarations | pint:no_superfluous_phpdoc_tags |
 | Consider | End switch case labels with a colon instead of a semicolon | pint:switch_case_semicolon_to_colon |
 | Consider | Use one space between case and its value and no extra space before its colon | pint:switch_case_space |
+| Consider | Run the committed project code-style check before merge | partial: shift:public/ci/style |
+| Consider | Use reduce with its key argument instead of reduceWithKeys | rector:RenameMethodRector |
 | Consider | Track and retire deprecations before upgrades | partial: shift:public/laravel13/deprecations |
-| Consider | Use Blade method-spoofing directives | shift:workbench/blade/method |
-| Consider | Specify generic arguments on implemented contracts | larastan:PHPStan\Rules\Generics\ClassAncestorsRule |
-| Consider | Replace removed synchronous dispatch APIs | rector:RenameFunctionRector, rector:RenameMethodRector |
+| Consider | Implement rollback in custom batch repositories | partial: larastan:PHPStan\Rules\Methods\MissingMethodImplementationRule |
 | Consider | Import facades by their namespaced class | rector:RenameClassRector |
-| Consider | Use bulk dispatch for independent untracked jobs | partial: larastan:NoBatchedUniqueJobRule |
 | Consider | Implement the Laravel 13 bus dispatcher contract | larastan:PHPStan\Rules\Methods\MissingMethodImplementationRule, larastan:PHPStan\Rules\Methods\OverridingMethodRule |
 | Consider | Reference actual model relationships in Eloquent relation queries | larastan:RelationExistenceRule |
 | Consider | Key Composer CI caches by runtime and dependency definition | partial: shift:public/ci/composer-cache |
@@ -464,7 +524,9 @@ Which tool rule enforces each listed practice. Rules without a tool are enforced
 | Consider | Use PHPStan reflection for analyzed symbols | partial: larastan:PHPStan\Rules\Api\RuntimeReflectionFunctionRule, partial: larastan:PHPStan\Rules\Api\RuntimeReflectionInstantiationRule |
 | Consider | Follow constructor-parenthesis requirements of the selected alternate preset | pint:new_with_parentheses |
 | Consider | Use class-first import groups under the selected alternate preset | pint:ordered_imports |
+| Consider | Guard optional engine methods before invoking package commands | partial: larastan:PHPStan\Rules\Methods\CallMethodsRule |
 | Consider | Import class names referenced in PHPDoc | pint:fully_qualified_strict_types |
+| Consider | Detect deprecated APIs before upgrades | partial: shift:public/laravel13/deprecations |
 | Consider | Mark intentional switch fall-through | pint:no_break_comment |
 | Consider | Use compound offset updates only on compatible values | larastan:PHPStan\Rules\Arrays\OffsetAccessAssignOpRule |
 | Consider | Resolve private static members through self | larastan:PHPStan\Rules\Classes\AccessPrivateConstantThroughStaticRule, larastan:PHPStan\Rules\Methods\CallPrivateMethodThroughStaticRule, larastan:PHPStan\Rules\Properties\AccessPrivatePropertyThroughStaticRule |
@@ -477,10 +539,10 @@ Which tool rule enforces each listed practice. Rules without a tool are enforced
 | Consider | Honor native readonly property lifecycles | larastan:PHPStan\Rules\Properties\ReadOnlyPropertyRule, larastan:PHPStan\Rules\Properties\ReadOnlyPropertyAssignRefRule, larastan:PHPStan\Rules\Properties\MissingReadOnlyPropertyAssignRule |
 | Consider | Respect readable and writable property directions | larastan:PHPStan\Rules\Properties\ReadingWriteOnlyPropertiesRule, larastan:PHPStan\Rules\Properties\WritingToReadOnlyPropertiesRule |
 | Consider | Respect reference parameter input and output contracts | larastan:PHPStan\Rules\Variables\ParameterOutAssignedTypeRule, larastan:PHPStan\Rules\Variables\ParameterOutExecutionEndTypeRule |
-| Consider | Remove unreferenced goto labels | larastan:PHPStan\Rules\Keywords\UnusedLabelRule |
 | Consider | Break foreach reference aliases after iteration | partial: larastan:PHPStan\Rules\Variables\AssignToByRefExprFromForeachRule |
 | Consider | Remove unused legacy application directories | partial: shift:public/linter/unused-directories |
 | Consider | Keep classmap class identities unambiguous | partial: larastan:PHPStan\Rules\Classes\DuplicateClassDeclarationRule |
+| Consider | Use PHPUnit stubs when no interaction expectation is required | partial: rector:ExpressionCreateMockToCreateStubRector, partial: rector:PropertyCreateMockToCreateStubRector, partial: rector:CreateStubOverCreateMockArgRector |
 | Consider | Keep PHPStan assertion contracts truthful | larastan:PHPStan\Rules\PhpDoc\FunctionAssertRule, larastan:PHPStan\Rules\PhpDoc\MethodAssertRule |
 | Consider | Call request validation on an injected request instance | rector:RequestStaticValidateToInjectRector |
 | Consider | Replace obsolete validator failure methods | rector:RenameMethodRector |
@@ -502,31 +564,25 @@ Which tool rule enforces each listed practice. Rules without a tool are enforced
 | Consider | Migrate middleware, exception, routing, and provider configuration explicitly when adopting the streamlined skeleton | partial: shift:public/slimmer/bootstrap |
 | Consider | Inject the database manager under an explicit dependency-injection policy | rector:StaticCallToMethodCallRector |
 | Consider | Inject the schema builder under an explicit dependency-injection policy | rector:StaticCallToMethodCallRector |
-| Consider | Resolve database services by supported class or contract | rector:ReplaceServiceContainerCallArgRector |
 | Consider | Preserve provider behavior during application structure migration | partial: shift:public/slimmer/providers |
 | Consider | Audit runtime dependencies before moving to Cloud | partial: shift:public/cloud/database, partial: shift:public/cloud/octane, partial: shift:public/cloud/php, partial: shift:public/cloud/system-commands, partial: shift:public/cloud/system-paths |
 | Consider | Replace the removed Cashier removePaymentMethod API with deletePaymentMethod | partial: rector:RenameMethodRector |
+| Consider | Avoid depending on variables introduced only inside completed blocks | larastan:PHPStan\Rules\Variables\DefinedVariableRule |
+| Consider | Use scalar cast operators under the adopted formatter policy | pint:modernize_types_casting |
+| Consider | Use self for the current class under the adopted accessor style | pint:self_accessor |
 | Consider | Use the void discard cast only as a standalone statement on PHP 8.5 or later | larastan:PHPStan\Rules\Cast\VoidCastRule |
 | Consider | Consume NoDiscard results or explicitly discard them with supported syntax | larastan:PHPStan\Rules\Functions\CallToFunctionStatementWithNoDiscardRule, larastan:PHPStan\Rules\Methods\CallToMethodStatementWithNoDiscardRule, larastan:PHPStan\Rules\Methods\CallToStaticMethodStatementWithNoDiscardRule |
 | Consider | Keep goto targets defined within the same function scope | larastan:PHPStan\Rules\Keywords\GotoUndefinedLabelRule |
 | Consider | Attach var annotations to the actual variable they describe | larastan:PHPStan\Rules\PhpDoc\WrongVariableNameInVarTagRule |
-| Consider | Use ObservedBy for equivalent observer registration when adopting model attributes | shift:workbench/laravel-observedby-attribute |
-| Consider | Replace removed legacy Laravel helpers, classes and method names with supported equivalents | partial: rector:RenameMethodRector, partial: rector:FuncCallToStaticCallRector, partial: rector:RenameClassRector |
 | Consider | Call translation query scopes through an explicit model query builder | larastan:NoImplicitQueryBuilderCallRule |
 | Consider | Include the guard in manually constructed login events | partial: rector:AddGuardToLoginEventRector |
 | Consider | Compare full timestamps when the cutoff includes time | partial: rector:ChangeQueryWhereDateValueWithCarbonRector |
-| Consider | Pass view data as explicit key-value arrays | shift:workbench/normalize-view-data |
-| Consider | Inject the Blade compiler when adopting dependency injection | rector:StaticCallToMethodCallRector |
 | Consider | Read SQL expressions through the current grammar-aware API | rector:DatabaseExpressionToStringToMethodCallRector, rector:DatabaseExpressionCastsToMethodCallRector |
-| Consider | Use the portable whereLike API for supported pattern searches | rector:WhereToWhereLikeRector |
 | Consider | Use the current Cashier Stripe client accessor | rector:CashierStripeOptionsToStripeRector |
 | Consider | Query PHPStan types through the Type API | larastan:PHPStan\Rules\Api\ApiInstanceofTypeRule |
-| Consider | Use Collects metadata under the Laravel 13 attribute convention | rector:CollectsPropertyToCollectsAttributeRector |
-| Consider | Use the dedicated permanent redirect helper for an intended 301 | rector:Redirect301ToPermanentRedirectRector |
 | Consider | Construct JsonResponse directly when adopting that response convention | rector:ResponseHelperCallToJsonResponseRector |
+| Consider | Preserve multiline empty method bodies under the adopted style policy | pint:braces_position, pint:single_line_empty_body |
 | Consider | Express integer cache lifetimes in seconds when migrating code that used minute-based cache APIs | rector:MinutesToSecondsInCacheRector |
-| Consider | Use short [] syntax for array destructuring assignments | pint:list_syntax |
-| Consider | Use brace syntax for PHP control structures instead of colon/end syntax | pint:no_alternative_syntax |
 | Consider | Omit the closing ?> tag from files containing only PHP | pint:no_closing_tag |
 | Consider | Use echo consistently instead of mixing echo and print | pint:no_mixed_echo_print |
 | Consider | Use square brackets instead of curly braces for array and string offsets | pint:normalize_index_brace |
@@ -536,16 +592,23 @@ Which tool rule enforces each listed practice. Rules without a tool are enforced
 | Consider | Re-register existing HTTP middleware when migrating to the streamlined application structure | partial: shift:public/slimmer/middleware |
 | Consider | Simplify XOR expressions with constant operands | larastan:PHPStan\Rules\Comparison\LogicalXorConstantConditionRule |
 | Consider | Preserve schedules when changing application structure | partial: shift:public/slimmer/scheduler |
-| Consider | Move legacy Lumen applications onto a maintained Laravel upgrade path | partial: shift:lumen-to-laravel |
-| Consider | Use context-independent callable syntax | partial: rector:ArrayToFirstClassCallableRector |
+| Consider | Use boolean conditions under the adopted strict-analysis policy | partial: larastan:PHPStan\Rules\BooleansInConditions\BooleanInIfConditionRule, partial: larastan:PHPStan\Rules\BooleansInConditions\BooleanInElseIfConditionRule, partial: larastan:PHPStan\Rules\BooleansInConditions\BooleanInTernaryOperatorRule, partial: larastan:PHPStan\Rules\BooleansInConditions\BooleanInBooleanAndRule, partial: larastan:PHPStan\Rules\BooleansInConditions\BooleanInBooleanOrRule, partial: larastan:PHPStan\Rules\BooleansInConditions\BooleanInBooleanNotRule, partial: larastan:PHPStan\Rules\BooleansInConditions\BooleanInWhileConditionRule, partial: larastan:PHPStan\Rules\BooleansInConditions\BooleanInDoWhileConditionRule |
+| Consider | Reject malformed Base64 input explicitly | partial: larastan:PHPStan\Rules\StrictCalls\StrictFunctionCallsRule |
+| Consider | Replace loose emptiness with an explicit domain test | larastan:PHPStan\Rules\DisallowedConstructs\DisallowedEmptyRule |
+| Consider | Make truthy fallback semantics explicit | larastan:PHPStan\Rules\DisallowedConstructs\DisallowedShortTernaryRule |
+| Consider | State which values array filtering should remove | larastan:PHPStan\Rules\Functions\ArrayFilterStrictRule |
+| Consider | Return explicitly from every mixed-returning path | larastan:PHPStan\Rules\Missing\MissingReturnRule |
 | Consider | Use array unpacking only with equivalent key semantics | shift:workbench/adopt-array-unpacking |
 | Consider | Migrate custom skeleton behavior before deleting old files | partial: shift:public/slimmer/core-files |
+| Consider | Render auth-aware navigation with Blade directives | partial: shift:workbench/modernize-blade-directives |
+| Consider | Specify generic arguments on implemented contracts | larastan:PHPStan\Rules\Generics\ClassAncestorsRule |
 | Consider | Use equivalent Laravel helpers consistently | rector:DispatchToHelperFunctionsRector, shift:workbench/adopt-common-helpers |
 | Consider | Inject dispatcher services when using dependency injection style | partial: rector:ArgumentFuncCallToMethodCallRector, partial: rector:StaticCallToMethodCallRector |
 | Consider | Replace the legacy model event-map property | rector:RenamePropertyRector |
 | Consider | Resolve infrastructure services by class or contract | rector:ReplaceServiceContainerCallArgRector |
 | Consider | Match the current dispatcher listener signature | rector:AddArgumentDefaultValueRector |
 | Consider | Use the Laravel request object under persistent workers | partial: rector:RequestVariablesToRequestFacadeRector, partial: rector:ServerVariableToRequestFacadeRector |
+| Consider | Compare authorization identifiers strictly using compatible types | partial: pint:strict_comparison, partial: larastan:PHPStan\Rules\Comparison\StrictComparisonOfDifferentTypesRule |
 | Consider | Preserve generator key and value contracts when delegating | larastan:PHPStan\Rules\Generators\YieldFromTypeRule |
 | Consider | Document checked exceptions that escape callable boundaries | larastan:PHPStan\Rules\Exceptions\MissingCheckedExceptionInFunctionThrowsRule, larastan:PHPStan\Rules\Exceptions\MissingCheckedExceptionInMethodThrowsRule, larastan:PHPStan\Rules\Exceptions\MissingCheckedExceptionInPropertyHookThrowsRule |
 | Consider | Use supported relationship paths for aggregate methods | partial: larastan:RelationExistenceRule |
@@ -560,12 +623,18 @@ Which tool rule enforces each listed practice. Rules without a tool are enforced
 | Consider | Terminate PHP instructions before closing template tags | pint:semicolon_after_instruction |
 | Consider | Use prefix increments under the selected Symfony policy | pint:increment_style |
 | Consider | Use ordinary comments for prose inside method bodies | pint:phpdoc_to_comment |
+| Consider | Expand anonymous bodies under the framework formatting policy | pint:braces_position |
+| Consider | Prefer explicit arrays to compact under the selected policy | rector:CompactToVariablesRector |
+| Consider | Order named arguments by the declared parameter order | partial: rector:SortCallLikeNamedArgsRector |
+| Consider | Enforce throwing native-function wrappers where adopted | partial: larastan:TheCodingMachine\Safe\PHPStan\Rules\UseSafeFunctionsRule, partial: larastan:TheCodingMachine\Safe\PHPStan\Rules\UseSafeCallablesRule |
 | Consider | Omit empty constructor parentheses under Laravel style | pint:new_with_parentheses |
 | Consider | Lead continuation lines with boolean operators | pint:operator_linebreak |
 | Consider | Place null last in native union types | pint:ordered_types |
 | Consider | Remove inner attribute bracket whitespace | pint:attribute_block_no_spaces |
 | Consider | Place trait imports first in classes | pint:ordered_class_elements |
 | Consider | Align multiline doc-comment asterisks | pint:align_multiline_comment |
+| Consider | Replace backtick shell execution | larastan:PHPStan\Rules\Operators\BacktickRule, pint:backtick_to_shell_exec |
+| Consider | Give intentional empty loops braces | pint:empty_loop_body |
 | Consider | Fully qualify globals under the Symfony policy | pint:global_namespace_import |
 | Consider | Remove empty ordinary comments | partial: pint:no_empty_comment |
 | Consider | Omit redundant null defaults on untyped properties | pint:no_null_property_initialization |
@@ -578,7 +647,6 @@ Which tool rule enforces each listed practice. Rules without a tool are enforced
 | Consider | Use increment syntax for single-step updates under Symfony style | pint:standardize_increment |
 | Consider | Use break to exit a switch case | pint:switch_continue_to_break |
 | Consider | Space native union pipes under the selected custom style | pint:types_spaces |
-| Consider | Order class elements consistently | pint:ordered_class_elements |
 | Consider | Keep sealed hierarchies valid | larastan:PHPStan\Rules\Classes\AllowedSubTypesRule, larastan:PHPStan\Rules\PhpDoc\SealedDefinitionTraitRule, larastan:PHPStan\Rules\PhpDoc\SealedDefinitionClassRule |
 | Consider | Implement real interfaces on enums | larastan:PHPStan\Rules\Classes\ExistingClassesInEnumImplementsRule |
 | Consider | Keep local PHPDoc type aliases resolvable | larastan:PHPStan\Rules\Classes\LocalTypeAliasesRule, larastan:PHPStan\Rules\Classes\LocalTypeTraitAliasesRule, larastan:PHPStan\Rules\Classes\LocalTypeTraitUseAliasesRule |
@@ -597,7 +665,9 @@ Which tool rule enforces each listed practice. Rules without a tool are enforced
 | Consider | Keep set-hook input types compatible | larastan:PHPStan\Rules\Properties\SetPropertyHookParameterRule |
 | Consider | Keep purity promises truthful | larastan:PHPStan\Rules\Pure\PureFunctionRule, larastan:PHPStan\Rules\Pure\PureMethodRule, larastan:PHPStan\Rules\Pure\PurePropertyHookRule |
 | Consider | Keep parameter output types precise | larastan:PHPStan\Rules\TooWideTypehints\TooWideFunctionParameterOutTypeRule, larastan:PHPStan\Rules\TooWideTypehints\TooWideMethodParameterOutTypeRule |
+| Consider | Keep closed property types precise | larastan:PHPStan\Rules\TooWideTypehints\TooWidePropertyTypeRule |
 | Consider | Prefer native readonly over documentation-only promises | shift:workbench/set-readonly-properties |
+| Consider | Remove unreferenced goto labels | larastan:PHPStan\Rules\Keywords\UnusedLabelRule |
 | Consider | Run the maintained Dusk suite in CI | partial: shift:public/ci/dusk |
 | Consider | Preserve element types with PHPDoc generics | partial: larastan:PHPStan\Rules\Generics\ClassAncestorsRule, partial: larastan:PHPStan\Rules\Methods\MissingMethodReturnTypehintRule, partial: rector:AddGenericReturnTypeToRelationsRector, partial: rector:AddExtendsAnnotationToModelFactoriesRector |
 | Consider | Depend on the validator contract in consumers | rector:RenameClassRector |
@@ -742,7 +812,7 @@ includes:
 parameters:
     paths:
         - app
-    level: 8
+    level: max
     noBatchedUniqueJob: true
 
 ```
@@ -1074,6 +1144,142 @@ parameters:
 
 ```
 
+### larastan:PHPStan\Rules\BooleansInConditions\BooleanInBooleanAndRule
+```
+# Requires phpstan/phpstan-strict-rules.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+parameters:
+    paths:
+        - app
+    level: max
+    strictRules:
+        allRules: false
+        booleansInConditions: true
+        booleansInLoopConditions: true
+
+```
+
+### larastan:PHPStan\Rules\BooleansInConditions\BooleanInBooleanNotRule
+```
+# Requires phpstan/phpstan-strict-rules.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+parameters:
+    paths:
+        - app
+    level: max
+    strictRules:
+        allRules: false
+        booleansInConditions: true
+        booleansInLoopConditions: true
+
+```
+
+### larastan:PHPStan\Rules\BooleansInConditions\BooleanInBooleanOrRule
+```
+# Requires phpstan/phpstan-strict-rules.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+parameters:
+    paths:
+        - app
+    level: max
+    strictRules:
+        allRules: false
+        booleansInConditions: true
+        booleansInLoopConditions: true
+
+```
+
+### larastan:PHPStan\Rules\BooleansInConditions\BooleanInDoWhileConditionRule
+```
+# Requires phpstan/phpstan-strict-rules.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+parameters:
+    paths:
+        - app
+    level: max
+    strictRules:
+        allRules: false
+        booleansInConditions: true
+        booleansInLoopConditions: true
+
+```
+
+### larastan:PHPStan\Rules\BooleansInConditions\BooleanInElseIfConditionRule
+```
+# Requires phpstan/phpstan-strict-rules.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+parameters:
+    paths:
+        - app
+    level: max
+    strictRules:
+        allRules: false
+        booleansInConditions: true
+        booleansInLoopConditions: true
+
+```
+
+### larastan:PHPStan\Rules\BooleansInConditions\BooleanInIfConditionRule
+```
+# Requires phpstan/phpstan-strict-rules.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+parameters:
+    paths:
+        - app
+    level: max
+    strictRules:
+        allRules: false
+        booleansInConditions: true
+        booleansInLoopConditions: true
+
+```
+
+### larastan:PHPStan\Rules\BooleansInConditions\BooleanInTernaryOperatorRule
+```
+# Requires phpstan/phpstan-strict-rules.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+parameters:
+    paths:
+        - app
+    level: max
+    strictRules:
+        allRules: false
+        booleansInConditions: true
+        booleansInLoopConditions: true
+
+```
+
+### larastan:PHPStan\Rules\BooleansInConditions\BooleanInWhileConditionRule
+```
+# Requires phpstan/phpstan-strict-rules.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+parameters:
+    paths:
+        - app
+    level: max
+    strictRules:
+        allRules: false
+        booleansInConditions: true
+        booleansInLoopConditions: true
+
+```
+
 ### larastan:PHPStan\Rules\Cast\EchoRule
 ```
 includes:
@@ -1126,6 +1332,22 @@ parameters:
     paths:
         - app
     level: max
+
+```
+
+### larastan:PHPStan\Rules\Cast\UselessCastRule
+```
+# Requires phpstan/phpstan-strict-rules.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+parameters:
+    paths:
+        - app
+    level: max
+    strictRules:
+        allRules: false
+        uselessCast: true
 
 ```
 
@@ -1335,6 +1557,8 @@ parameters:
     paths:
         - app
     level: max
+    checkClassCaseSensitivity: true
+    checkInternalClassCaseSensitivity: true
 
 ```
 
@@ -1527,6 +1751,22 @@ parameters:
 
 ```
 
+### larastan:PHPStan\Rules\Classes\RequireParentConstructCallRule
+```
+# Requires phpstan/phpstan-strict-rules.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+parameters:
+    paths:
+        - app
+    level: max
+    strictRules:
+        allRules: false
+        requireParentConstructorCall: true
+
+```
+
 ### larastan:PHPStan\Rules\Classes\TraitAttributeClassRule
 ```
 includes:
@@ -1651,6 +1891,17 @@ parameters:
 ```
 
 ### larastan:PHPStan\Rules\Comparison\MatchExpressionRule
+```
+includes:
+    - vendor/larastan/larastan/extension.neon
+parameters:
+    paths:
+        - app
+    level: max
+
+```
+
+### larastan:PHPStan\Rules\Comparison\StrictComparisonOfDifferentTypesRule
 ```
 includes:
     - vendor/larastan/larastan/extension.neon
@@ -1957,6 +2208,54 @@ parameters:
 
 ```
 
+### larastan:PHPStan\Rules\DisallowedConstructs\DisallowedEmptyRule
+```
+# Requires phpstan/phpstan-strict-rules.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+parameters:
+    paths:
+        - app
+    level: max
+    strictRules:
+        allRules: false
+        disallowedEmpty: true
+
+```
+
+### larastan:PHPStan\Rules\DisallowedConstructs\DisallowedImplicitArrayCreationRule
+```
+# Requires phpstan/phpstan-strict-rules.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+parameters:
+    paths:
+        - app
+    level: max
+    strictRules:
+        allRules: false
+        disallowedImplicitArrayCreation: true
+
+```
+
+### larastan:PHPStan\Rules\DisallowedConstructs\DisallowedShortTernaryRule
+```
+# Requires phpstan/phpstan-strict-rules.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+parameters:
+    paths:
+        - app
+    level: max
+    strictRules:
+        allRules: false
+        disallowedShortTernary: true
+
+```
+
 ### larastan:PHPStan\Rules\EnumCases\EnumCaseAttributesRule
 ```
 includes:
@@ -2143,6 +2442,38 @@ parameters:
 
 ```
 
+### larastan:PHPStan\Rules\ForLoop\OverwriteVariablesWithForLoopInitRule
+```
+# Requires phpstan/phpstan-strict-rules.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+parameters:
+    paths:
+        - app
+    level: max
+    strictRules:
+        allRules: false
+        overwriteVariablesWithLoop: true
+
+```
+
+### larastan:PHPStan\Rules\ForeachLoop\OverwriteVariablesWithForeachRule
+```
+# Requires phpstan/phpstan-strict-rules.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+parameters:
+    paths:
+        - app
+    level: max
+    strictRules:
+        allRules: false
+        overwriteVariablesWithLoop: true
+
+```
+
 ### larastan:PHPStan\Rules\Functions\ArrayFilterRule
 ```
 includes:
@@ -2151,6 +2482,22 @@ parameters:
     paths:
         - app
     level: max
+
+```
+
+### larastan:PHPStan\Rules\Functions\ArrayFilterStrictRule
+```
+# Requires phpstan/phpstan-strict-rules.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+parameters:
+    paths:
+        - app
+    level: max
+    strictRules:
+        allRules: false
+        strictArrayFilter: true
 
 ```
 
@@ -2217,8 +2564,6 @@ parameters:
     paths:
         - app
     level: max
-    checkModelProperties: true
-
 ```
 
 ### larastan:PHPStan\Rules\Functions\CallToFunctionStatementWithNoDiscardRule
@@ -2273,6 +2618,22 @@ parameters:
     paths:
         - app
     level: max
+
+```
+
+### larastan:PHPStan\Rules\Functions\ClosureUsesThisRule
+```
+# Requires phpstan/phpstan-strict-rules.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+parameters:
+    paths:
+        - app
+    level: max
+    strictRules:
+        allRules: false
+        closureUsesThis: true
 
 ```
 
@@ -2666,7 +3027,6 @@ parameters:
     paths:
         - app
     level: max
-
 ```
 
 ### larastan:PHPStan\Rules\Generics\ClassTemplateTypeRule
@@ -2931,7 +3291,7 @@ parameters:
     paths:
         - app
     level: max
-    checkModelProperties: true
+    checkExtraArguments: true
 
 ```
 
@@ -3035,6 +3395,38 @@ parameters:
 
 ```
 
+### larastan:PHPStan\Rules\Methods\IllegalConstructorMethodCallRule
+```
+# Requires phpstan/phpstan-strict-rules.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+parameters:
+    paths:
+        - app
+    level: max
+    strictRules:
+        allRules: false
+        illegalConstructorMethodCall: true
+
+```
+
+### larastan:PHPStan\Rules\Methods\IllegalConstructorStaticCallRule
+```
+# Requires phpstan/phpstan-strict-rules.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+parameters:
+    paths:
+        - app
+    level: max
+    strictRules:
+        allRules: false
+        illegalConstructorMethodCall: true
+
+```
+
 ### larastan:PHPStan\Rules\Methods\IncompatibleDefaultParameterTypeRule
 ```
 includes:
@@ -3110,7 +3502,6 @@ parameters:
     paths:
         - app
     level: max
-
 ```
 
 ### larastan:PHPStan\Rules\Methods\MissingMethodParameterTypehintRule
@@ -3165,8 +3556,6 @@ parameters:
     paths:
         - app
     level: max
-    checkMissingOverrideMethodAttribute: true
-
 ```
 
 ### larastan:PHPStan\Rules\Methods\ReturnTypeRule
@@ -3212,6 +3601,7 @@ parameters:
     paths:
         - app
     level: max
+    checkExplicitMixedMissingReturn: true
 
 ```
 
@@ -3245,6 +3635,8 @@ parameters:
     paths:
         - app
     level: max
+    checkClassCaseSensitivity: true
+    checkInternalClassCaseSensitivity: true
 
 ```
 
@@ -3674,7 +4066,6 @@ parameters:
     paths:
         - app
     level: max
-
 ```
 
 ### larastan:PHPStan\Rules\Properties\MissingReadOnlyByPhpDocPropertyAssignRule
@@ -3718,7 +4109,6 @@ parameters:
     paths:
         - app
     level: max
-
 ```
 
 ### larastan:PHPStan\Rules\Properties\PropertiesInInterfaceRule
@@ -3942,6 +4332,67 @@ parameters:
 
 ```
 
+### larastan:PHPStan\Rules\RestrictedUsage\RestrictedMethodUsageRule
+```
+# Requires a compatible phpstan/phpstan-deprecation-rules release.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-deprecation-rules/rules.neon
+parameters:
+    paths:
+        - app
+    level: max
+
+```
+
+### larastan:PHPStan\Rules\StrictCalls\DynamicCallOnStaticMethodsCallableRule
+```
+# Requires phpstan/phpstan-strict-rules.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+parameters:
+    paths:
+        - app
+    level: max
+    strictRules:
+        allRules: false
+        dynamicCallOnStaticMethod: true
+
+```
+
+### larastan:PHPStan\Rules\StrictCalls\DynamicCallOnStaticMethodsRule
+```
+# Requires phpstan/phpstan-strict-rules.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+parameters:
+    paths:
+        - app
+    level: max
+    strictRules:
+        allRules: false
+        dynamicCallOnStaticMethod: true
+
+```
+
+### larastan:PHPStan\Rules\StrictCalls\StrictFunctionCallsRule
+```
+# Requires phpstan/phpstan-strict-rules.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+parameters:
+    paths:
+        - app
+    level: max
+    strictRules:
+        allRules: false
+        strictFunctionCalls: true
+
+```
+
 ### larastan:PHPStan\Rules\TooWideTypehints\TooWideArrowFunctionReturnTypehintRule
 ```
 includes:
@@ -4052,6 +4503,118 @@ parameters:
 
 ```
 
+### larastan:PHPStan\Rules\VariableVariables\VariableMethodCallRule
+```
+# Requires phpstan/phpstan-strict-rules.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+parameters:
+    paths:
+        - app
+    level: max
+    strictRules:
+        allRules: false
+        noVariableVariables: true
+
+```
+
+### larastan:PHPStan\Rules\VariableVariables\VariableMethodCallableRule
+```
+# Requires phpstan/phpstan-strict-rules.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+parameters:
+    paths:
+        - app
+    level: max
+    strictRules:
+        allRules: false
+        noVariableVariables: true
+
+```
+
+### larastan:PHPStan\Rules\VariableVariables\VariablePropertyFetchRule
+```
+# Requires phpstan/phpstan-strict-rules.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+parameters:
+    paths:
+        - app
+    level: max
+    strictRules:
+        allRules: false
+        noVariableVariables: true
+
+```
+
+### larastan:PHPStan\Rules\VariableVariables\VariableStaticMethodCallRule
+```
+# Requires phpstan/phpstan-strict-rules.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+parameters:
+    paths:
+        - app
+    level: max
+    strictRules:
+        allRules: false
+        noVariableVariables: true
+
+```
+
+### larastan:PHPStan\Rules\VariableVariables\VariableStaticMethodCallableRule
+```
+# Requires phpstan/phpstan-strict-rules.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+parameters:
+    paths:
+        - app
+    level: max
+    strictRules:
+        allRules: false
+        noVariableVariables: true
+
+```
+
+### larastan:PHPStan\Rules\VariableVariables\VariableStaticPropertyFetchRule
+```
+# Requires phpstan/phpstan-strict-rules.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+parameters:
+    paths:
+        - app
+    level: max
+    strictRules:
+        allRules: false
+        noVariableVariables: true
+
+```
+
+### larastan:PHPStan\Rules\VariableVariables\VariableVariablesRule
+```
+# Requires phpstan/phpstan-strict-rules.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+parameters:
+    paths:
+        - app
+    level: max
+    strictRules:
+        allRules: false
+        noVariableVariables: true
+
+```
+
 ### larastan:PHPStan\Rules\Variables\AssignToByRefExprFromForeachRule
 ```
 includes:
@@ -4084,6 +4647,9 @@ parameters:
     paths:
         - app
     level: max
+    polluteScopeWithLoopInitialAssignments: false
+    polluteScopeWithAlwaysIterableForeach: false
+    polluteScopeWithBlock: false
 
 ```
 
@@ -4186,6 +4752,32 @@ parameters:
 
 ```
 
+### larastan:TheCodingMachine\Safe\PHPStan\Rules\UseSafeCallablesRule
+```
+# Requires thecodingmachine/safe and compatible thecodingmachine/phpstan-safe-rule.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/thecodingmachine/phpstan-safe-rule/phpstan-safe-rule.neon
+parameters:
+    paths:
+        - app
+    level: max
+
+```
+
+### larastan:TheCodingMachine\Safe\PHPStan\Rules\UseSafeFunctionsRule
+```
+# Requires thecodingmachine/safe and compatible thecodingmachine/phpstan-safe-rule.
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/thecodingmachine/phpstan-safe-rule/phpstan-safe-rule.neon
+parameters:
+    paths:
+        - app
+    level: max
+
+```
+
 ### larastan:UndefinedArgumentOrOptionRule
 ```
 includes:
@@ -4268,6 +4860,12 @@ parameters:
     "array_indentation": true
   }
 }
+
+```
+
+### pint:array_push
+```
+{"preset":"laravel","rules":{"array_push":true}}
 
 ```
 
@@ -4466,20 +5064,7 @@ Alternative 4:
 
 ### pint:braces_position
 ```
-{
-  "preset": "laravel",
-  "rules": {
-    "braces_position": {
-      "control_structures_opening_brace": "same_line",
-      "functions_opening_brace": "next_line_unless_newline_at_signature_end",
-      "anonymous_functions_opening_brace": "same_line",
-      "classes_opening_brace": "next_line_unless_newline_at_signature_end",
-      "anonymous_classes_opening_brace": "next_line_unless_newline_at_signature_end",
-      "allow_single_line_empty_anonymous_classes": false,
-      "allow_single_line_anonymous_functions": false
-    }
-  }
-}
+{"preset":"laravel","rules":{"single_line_empty_body":false,"braces_position":{"allow_single_line_anonymous_functions":false,"allow_single_line_empty_anonymous_classes":false}}}
 
 ```
 
@@ -4529,12 +5114,7 @@ Alternative 4:
 
 ### pint:class_reference_name_casing
 ```
-{
-  "preset": "symfony",
-  "rules": {
-    "class_reference_name_casing": true
-  }
-}
+{"preset":"laravel","rules":{"class_reference_name_casing":true}}
 
 ```
 
@@ -5171,19 +5751,21 @@ Alternative 2:
 
 ```
 
+### pint:modernize_strpos
+```
+{"preset":"laravel","rules":{"modernize_strpos":true}}
+
+```
+
+### pint:modernize_types_casting
+```
+{"preset":"laravel","rules":{"modernize_types_casting":true}}
+
+```
+
 ### pint:modifier_keywords
 ```
-{
-  "preset": "laravel",
-  "rules": {
-    "modifier_keywords": {
-      "elements": [
-        "method",
-        "property"
-      ]
-    }
-  }
-}
+{"preset":"laravel","rules":{"modifier_keywords":{"elements":["const","method","property"]}}}
 
 ```
 
@@ -6277,6 +6859,12 @@ Alternative 2:
 
 ```
 
+### pint:self_accessor
+```
+{"preset":"laravel","rules":{"self_accessor":true}}
+
+```
+
 ### pint:self_static_accessor
 ```
 {
@@ -6398,12 +6986,7 @@ Alternative 2:
 
 ### pint:single_line_empty_body
 ```
-{
-  "preset": "laravel",
-  "rules": {
-    "single_line_empty_body": true
-  }
-}
+{"preset":"laravel","rules":{"single_line_empty_body":false,"braces_position":{"allow_single_line_anonymous_functions":false,"allow_single_line_empty_anonymous_classes":false}}}
 
 ```
 
@@ -6508,12 +7091,7 @@ Alternative 2:
 
 ### pint:strict_comparison
 ```
-{
-  "preset": "laravel",
-  "rules": {
-    "strict_comparison": true
-  }
-}
+{"preset":"laravel","rules":{"strict_comparison":true}}
 
 ```
 
@@ -6706,6 +7284,12 @@ Alternative 3:
     "unary_operator_spaces": true
   }
 }
+
+```
+
+### pint:use_arrow_functions
+```
+{"preset":"laravel","rules":{"use_arrow_functions":true}}
 
 ```
 
@@ -7173,6 +7757,19 @@ return \Rector\Config\RectorConfig::configure()
 
 ```
 
+### rector:CompactToVariablesRector
+```
+<?php
+
+use Rector\Config\RectorConfig;
+use Rector\CodeQuality\Rector\FuncCall\CompactToVariablesRector;
+
+return RectorConfig::configure()
+    ->withPaths([__DIR__.'/app'])
+    ->withRules([CompactToVariablesRector::class]);
+
+```
+
 ### rector:ConfigToTypedConfigMethodCallRector
 ```
 <?php
@@ -7206,6 +7803,20 @@ return \Rector\Config\RectorConfig::configure()
 
 return \Rector\Config\RectorConfig::configure()
     ->withRules([\RectorLaravel\Rector\MethodCall\ConvertEnumerableToArrayToAllRector::class]);
+
+```
+
+### rector:CreateStubOverCreateMockArgRector
+```
+<?php
+
+// Requires rector/rector-phpunit; PHPUnit >=11.
+use Rector\Config\RectorConfig;
+use Rector\PHPUnit\PHPUnit120\Rector\CallLike\CreateStubOverCreateMockArgRector;
+
+return RectorConfig::configure()
+    ->withPaths([__DIR__.'/tests'])
+    ->withRules([CreateStubOverCreateMockArgRector::class]);
 
 ```
 
@@ -7371,6 +7982,20 @@ return \Rector\Config\RectorConfig::configure()
         __DIR__ . '/vendor/driftingly/rector-laravel/config/sets/laravel52.php',
         __DIR__ . '/vendor/driftingly/rector-laravel/config/sets/laravel54.php',
     ]);
+
+```
+
+### rector:ExpressionCreateMockToCreateStubRector
+```
+<?php
+
+// Requires rector/rector-phpunit; PHPUnit >=11.
+use Rector\Config\RectorConfig;
+use Rector\PHPUnit\PHPUnit120\Rector\ClassMethod\ExpressionCreateMockToCreateStubRector;
+
+return RectorConfig::configure()
+    ->withPaths([__DIR__.'/tests'])
+    ->withRules([ExpressionCreateMockToCreateStubRector::class]);
 
 ```
 
@@ -7603,6 +8228,20 @@ return \Rector\Config\RectorConfig::configure()
 
 ```
 
+### rector:PropertyCreateMockToCreateStubRector
+```
+<?php
+
+// Requires rector/rector-phpunit; PHPUnit >=11.
+use Rector\Config\RectorConfig;
+use Rector\PHPUnit\PHPUnit120\Rector\Class_\PropertyCreateMockToCreateStubRector;
+
+return RectorConfig::configure()
+    ->withPaths([__DIR__.'/tests'])
+    ->withRules([PropertyCreateMockToCreateStubRector::class]);
+
+```
+
 ### rector:PropertyDeferToDeferrableProviderToRector
 ```
 <?php
@@ -7618,6 +8257,20 @@ return \Rector\Config\RectorConfig::configure()
 
 return \Rector\Config\RectorConfig::configure()
     ->withRules([\RectorLaravel\Rector\Class_\QueuePropertyToQueueAttributeRector::class]);
+
+```
+
+### rector:ReadOnlyClassRector
+```
+<?php
+
+use Rector\Config\RectorConfig;
+use Rector\Php82\Rector\Class_\ReadOnlyClassRector;
+
+return RectorConfig::configure()
+    ->withPaths([__DIR__.'/app'])
+    ->withPhpVersion(80200)
+    ->withRules([ReadOnlyClassRector::class]);
 
 ```
 
@@ -7670,16 +8323,25 @@ return \Rector\Config\RectorConfig::configure()
 ```
 <?php
 
-declare(strict_types=1);
-
 use Rector\Config\RectorConfig;
 use RectorLaravel\Rector\FuncCall\RemoveDumpDataDeadCodeRector;
 
-return static function (RectorConfig $rectorConfig): void {
+return RectorConfig::configure()
+    ->withPaths([__DIR__.'/app'])
+    ->withConfiguredRule(RemoveDumpDataDeadCodeRector::class, ['dd', 'dump', 'var_dump', 'print_r']);
 
+```
 
-    $rectorConfig->ruleWithConfiguration(RemoveDumpDataDeadCodeRector::class, ['dd', 'dump']);
-};
+### rector:RemoveParentDelegatingConstructorRector
+```
+<?php
+
+use Rector\Config\RectorConfig;
+use Rector\DeadCode\Rector\ClassMethod\RemoveParentDelegatingConstructorRector;
+
+return RectorConfig::configure()
+    ->withPaths([__DIR__.'/app'])
+    ->withRules([RemoveParentDelegatingConstructorRector::class]);
 
 ```
 
@@ -7725,19 +8387,13 @@ return \Rector\Config\RectorConfig::configure()
 ```
 <?php
 
-return \Rector\Config\RectorConfig::configure()
-    ->withSets([
-        __DIR__ . '/vendor/driftingly/rector-laravel/config/sets/laravel-facade-aliases-to-full-names.php',
-        __DIR__ . '/vendor/driftingly/rector-laravel/config/sets/laravel130-core.php',
-        __DIR__ . '/vendor/driftingly/rector-laravel/config/sets/laravel50.php',
-        __DIR__ . '/vendor/driftingly/rector-laravel/config/sets/laravel51.php',
-        __DIR__ . '/vendor/driftingly/rector-laravel/config/sets/laravel52.php',
-        __DIR__ . '/vendor/driftingly/rector-laravel/config/sets/laravel53.php',
-        __DIR__ . '/vendor/driftingly/rector-laravel/config/sets/laravel54.php',
-        __DIR__ . '/vendor/driftingly/rector-laravel/config/sets/laravel55.php',
-        __DIR__ . '/vendor/driftingly/rector-laravel/config/sets/laravel60.php',
-        __DIR__ . '/vendor/driftingly/rector-laravel/config/sets/laravel70.php',
-        __DIR__ . '/vendor/driftingly/rector-laravel/config/sets/packages/livewire/livewire-40.php',
+use Rector\Config\RectorConfig;
+use Rector\Renaming\Rector\Name\RenameClassRector;
+
+return RectorConfig::configure()
+    ->withPaths([__DIR__.'/app', __DIR__.'/bootstrap', __DIR__.'/config'])
+    ->withConfiguredRule(RenameClassRector::class, [
+        'Fruitcake\Cors\HandleCors' => 'Illuminate\Http\Middleware\HandleCors',
     ]);
 
 ```
@@ -7757,21 +8413,17 @@ return \Rector\Config\RectorConfig::configure()
 ```
 <?php
 
-return \Rector\Config\RectorConfig::configure()
-    ->withSets([
-        __DIR__ . '/vendor/driftingly/rector-laravel/config/sets/laravel100.php',
-        __DIR__ . '/vendor/driftingly/rector-laravel/config/sets/laravel120.php',
-        __DIR__ . '/vendor/driftingly/rector-laravel/config/sets/laravel50.php',
-        __DIR__ . '/vendor/driftingly/rector-laravel/config/sets/laravel53.php',
-        __DIR__ . '/vendor/driftingly/rector-laravel/config/sets/laravel54.php',
-        __DIR__ . '/vendor/driftingly/rector-laravel/config/sets/laravel55.php',
-        __DIR__ . '/vendor/driftingly/rector-laravel/config/sets/laravel56.php',
-        __DIR__ . '/vendor/driftingly/rector-laravel/config/sets/laravel60.php',
-        __DIR__ . '/vendor/driftingly/rector-laravel/config/sets/laravel70.php',
-        __DIR__ . '/vendor/driftingly/rector-laravel/config/sets/laravel80.php',
-        __DIR__ . '/vendor/driftingly/rector-laravel/config/sets/laravel90.php',
-        __DIR__ . '/vendor/driftingly/rector-laravel/config/sets/packages/cashier/cashier-13.php',
-        __DIR__ . '/vendor/driftingly/rector-laravel/config/sets/packages/cashier/cashier-14.php',
+use Rector\Config\RectorConfig;
+use Rector\Renaming\Rector\MethodCall\RenameMethodRector;
+use Rector\Renaming\ValueObject\MethodCallRename;
+
+return RectorConfig::configure()
+    ->withPaths([__DIR__.'/app', __DIR__.'/database'])
+    ->withConfiguredRule(RenameMethodRector::class, [
+        new MethodCallRename('Illuminate\Support\Enumerable', 'reduceWithKeys', 'reduce'),
+        new MethodCallRename('Illuminate\Database\Schema\Blueprint', 'unsignedDecimal', 'decimal'),
+        new MethodCallRename('Illuminate\Database\Schema\Blueprint', 'unsignedDouble', 'double'),
+        new MethodCallRename('Illuminate\Database\Schema\Blueprint', 'unsignedFloat', 'float'),
     ]);
 
 ```
@@ -7952,6 +8604,20 @@ return \Rector\Config\RectorConfig::configure()
 
 ```
 
+### rector:SortCallLikeNamedArgsRector
+```
+<?php
+
+use Rector\Config\RectorConfig;
+use Rector\CodeQuality\Rector\FuncCall\SortCallLikeNamedArgsRector;
+
+return RectorConfig::configure()
+    ->withPaths([__DIR__.'/app'])
+    ->withPhpVersion(80000)
+    ->withRules([SortCallLikeNamedArgsRector::class]);
+
+```
+
 ### rector:StaticCallToFuncCallRector
 ```
 <?php
@@ -7980,6 +8646,47 @@ return \Rector\Config\RectorConfig::configure()
 
 return \Rector\Config\RectorConfig::configure()
     ->withRules([\RectorLaravel\Rector\Class_\StopOnFirstFailurePropertyToStopOnFirstFailureAttributeRector::class]);
+
+```
+
+### rector:StrEndsWithRector
+```
+<?php
+
+use Rector\Config\RectorConfig;
+use Rector\Php80\Rector\Identical\StrEndsWithRector;
+
+return RectorConfig::configure()
+    ->withPaths([__DIR__.'/app'])
+    ->withPhpVersion(80000)
+    ->withRules([StrEndsWithRector::class]);
+
+```
+
+### rector:StrStartsWithRector
+```
+<?php
+
+use Rector\Config\RectorConfig;
+use Rector\Php80\Rector\Identical\StrStartsWithRector;
+
+return RectorConfig::configure()
+    ->withPaths([__DIR__.'/app'])
+    ->withPhpVersion(80000)
+    ->withRules([StrStartsWithRector::class]);
+
+```
+
+### rector:StrlenZeroToIdenticalEmptyStringRector
+```
+<?php
+
+use Rector\Config\RectorConfig;
+use Rector\CodeQuality\Rector\Identical\StrlenZeroToIdenticalEmptyStringRector;
+
+return RectorConfig::configure()
+    ->withPaths([__DIR__.'/app'])
+    ->withRules([StrlenZeroToIdenticalEmptyStringRector::class]);
 
 ```
 
