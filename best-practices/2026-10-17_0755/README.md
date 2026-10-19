@@ -24,6 +24,7 @@ Every active and aspirational rule was tagged against the Laravel 13 docs and fr
 ## Files
 - `laravel-best-practices.md`: the rules, uncited
 - `laravel-best-practices.cited.md`: the rules with their sources
+- [`laravel-must-rules-app.md`](laravel-must-rules-app.md): only the Must rules that apply to Laravel application code (407 of 413; the 6 package-only Musts are listed in its appendix)
 - `enforcement.md`: which rules a tool (Pint, Larastan/PHPStan, Rector, etc.) can enforce, with config snippets
 - `adoption-report.md`: how often 44 pinned public repos follow each rule
 - `aspirational.md`: well-sourced rules that most code does not follow yet
